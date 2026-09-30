@@ -190,7 +190,10 @@ precision); Linear (type discipline). Our twist: the dot field is *live*
   (Atkinson dither, duotone carbon/bone, optional orange highlight mask)
   and writes AVIF/WebP at 1×/2×. Originals are kept out of the repo (large);
   processed outputs are committed.
-- OG images (1200×630) rendered from a dedicated page with Playwright.
+- OG image (1200×630) and raster favicons: `pnpm og` screenshots the
+  unlinked `/og` page with `scripts/dev/shot.mjs` (cropped to 1200×630) and
+  rasterises `public/favicon.svg` with sharp; outputs are committed to
+  `site/public/`.
 
 ## Budgets
 
@@ -201,3 +204,21 @@ precision); Linear (type discipline). Our twist: the dot field is *live*
   readable with JS disabled (static first frame + text).
 - Accessible: semantic headings, focus styles, alt text, sufficient
   contrast (bone on carbon), `lang`, skip link.
+
+## Working on the site
+
+```sh
+cd site
+pnpm dev                 # syncs ../docs into src/content/docs, then astro dev
+pnpm build               # static output in dist/ (SITE_URL, SITE_BASE override)
+pnpm test                # docs sync, flap physics, script and budget helpers
+pnpm lint && pnpm typecheck
+pnpm budget              # per-page gzip JS/CSS/HTML; fails over budget
+pnpm dither              # /tmp/relay-img/*.png → src/assets/img (see gen-images.sh)
+pnpm og                  # public/og.png + favicons from the /og page
+```
+
+`.github/workflows/pages.yml` runs test, lint, typecheck, build and budget,
+then deploys `site/dist` to GitHub Pages on pushes to main touching
+`site/**` or `docs/**`. Repository variables `SITE_URL` / `SITE_BASE` switch
+to a custom domain.
