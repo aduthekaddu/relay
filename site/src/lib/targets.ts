@@ -150,8 +150,15 @@ export const TARGETS: Record<string, (v: View) => Target> = {
   }),
   'no-signal': (v) => ({
     layers: [
-      { kind: 'noise', density: 0.05, gain: 0.5 },
-      { kind: 'dotfont', text: 'NO SIGNAL', h: v.mobile ? 0.07 : 0.2, w: 0.86, y: 0.42 },
+      { kind: 'noise', density: 0.05, gain: 0.35 },
+      // Stacked so each line can use bigger dots than one long line would;
+      // a phone's grid is too narrow for SIGNAL, so it shows the code.
+      ...(v.mobile
+        ? [{ kind: 'dotfont', text: '404', h: 0.2, w: 0.8, y: 0.24 } as const]
+        : [
+            { kind: 'dotfont', text: 'NO', h: 0.19, w: 0.6, y: 0.19 } as const,
+            { kind: 'dotfont', text: 'SIGNAL', h: 0.19, w: 0.6, y: 0.4 } as const,
+          ]),
     ],
     ambient: 0.1,
   }),
