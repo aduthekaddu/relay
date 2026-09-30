@@ -123,7 +123,52 @@ func parseCPUModel(b []byte) string {
 	if model != "" {
 		return model
 	}
-	return hardware
+	if hardware != "" {
+		return hardware
+	}
+	return armModel(b)
+}
+
+// armParts names common Arm cores by "CPU implementer" and "CPU part"
+// (arm64 /proc/cpuinfo has no model name).
+var armParts = map[string]string{
+	"0x41/0xd03": "Cortex-A53", "0x41/0xd04": "Cortex-A35", "0x41/0xd05": "Cortex-A55",
+	"0x41/0xd07": "Cortex-A57", "0x41/0xd08": "Cortex-A72", "0x41/0xd09": "Cortex-A73",
+	"0x41/0xd0a": "Cortex-A75", "0x41/0xd0b": "Cortex-A76", "0x41/0xd0c": "Neoverse-N1",
+	"0x41/0xd0d": "Cortex-A77", "0x41/0xd40": "Neoverse-V1", "0x41/0xd41": "Cortex-A78",
+	"0x41/0xd44": "Cortex-X1", "0x41/0xd46": "Cortex-A510", "0x41/0xd47": "Cortex-A710",
+	"0x41/0xd48": "Cortex-X2", "0x41/0xd49": "Neoverse-N2", "0x41/0xd4d": "Cortex-A715",
+	"0x41/0xd4e": "Cortex-X3", "0x41/0xd4f": "Neoverse-V2", "0x41/0xd80": "Cortex-A520",
+	"0x41/0xd81": "Cortex-A720", "0x41/0xd82": "Cortex-X4", "0x41/0xd84": "Neoverse-V3",
+	"0x41/0xd8e": "Neoverse-N3", "0xc0/0xac3": "Ampere-1", "0xc0/0xac4": "Ampere-1a",
+}
+
+// armModel names the first core listed in an arm64 cpuinfo.
+func armModel(b []byte) string {
+	var impl, part string
+	for _, line := range strings.Split(string(b), "\n") {
+		k, v, ok := strings.Cut(line, ":")
+		if !ok {
+			continue
+		}
+		switch strings.TrimSpace(k) {
+		case "CPU implementer":
+			if impl == "" {
+				impl = strings.ToLower(strings.TrimSpace(v))
+			}
+		case "CPU part":
+			if part == "" {
+				part = strings.ToLower(strings.TrimSpace(v))
+			}
+		}
+	}
+	if impl == "" || part == "" {
+		return ""
+	}
+	if name, ok := armParts[impl+"/"+part]; ok {
+		return name
+	}
+	return "Arm " + impl + "/" + part
 }
 
 // parseLoadavg returns the three load averages.

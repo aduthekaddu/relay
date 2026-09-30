@@ -67,6 +67,8 @@ func TestParseCPUModel(t *testing.T) {
 		fixCPUInfo: "Synthetic CPU 9000 @ 3.00GHz",
 		"processor : 0\nBogoMIPS : 50\nHardware : Synthetic Board\n": "Synthetic Board",
 		"": "",
+		"processor : 0\nCPU implementer : 0x41\nCPU part : 0xd0c\n": "Neoverse-N1",
+		"CPU implementer : 0x99\nCPU part : 0x001\n":               "Arm 0x99/0x001",
 	}
 	for in, want := range tests {
 		if got := parseCPUModel([]byte(in)); got != want {
