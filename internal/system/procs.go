@@ -350,7 +350,10 @@ func (l *ProcLister) Signal(pid int, sigName string) (*api.Process, string, erro
 	if l.protected(rp) {
 		return nil, "", httpx.Forbidden("this process is protected")
 	}
-	p := &api.Process{PID: pid, PPID: rp.st.ppid, Name: rp.st.comm, Cmd: rp.cmd, User: l.userName(rp.uid)}
+	l.mu.Lock()
+	user := l.userName(rp.uid)
+	l.mu.Unlock()
+	p := &api.Process{PID: pid, PPID: rp.st.ppid, Name: rp.st.comm, Cmd: rp.cmd, User: user}
 	if err := syscall.Kill(pid, sig); err != nil {
 		switch {
 		case errors.Is(err, syscall.ESRCH):

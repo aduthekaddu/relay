@@ -234,7 +234,7 @@ func parseMounts(b []byte) []mountInfo {
 			continue // snaps and images
 		}
 		if strings.HasPrefix(mnt, "/snap/") || strings.HasPrefix(mnt, "/var/lib/docker/") ||
-			strings.HasPrefix(mnt, "/run/") || strings.HasPrefix(mnt, "/proc") || strings.HasPrefix(mnt, "/sys") {
+			(strings.HasPrefix(mnt, "/run/") && !strings.HasPrefix(mnt, "/run/media/")) || strings.HasPrefix(mnt, "/proc") || strings.HasPrefix(mnt, "/sys") {
 			continue
 		}
 		cur, seen := byDev[dev]
@@ -379,7 +379,7 @@ func cmdline(b []byte, max int) string {
 	return s
 }
 
-// thermalPreferred ranks /sys/class/thermal zone types; lower is better.
+// thermalRank ranks /sys/class/thermal zone types; lower is better.
 func thermalRank(typ string) int {
 	t := strings.ToLower(typ)
 	switch {
