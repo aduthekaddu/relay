@@ -27,10 +27,32 @@ function precompress(): Plugin {
   }
 }
 
+// Preload the two Latin variable fonts so text never reflows after first
+// paint (they are referenced from styles/fonts.css and emitted hashed).
+function fontPreload(): Plugin {
+  return {
+    name: 'relay-font-preload',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(_html, ctx) {
+        const files = Object.keys(ctx.bundle ?? {}).filter((f) =>
+          /(mona-sans-latin-standard-normal|jetbrains-mono-latin-wght-normal)[^/]*\.woff2$/.test(f),
+        )
+        return files.map((f) => ({
+          tag: 'link',
+          attrs: { rel: 'preload', href: `/${f}`, as: 'font', type: 'font/woff2', crossorigin: '' },
+          injectTo: 'head' as const,
+        }))
+      },
+    },
+  }
+}
+
 const relay = process.env.RELAY_DEV_URL || 'http://127.0.0.1:47700'
 
 export default defineConfig({
-  plugins: [preact(), precompress()],
+  plugins: [preact(), fontPreload(), precompress()],
   resolve: { alias: { '@': resolve(__dirname, 'src') } },
   build: {
     outDir: '../internal/web/dist',
