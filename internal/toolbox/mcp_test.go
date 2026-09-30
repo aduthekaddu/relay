@@ -98,10 +98,10 @@ TOKEN = "synthetic"
 [profiles.fast]
 model = "mini"
 `,
-		".gemini/settings.json":           `{"theme": "Default"}`,
-		".config/opencode/opencode.json":  `{"$schema": "https://opencode.ai/config.json", "mcp": {"blender": {"type": "local", "command": ["uvx", "blender-mcp"], "enabled": true}}}`,
-		".kiro/settings/mcp.json":         `{"mcpServers": {}}`,
-		".cursor/.keep":                   ``,
+		".gemini/settings.json":          `{"theme": "Default"}`,
+		".config/opencode/opencode.json": `{"$schema": "https://opencode.ai/config.json", "mcp": {"blender": {"type": "local", "command": ["uvx", "blender-mcp"], "enabled": true}}}`,
+		".kiro/settings/mcp.json":        `{"mcpServers": {}}`,
+		".cursor/.keep":                  ``,
 	}
 	for rel, body := range files {
 		p := filepath.Join(home, rel)
