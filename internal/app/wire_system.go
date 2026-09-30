@@ -13,5 +13,7 @@ func wireSystem(ctx context.Context, a *App) error {
 		return err
 	}
 	svc.Routes(a.Router)
+	a.OnStart("system", svc.Start)
+	a.D.Search.Add(svc.SearchProvider())
 	return nil
 }
