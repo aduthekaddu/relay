@@ -41,6 +41,7 @@ type Deps struct {
 	Agents     AgentService
 	Workspaces WorkspaceService
 	Search     *SearchRegistry
+	Presence   Presence // set by internal/live (see bus.go)
 }
 
 // Notifier delivers a notification to the in-app inbox and every enabled

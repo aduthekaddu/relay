@@ -36,6 +36,7 @@ func New(cfg *config.Config, paths config.Paths, log *slog.Logger, h http.Handle
 // Run blocks until ctx is cancelled or a listener fails.
 func (s *Server) Run(ctx context.Context) error {
 	h := SecurityHeaders(s.cfg, Recover(s.log, s.handler))
+	h = RequestLog(s.log, WithRequestInfo(TrustedProxies(s.cfg), LimitBodies(h)))
 	errc := make(chan error, 3)
 	var servers []*http.Server
 
@@ -157,7 +158,7 @@ func SecurityHeaders(cfg *config.Config, next http.Handler) http.Handler {
 		h.Set("X-Frame-Options", "SAMEORIGIN")
 		h.Set("Cross-Origin-Opener-Policy", "same-origin")
 		h.Set("Permissions-Policy", "camera=(), geolocation=(), payment=(), usb=(), microphone=(self), clipboard-read=(self), clipboard-write=(self)")
-		if secure {
+		if secure || IsSecureRequest(r) {
 			h.Set("Strict-Transport-Security", "max-age=31536000")
 		}
 		if h.Get("Content-Security-Policy") == "" {
