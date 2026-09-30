@@ -66,6 +66,10 @@ func (k *desktop) ServeWS(w http.ResponseWriter, r *http.Request) {
 // closes both. Backpressure is natural: each direction blocks on its
 // writer, so a slow browser stops reads from the VNC socket.
 func bridgeRFB(ctx context.Context, ws *websocket.Conn, vnc net.Conn) {
+	// done ends the bridge; ctx is only cancelled after the close
+	// handshake, because cancelling a coder/websocket read or write
+	// context drops the connection without a close frame.
+	done := make(chan struct{})
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	var wg sync.WaitGroup
@@ -77,7 +81,7 @@ func bridgeRFB(ctx context.Context, ws *websocket.Conn, vnc net.Conn) {
 			reasonMu.Lock()
 			status, reason = code, why
 			reasonMu.Unlock()
-			cancel()
+			close(done)
 			_ = vnc.Close()
 		})
 	}
@@ -131,7 +135,7 @@ func bridgeRFB(ctx context.Context, ws *websocket.Conn, vnc net.Conn) {
 		defer t.Stop()
 		for {
 			select {
-			case <-ctx.Done():
+			case <-done:
 				return
 			case <-t.C:
 				pctx, pcancel := context.WithTimeout(ctx, wsPingTimeout)
@@ -144,11 +148,15 @@ func bridgeRFB(ctx context.Context, ws *websocket.Conn, vnc net.Conn) {
 			}
 		}
 	}()
-	<-ctx.Done()
-	finish(websocket.StatusGoingAway, "")
+	select {
+	case <-done:
+	case <-ctx.Done(): // request context: server shutting down
+		finish(websocket.StatusGoingAway, "")
+	}
 	reasonMu.Lock()
 	code, why := status, reason
 	reasonMu.Unlock()
-	_ = ws.Close(code, why)
+	_ = ws.Close(code, why) // handshake; unblocks the reader
+	cancel()
 	wg.Wait()
 }

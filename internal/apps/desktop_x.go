@@ -37,7 +37,7 @@ func (k *desktop) Launch(ctx context.Context, id string) error {
 	cmd.Dir = k.d.Paths.Home
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("launch %s: %w", app.Name, err)
+		return httpx.Unavailable(fmt.Sprintf("Launching %s failed: %v", app.Name, err))
 	}
 	go func() { _ = cmd.Wait() }() // reap
 	k.touch()
@@ -141,7 +141,7 @@ func (k *desktop) SetClipboard(ctx context.Context, text string) error {
 		// -silent: xclip forks and the parent returns once it owns the
 		// selection; nothing holds our pipes open.
 		if _, err := k.xtool(ctx, strings.NewReader(text), -1, "xclip", "-selection", sel, "-i", "-silent"); err != nil {
-			return fmt.Errorf("set desktop clipboard: %w", err)
+			return httpx.Unavailable("Setting the desktop clipboard failed: " + err.Error())
 		}
 	}
 	k.touch()
@@ -159,24 +159,24 @@ func (k *desktop) Resize(ctx context.Context, w, h int) error {
 	}
 	out, err := k.xtool(ctx, nil, 256<<10, "xrandr", "-q")
 	if err != nil {
-		return fmt.Errorf("resize desktop: %w", err)
+		return httpx.Unavailable("Resizing the desktop failed: " + err.Error())
 	}
 	output, modes := parseXrandr(out)
 	if output == "" {
-		return fmt.Errorf("resize desktop: no connected output")
+		return httpx.Unavailable("Resizing the desktop failed: no connected output")
 	}
 	mode := fmt.Sprintf("%dx%d", w, h)
 	if !modes[mode] {
 		ws, hs := strconv.Itoa(w), strconv.Itoa(h)
 		if _, err := k.xtool(ctx, nil, 4096, "xrandr", "--newmode", mode, "60", ws, ws, ws, ws, hs, hs, hs, hs); err != nil {
-			return fmt.Errorf("resize desktop: %w", err)
+			return httpx.Unavailable("Resizing the desktop failed: " + err.Error())
 		}
 		if _, err := k.xtool(ctx, nil, 4096, "xrandr", "--addmode", output, mode); err != nil {
-			return fmt.Errorf("resize desktop: %w", err)
+			return httpx.Unavailable("Resizing the desktop failed: " + err.Error())
 		}
 	}
 	if _, err := k.xtool(ctx, nil, 4096, "xrandr", "--output", output, "--mode", mode); err != nil {
-		return fmt.Errorf("resize desktop: %w", err)
+		return httpx.Unavailable("Resizing the desktop failed: " + err.Error())
 	}
 	k.mu.Lock()
 	k.width, k.height = w, h

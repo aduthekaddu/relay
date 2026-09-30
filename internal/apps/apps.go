@@ -163,6 +163,7 @@ func (s *Service) userApp(ac config.AppConfig) (*webApp, error) {
 		env[k] = v
 	}
 	var ready func(ctx context.Context) error
+	var before func() error
 	switch {
 	case ac.Socket != "" && ac.Port != 0:
 		return nil, fmt.Errorf("app %q: set either port or socket, not both", id)
@@ -173,6 +174,7 @@ func (s *Service) userApp(ac config.AppConfig) (*webApp, error) {
 		}
 		a.dial = revproxy.UnixSocket(sock, 2*time.Second)
 		ready = socketReady(sock)
+		before = func() error { return removeStaleSocket(sock) }
 		env["RELAY_APP_SOCKET"] = sock
 	case ac.Port > 0 && ac.Port <= 65535:
 		a.dial = revproxy.LoopbackTCP(ac.Port, 2*time.Second)
@@ -202,6 +204,7 @@ func (s *Service) userApp(ac config.AppConfig) (*webApp, error) {
 		}
 		a.proc = newProc(procSpec{
 			Name: id, Argv: argv, Env: childEnv(os.Environ(), env), Dir: dir, Ready: ready,
+			BeforeStart: before,
 		}, func() { s.publishApp(a) })
 	}
 	a.proxy = s.newProxy(a)

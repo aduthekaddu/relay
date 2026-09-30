@@ -146,8 +146,11 @@ func (k *desktop) stopLocked(ctx context.Context) error {
 
 // checkIdle stops a running desktop nobody has watched for idle_stop.
 func (k *desktop) checkIdle(ctx context.Context, now time.Time) {
+	if k.unavailable != "" {
+		return
+	}
 	limit := k.d.Cfg.Desktop.IdleStop.Duration
-	if limit <= 0 || k.unavailable != "" {
+	if limit <= 0 {
 		return
 	}
 	if st, _ := k.status(); st != stateRunning {
