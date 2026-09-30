@@ -1,0 +1,56 @@
+{
+  "desk": {
+    "width": 960,
+    "height": 640,
+    "aspect": 1.5,
+    "beacon": [
+      0.1635,
+      0.3658
+    ]
+  },
+  "rack": {
+    "width": 960,
+    "height": 640,
+    "aspect": 1.5,
+    "beacon": [
+      0.7943,
+      0.2445
+    ]
+  },
+  "road": {
+    "width": 960,
+    "height": 640,
+    "aspect": 1.5,
+    "beacon": [
+      0.7728,
+      0.6142
+    ]
+  },
+  "tower": {
+    "width": 960,
+    "height": 640,
+    "aspect": 1.5,
+    "beacon": [
+      0.7878,
+      0.3379
+    ]
+  },
+  "train": {
+    "width": 960,
+    "height": 640,
+    "aspect": 1.5,
+    "beacon": [
+      0.4201,
+      0.4978
+    ]
+  },
+  "windows": {
+    "width": 960,
+    "height": 640,
+    "aspect": 1.5,
+    "beacon": [
+      0.5023,
+      0.4629
+    ]
+  }
+}
