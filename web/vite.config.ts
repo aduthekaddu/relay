@@ -108,6 +108,8 @@ export default defineConfig({
     port: Number(process.env.VITE_PORT || 47780),
     strictPort: true,
     host: '127.0.0.1',
+    // Tests read docs/dev/API.md (mock coverage); the dev server stays scoped to web/.
+    fs: process.env.VITEST ? { allow: ['..'] } : undefined,
     proxy: {
       '/api': { target: relay, ws: true, changeOrigin: false },
       '/apps': { target: relay, ws: true },

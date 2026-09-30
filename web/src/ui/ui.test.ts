@@ -79,7 +79,8 @@ describe('place', () => {
     ['bottom-start', 1000, 800, { x: 100, y: 126, side: 'bottom' }],
     ['bottom-end', 1000, 800, { x: 40, y: 126, side: 'bottom' }],
     ['top', 1000, 800, { x: 70, y: 126, side: 'bottom' }], // no room above → flips below
-    ['right', 1000, 800, { x: 146, y: 60, side: 'right' }],
+    ['right-start', 1000, 800, { x: 146, y: 100, side: 'right' }],
+    ['left-start', 1000, 800, { x: 146, y: 100, side: 'right' }], // no room on the left → flips
     ['bottom-start', 150, 800, { x: 42, y: 126, side: 'bottom' }], // clamped into the viewport
   ] as const)('%s in %i×%i', (placement, vw, vh, want) => {
     const r = place(anchor, 100, 100, placement, vw, vh)

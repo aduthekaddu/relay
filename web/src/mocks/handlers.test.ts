@@ -1,11 +1,9 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import doc from '../../../docs/dev/API.md?raw'
 import { handle, match } from './handlers'
 
 // Every endpoint documented in docs/dev/API.md must have a mock handler, so
 // the next wave can build any screen with `pnpm dev:mock`.
-const doc = readFileSync(resolve(__dirname, '../../../docs/dev/API.md'), 'utf8')
 const ROW = /^\| (GET|POST|PUT|PATCH|DELETE)([^|]*)\| `([^`]+)`/gm
 
 function concrete(path: string): string {
