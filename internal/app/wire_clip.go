@@ -13,5 +13,6 @@ func wireClip(ctx context.Context, a *App) error {
 		return err
 	}
 	svc.Routes(a.Router)
+	a.OnStart("clip", svc.Start)
 	return nil
 }
