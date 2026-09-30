@@ -1,0 +1,125 @@
+---
+import FeatureRows from '../components/FeatureRows.astro'
+import InstallOneLiner from '../components/InstallOneLiner.astro'
+import PageHero from '../components/PageHero.astro'
+import PhoneTerminal from '../components/PhoneTerminal.astro'
+import Base from '../layouts/Base.astro'
+import { href } from '../lib/url'
+
+const shortcuts = [
+  ['Delete to line start', '⌘⌫', 'Ctrl+Shift+⌫', 'Ctrl+U'],
+  ['Delete word back', '⌥⌫', 'Ctrl+⌫', 'Ctrl+W'],
+  ['Delete to line end', '⌘⌦', 'Ctrl+Shift+Del', 'Ctrl+K'],
+  ['Line start / end', '⌘← ⌘→', 'Home End', 'Ctrl+A Ctrl+E'],
+  ['Word back / forward', '⌥← ⌥→', 'Ctrl+← Ctrl+→', 'Esc b Esc f'],
+  ['Newline in agent prompt', '⇧⏎', '⇧⏎', 'Esc ⏎'],
+  ['Paste — images too', '⌘V', 'Ctrl+V', 'bracketed paste'],
+  ['Search scrollback', '⌘F', 'Ctrl+Shift+F', 'local'],
+]
+const mobile = [
+  {
+    t: 'A key bar with the keys you need',
+    b: 'Esc, Tab, sticky Ctrl and Alt (tap once, double-tap to lock), arrows, `|` `~` `/` `-`, Home, End, ^C, ^R — 44 px each, and long-press for alternates.',
+  },
+  { t: 'Swipe it like a trackpad', b: 'Drag the key bar left and right to move the cursor, up and down to walk history. No more tapping ← forty times.' },
+  {
+    t: 'A compose bar that is a real text field',
+    b: 'Autocorrect, swipe typing, dictation and paste all work, because it is a native textarea. Enter sends; Shift+Enter adds a line.',
+  },
+  { t: 'Direct mode for vim and htop', b: 'One toggle hides the compose bar and sends every keystroke straight to the terminal — with IME and autocorrect handled.' },
+  { t: 'Select, zoom, scroll', b: 'Long-press for native text selection with Copy all and Share. Pinch to zoom. Momentum scrollback with a jump-to-bottom button.' },
+  { t: 'Sized to the keyboard', b: 'The terminal fits exactly above the software keyboard and the key bar stays glued to it. No page jumps, no zoom-on-focus.' },
+]
+const lasting = [
+  { t: 'Sessions outlive the tab', b: 'A small daemon owns every terminal. Close the browser, lose the train Wi-Fi, restart Relay — the session keeps running and reattaches with its screen and scrollback.' },
+  { t: 'Recordings you can scrub', b: 'Agent sessions are recorded as asciicast by default. Replay them at any speed, scrub to the moment it went wrong, download the `.cast`.' },
+  { t: 'Paste a screenshot, get a path', b: 'Paste or drop images and files — from the camera roll too. They upload in chunks and the path is typed for you, quoted if it needs to be.' },
+  { t: 'Clipboard that crosses devices', b: 'OSC 52 copies from inside the terminal land on the device you are holding, and in Relay’s clipboard history.' },
+  { t: 'Links that go somewhere', b: '`localhost:5173` opens the matching preview. `src/app.ts:42` opens the file. Bells and OSC 9 become notifications.' },
+  { t: 'The relay CLI, inside every session', b: '`relay notify`, `relay open`, `relay preview`, `relay clip` — scripts and agents can reach you and your devices.' },
+]
+---
+
+<Base
+  title="Terminal"
+  description="The best terminal a browser has ever had on a phone — and one that feels native on your Mac or Windows keyboard."
+  area="terminal"
+  still="train"
+>
+  <PageHero
+    eyebrow="Terminal"
+    field="page-terminal"
+    lede="Persistent sessions that follow you from the desk to the train. A key bar, gestures and a compose bar built for phones — and the shortcuts your fingers already know on a laptop."
+  >
+    <Fragment slot="title">A terminal that <span class="dim">fits in your pocket.</span></Fragment>
+    <Fragment slot="actions">
+      <a class="btn btn-primary btn-lg" href={href('install/')}>Get Relay</a>
+      <a class="btn btn-ghost btn-lg" href={href('docs/')} data-astro-reload>Read the docs</a>
+    </Fragment>
+  </PageHero>
+
+  <section class="section" data-field="quiet" data-field-gain="0.4" aria-labelledby="t-mobile">
+    <div class="wrap split">
+      <div>
+        <p class="eyebrow">On a phone</p>
+        <h2 id="t-mobile" class="h-1" data-split>Made for thumbs.</h2>
+        <FeatureRows items={mobile} class="mt-lg" />
+      </div>
+      <div class="split-vis sticky-vis">
+        <PhoneTerminal id="term-phone" autoplay />
+      </div>
+    </div>
+  </section>
+
+  <section class="section" data-field="quiet" data-field-gain="0.3" aria-labelledby="t-keys">
+    <div class="wrap">
+      <div class="sec-head sec-head-split">
+        <div>
+          <p class="eyebrow">On a keyboard</p>
+          <h2 id="t-keys" class="h-1" data-split>⌘⌫ deletes the line. <span class="dim">Like your Mac.</span></h2>
+        </div>
+        <p class="lede will-reveal">
+          Mac and Windows editing shortcuts translate to what readline, zsh, fish and the agent TUIs understand. Browser
+          chords stay the browser's; Ctrl+C without a selection is always SIGINT.
+        </p>
+      </div>
+      <div class="table-wrap will-reveal">
+        <table class="table">
+          <caption class="sr-only">Keyboard shortcut translation</caption>
+          <thead>
+            <tr><th scope="col">Action</th><th scope="col">Mac</th><th scope="col">Windows / Linux</th><th scope="col">Sends</th></tr>
+          </thead>
+          <tbody>
+            {
+              shortcuts.map(([a, m, w, s]) => (
+                <tr>
+                  <td>{a}</td>
+                  <td>{m!.split(' ').map((k) => <span class="kbd">{k}</span>)}</td>
+                  <td>{w!.split(' ').map((k) => <span class="kbd">{k}</span>)}</td>
+                  <td class="mono">{s}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" data-field="page-terminal" data-field-gain="0.35" aria-labelledby="t-last">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Built to last</p>
+        <h2 id="t-last" class="h-1" data-split>Close the tab. <span class="dim">It keeps running.</span></h2>
+      </div>
+      <FeatureRows items={lasting} />
+    </div>
+  </section>
+
+  <section class="section" data-field="install" aria-labelledby="t-cta">
+    <div class="wrap">
+      <h2 id="t-cta" class="h-1" data-split>Your terminal, <span class="dim">everywhere you are.</span></h2>
+      <InstallOneLiner size="xl" class="will-reveal mt-lg" />
+    </div>
+  </section>
+</Base>

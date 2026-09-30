@@ -5,6 +5,51 @@ The site sells Relay in ten seconds and documents it for years. It lives in
 Starlight under `/docs`, sourced from the repo's `/docs` folder so GitHub
 and the site show the same text.
 
+## What great looks like (research notes)
+
+From recent.design (Astro Dither, Interfere, Displace, Nothing to Watch,
+Orior AI), landing.love, 60fps.design, saaspo, minimal.gallery, and the
+dev-tool sites known for craft (ghostty, linear, raycast, warp, zed,
+cursor, vercel, teenage.engineering):
+
+- **One idea, visible in the first second.** Ghostty's animated ASCII ghost
+  says "terminal" before a word is read. The hero is the product's
+  *metaphor*, not a screenshot. For us: the live dot field.
+- **Restraint is the luxury signal.** The featured sites use one or two
+  colours and a lot of black. The accent appears only where the eye must
+  go (Astro Dither: dithered monochrome + one hue).
+- **Texture beats gradients.** Dither, halftone and dot grids (Interfere,
+  Nothing) feel physical and "made"; soft blurred blobs read as template.
+- **Type is the layout.** Linear and Vercel set huge, tightly-tracked
+  headlines with generous negative space and let the copy do the selling;
+  body copy is short, grey, and never competes.
+- **Scroll is a timeline, not a list.** The memorable sites pin a scene and
+  scrub it (Warp's terminal, Raycast's palette): each "shot" teaches one
+  thing, then gets out of the way.
+- **Show the product doing the thing.** Raycast types real queries into a
+  real-looking palette; Zed shows real code moving. Scripted, deterministic
+  demos beat videos (crisp, tiny, accessible, scrubbable).
+- **An instrument layer.** Linear's "FIG 0.1" captions and TE's spec labels:
+  small mono metadata next to big type gives precision and rhythm.
+- **Industrial precision (TE).** Physical-object metaphors (keys, knobs,
+  displays) rendered with care become the brand. Ours: the split-flap
+  board and the beacon.
+- **Motion with weight.** Expo-out reveals, line masks, 0.02–0.04 s
+  staggers; nothing bounces except things that are physical (flaps).
+- **Performance is part of the design.** The best of 60fps.design are
+  canvas/WebGL but ship text first; a janky hero kills the effect.
+- **Mobile is its own composition,** not a squashed desktop: fewer dots,
+  stacked type, the demo at full width (Cursor, Linear on phones).
+- **Consistent system across pages.** Product pages reuse the same shots
+  with a different accent hue; coherence reads as quality.
+- **A finale that converts.** Vercel/Warp end on one enormous command or
+  button; the install line is the last big type on the page.
+
+Direction chosen: carbon night, a live LED dot field that forms type,
+devices and dithered photographs; one orange beacon; Mona Sans at display
+sizes with width-axis motion; departures-board flaps as the "every agent"
+object. No gradients, no glass, no 3D.
+
 ## The idea in one line
 
 **Your machine, relayed to every screen.** The site is a short film about a
@@ -145,7 +190,10 @@ precision); Linear (type discipline). Our twist: the dot field is *live*
   (Atkinson dither, duotone carbon/bone, optional orange highlight mask)
   and writes AVIF/WebP at 1×/2×. Originals are kept out of the repo (large);
   processed outputs are committed.
-- OG images (1200×630) rendered from a dedicated page with Playwright.
+- OG image (1200×630) and raster favicons: `pnpm og` screenshots the
+  unlinked `/og` page with `scripts/dev/shot.mjs` (cropped to 1200×630) and
+  rasterises `public/favicon.svg` with sharp; outputs are committed to
+  `site/public/`.
 
 ## Budgets
 
@@ -156,3 +204,21 @@ precision); Linear (type discipline). Our twist: the dot field is *live*
   readable with JS disabled (static first frame + text).
 - Accessible: semantic headings, focus styles, alt text, sufficient
   contrast (bone on carbon), `lang`, skip link.
+
+## Working on the site
+
+```sh
+cd site
+pnpm dev                 # syncs ../docs into src/content/docs, then astro dev
+pnpm build               # static output in dist/ (SITE_URL, SITE_BASE override)
+pnpm test                # docs sync, flap physics, script and budget helpers
+pnpm lint && pnpm typecheck
+pnpm budget              # per-page gzip JS/CSS/HTML; fails over budget
+pnpm dither              # /tmp/relay-img/*.png → src/assets/img (see gen-images.sh)
+pnpm og                  # public/og.png + favicons from the /og page
+```
+
+`.github/workflows/pages.yml` runs test, lint, typecheck, build and budget,
+then deploys `site/dist` to GitHub Pages on pushes to main touching
+`site/**` or `docs/**`. Repository variables `SITE_URL` / `SITE_BASE` switch
+to a custom domain.

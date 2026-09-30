@@ -1,0 +1,14 @@
+---
+/** Beacon — the orange "needs you" dot with signal rings. Decorative. */
+interface Props {
+  size?: 'sm' | 'md' | 'lg'
+  class?: string
+}
+const { size = 'md', class: cls } = Astro.props
+---
+
+<span class:list={['beacon', `beacon-${size}`, cls]} aria-hidden="true">
+  <span class="beacon-ring"></span>
+  <span class="beacon-ring"></span>
+  <span class="beacon-core"></span>
+</span>

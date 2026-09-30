@@ -1,0 +1,50 @@
+---
+/**
+ * Starlight SiteTitle override: the Relay mark links back to the
+ * marketing site; the "docs" tag links to the docs index.
+ */
+import Mark from '../Mark.astro'
+import { href } from '../../lib/url'
+---
+
+<span class="relay-title">
+  <a class="relay-title-home" href={href()} aria-label="Relay home">
+    <Mark size={22} />
+    <span>Relay</span>
+  </a>
+  <a class="relay-title-docs" href={href('docs/')}>docs</a>
+</span>
+
+<style>
+  .relay-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .relay-title-home {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--sl-color-white);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+  }
+  .relay-title-docs {
+    padding: 2px 8px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px var(--sl-color-hairline-light);
+    color: var(--sl-color-gray-3);
+    font-family: var(--sl-font-mono);
+    font-size: 12px;
+    text-decoration: none;
+  }
+  .relay-title-docs:hover {
+    color: var(--sl-color-text-accent);
+  }
+  :global(.mark-beacon) {
+    fill: var(--relay-signal);
+  }
+</style>

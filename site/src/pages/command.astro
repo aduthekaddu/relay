@@ -1,0 +1,99 @@
+---
+import FeatureRows from '../components/FeatureRows.astro'
+import InstallOneLiner from '../components/InstallOneLiner.astro'
+import PageHero from '../components/PageHero.astro'
+import PaletteDemo from '../components/PaletteDemo.astro'
+import Base from '../layouts/Base.astro'
+import { href } from '../lib/url'
+
+const scope = [
+  'Commands',
+  'Terminals',
+  'Agent sessions',
+  'Transcripts',
+  'Workspaces',
+  'Files',
+  'Previews',
+  'Processes',
+  'Snippets',
+  'Notes',
+  'Settings',
+]
+const built = [
+  { t: 'Actions on every result', b: 'Press ⌘K on a result — or → on touch — for open, resume, kill, rename, copy path, open in Code.' },
+  { t: 'Arguments, inline', b: '“New agent session” asks for the agent, the workspace and the prompt right in the bar. Tab between them.' },
+  { t: 'Quick AI with your own subscriptions', b: 'Ask a question and get an answer from the agent CLIs you already use, in headless mode. No new API key, no new bill.' },
+  { t: 'Clipboard history across devices', b: 'Copy on the laptop, paste on the phone. Everything copied — including OSC 52 from terminals — in one searchable history.' },
+  { t: 'Snippets and notes', b: 'Saved prompts with `{{variables}}`, and a scratchpad that is there on every device.' },
+  { t: 'Calculator and conversions', b: '`12 GB in MiB`, `3h in minutes`, `0x1f to dec` — answers as you type, copied with Enter.' },
+]
+const script = `#!/usr/bin/env bash
+# @raycast.schemaVersion 1
+# @raycast.title Deploy staging
+# @raycast.mode inline
+# @raycast.argument1 { "type": "text", "placeholder": "branch" }
+
+git -C ~/api push staging "\${1:-main}" && echo "Deployed \${1:-main}"`
+---
+
+<Base
+  title="Command center"
+  description="⌘K for your whole machine: search every terminal, agent session, file, port and process — and act on it."
+  area="system"
+  still="windows"
+>
+  <PageHero
+    eyebrow="Command center"
+    field="page-command"
+    lede="Press ⌘K (or Ctrl+K, or tap search on the phone) and type. Terminals, conversations, files, ports and processes — found, then resumed, opened, killed or asked about."
+  >
+    <Fragment slot="title">⌘K for your <span class="dim">whole machine.</span></Fragment>
+    <Fragment slot="actions">
+      <a class="btn btn-primary btn-lg" href={href('install/')}>Get Relay</a>
+      <a class="btn btn-ghost btn-lg" href="#scripts">Script commands</a>
+    </Fragment>
+  </PageHero>
+
+  <section class="section" data-field="quiet" data-field-gain="0.3" aria-labelledby="c-search">
+    <div class="wrap split">
+      <div>
+        <p class="eyebrow">Search everything</p>
+        <h2 id="c-search" class="h-1" data-split>Type what you mean.</h2>
+        <ul class="chips mt-lg will-reveal" aria-label="What the command center searches">
+          {scope.map((s) => <li>{s}</li>)}
+        </ul>
+      </div>
+      <div class="split-vis"><PaletteDemo /></div>
+    </div>
+  </section>
+
+  <section class="section" data-field="quiet" data-field-gain="0.25" aria-labelledby="c-built">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Built in</p>
+        <h2 id="c-built" class="h-1" data-split>More than a launcher.</h2>
+      </div>
+      <FeatureRows items={built} />
+    </div>
+  </section>
+
+  <section id="scripts" class="section" data-field="page-command" data-field-gain="0.4" aria-labelledby="c-scripts">
+    <div class="wrap split">
+      <div>
+        <p class="eyebrow">Script commands</p>
+        <h2 id="c-scripts" class="h-1" data-split>Any script <span class="dim">is a command.</span></h2>
+        <p class="lede will-reveal mt-lg">
+          Drop an executable into <span class="mono">~/.config/relay/commands/</span>. Raycast-style metadata comments give it a title, arguments, and a mode: inline output, in a terminal, or silent.
+        </p>
+      </div>
+      <pre class="panel code-panel mono will-reveal"><code>{script}</code></pre>
+    </div>
+  </section>
+
+  <section class="section" data-field="install" aria-labelledby="c-cta">
+    <div class="wrap">
+      <h2 id="c-cta" class="h-1" data-split>One shortcut. <span class="dim">Everything.</span></h2>
+      <InstallOneLiner size="xl" class="will-reveal mt-lg" />
+    </div>
+  </section>
+</Base>

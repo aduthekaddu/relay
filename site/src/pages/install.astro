@@ -1,0 +1,141 @@
+---
+import InstallOneLiner from '../components/InstallOneLiner.astro'
+import PageHero from '../components/PageHero.astro'
+import Base from '../layouts/Base.astro'
+import { REPO } from '../lib/site'
+import { href } from '../lib/url'
+
+const tabs = [
+  {
+    id: 'vps',
+    label: 'I have a VPS',
+    title: 'A server in the cloud',
+    steps: [
+      'SSH in as your normal user (not root) and run the one-liner.',
+      'Choose “public domain with HTTPS” and enter a domain that points at the server — or pick the instant sslip.io domain to try it first.',
+      'Set a password. Relay installs its systemd user units with linger, so it survives logout and reboots.',
+      'Open the URL it prints on your phone, sign in, and add a passkey from Settings → Security.',
+    ],
+    note: 'Only port 443 needs to be open. Any small Linux VPS (amd64 or arm64) works.',
+  },
+  {
+    id: 'home',
+    label: 'My home computer',
+    title: 'The machine under your desk',
+    steps: [
+      'Run the one-liner on the Linux box you want to reach.',
+      'Choose Tailscale (easiest, nothing exposed) or “behind my own proxy” if you already run one.',
+      'Set a password and let it start. Keep the machine from sleeping if you want it at 3 a.m.',
+      'Scan the QR code with your phone and add Relay to your home screen.',
+    ],
+    note: 'No port forwarding needed with Tailscale or a Cloudflare Tunnel.',
+  },
+  {
+    id: 'tailnet',
+    label: 'Only on my tailnet',
+    title: 'Private to your devices',
+    steps: [
+      'Install Tailscale on the machine and on your phone, signed in to the same tailnet.',
+      'Run the one-liner and choose Tailscale; Relay uses your tailnet name and its HTTPS certificate.',
+      'Set a password — the tailnet is the first lock, Relay’s sign-in the second.',
+      'Open https://your-box.your-tailnet.ts.net on any of your devices.',
+    ],
+    note: 'Nothing is reachable from the public internet.',
+  },
+  {
+    id: 'macos',
+    label: 'macOS',
+    title: 'The Mac on your desk',
+    steps: [
+      'Run the one-liner in Terminal; it installs the relay binary for your Mac.',
+      'Choose how to reach it — Tailscale is the usual pick for a laptop.',
+      'Relay runs its server and terminal daemon under launchd instead of systemd.',
+      'Open it from your phone; the desktop and a few Linux-only extras are not available on macOS.',
+    ],
+    note: 'Serve and terminals are supported on macOS; the remote desktop is Linux-only.',
+  },
+]
+const faq = [
+  { q: 'Is it free?', a: 'Yes. Relay is open source under the MIT licence. There is no paid tier and no account with us.' },
+  { q: 'What does the install script do?', a: 'It downloads the release binary for your platform, verifies its checksum, and runs <code>relay setup</code>, which asks how you want to reach the machine, sets your password and installs the services. Read it first: it is short.' },
+  { q: 'Do I need root?', a: 'No. Relay runs as your user, with user-level services.' },
+  { q: 'Which agents does it work with?', a: 'Any CLI runs in its terminal. Fourteen agents — Claude Code, Codex, Gemini CLI, OpenCode, Kiro and more — get the board, history, search and attention hooks.' },
+  { q: 'How do I update or remove it?', a: '<code>relay update</code> replaces the binary after checking its checksum; sessions keep running. <code>relay uninstall</code> removes the services and, if you ask, the data.' },
+  { q: 'Something is off. Where do I look?', a: '<code>relay doctor</code> checks the setup and tells you what to fix; <code>relay logs</code> tails the service logs.' },
+]
+---
+
+<Base title="Install" description="Install Relay with one line on a VPS, a home server, your tailnet or a Mac." still="road">
+  <PageHero
+    eyebrow="Install"
+    field="page-install"
+    lede="One command downloads Relay, checks it, and asks you two questions. A few minutes later your machine is on your phone."
+  >
+    <Fragment slot="title">One line. <span class="dim">Then your phone.</span></Fragment>
+  </PageHero>
+
+  <section class="section install-first" data-field="quiet" data-field-gain="0.3" aria-labelledby="i-cmd">
+    <div class="wrap">
+      <h2 id="i-cmd" class="sr-only">The install command</h2>
+      <InstallOneLiner size="xl" class="will-reveal" />
+      <p class="body mt-lg mono dim">
+        Linux (systemd) amd64/arm64 · macOS · <a href={`${REPO}/blob/main/scripts/install.sh`}>read the script</a>
+      </p>
+    </div>
+  </section>
+
+  <section class="section" data-field="quiet" data-field-gain="0.25" aria-labelledby="i-where">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Where will it run?</p>
+        <h2 id="i-where" class="h-1" data-split>Pick your machine.</h2>
+      </div>
+      <div class="tabs" data-island="tabs">
+        <div role="tablist" aria-label="Install guides">
+          {
+            tabs.map((t, i) => (
+              <button type="button" role="tab" id={`tab-${t.id}`} aria-controls={`panel-${t.id}`} aria-selected={i === 0 ? 'true' : 'false'} tabindex={i === 0 ? 0 : -1}>
+                {t.label}
+              </button>
+            ))
+          }
+        </div>
+        {
+          tabs.map((t) => (
+            <div class="panel tab-panel" role="tabpanel" id={`panel-${t.id}`} aria-labelledby={`tab-${t.id}`} tabindex="0">
+              <h3 class="h-2">{t.title}</h3>
+              <ol class="guide-steps">
+                {t.steps.map((s) => (
+                  <li>{s}</li>
+                ))}
+              </ol>
+              <p class="mono dim guide-note">{t.note}</p>
+            </div>
+          ))
+        }
+      </div>
+      <p class="body mt-lg">
+        Full guides, including Cloudflare Tunnel and reverse proxies, are in the <a href={href('docs/')} data-astro-reload>docs</a>.
+      </p>
+    </div>
+  </section>
+
+  <section class="section" data-field="quiet" data-field-gain="0.2" aria-labelledby="i-faq">
+    <div class="wrap split faq-split">
+      <div>
+        <p class="eyebrow">FAQ</p>
+        <h2 id="i-faq" class="h-1" data-split>Questions, <span class="dim">answered.</span></h2>
+      </div>
+      <div class="faq">
+        {
+          faq.map((f) => (
+            <details>
+              <summary>{f.q}</summary>
+              <div set:html={f.a} />
+            </details>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+</Base>

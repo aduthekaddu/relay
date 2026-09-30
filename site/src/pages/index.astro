@@ -1,0 +1,393 @@
+---
+import Beacon from '../components/Beacon.astro'
+import FlapBoard from '../components/FlapBoard.astro'
+import InstallOneLiner from '../components/InstallOneLiner.astro'
+import NightShiftTimeline from '../components/NightShiftTimeline.astro'
+import NotificationCard from '../components/NotificationCard.astro'
+import PaletteDemo from '../components/PaletteDemo.astro'
+import PhoneTerminal from '../components/PhoneTerminal.astro'
+import Base from '../layouts/Base.astro'
+import { CALLOUTS } from '../lib/phone-script'
+import { AGENTS, BOARD, BOARD_NEXT, INSTALL, READOUTS, REPO } from '../lib/site'
+import { href } from '../lib/url'
+
+const since = ['00:42', '00:07', '01:15', '03:02', '00:31', '00:12']
+const rows = BOARD.map((r, i) => ({ ...r, since: since[i] }))
+const ticker = [
+  { agent: 'CLAUDE', task: 'refactor-auth', status: 'RUNNING' },
+  { agent: 'CODEX', task: 'flaky-test', status: 'NEEDS YOU' },
+  { agent: 'GEMINI', task: 'docs-sweep', status: 'RUNNING' },
+]
+const tickerCycle = [
+  ['RUNNING', 'RUNNING', 'DONE'],
+  ['NEEDS YOU', 'RUNNING', 'RUNNING'],
+  ['RUNNING', 'NEEDS YOU', 'RUNNING'],
+]
+const ports = [
+  { port: '5173', what: 'Vite', where: '~/web', live: true },
+  { port: '3000', what: 'Next.js', where: '~/site', live: true },
+  { port: '8080', what: 'api (go run)', where: '~/api', live: false },
+]
+// A decorative QR-like dot pattern (not a real code): finder squares + hash noise.
+const qr: [number, number][] = []
+const N = 21
+for (let y = 0; y < N; y++)
+  for (let x = 0; x < N; x++) {
+    const inFinder = (fx: number, fy: number) => x >= fx && x < fx + 7 && y >= fy && y < fy + 7
+    const finder = inFinder(0, 0) || inFinder(N - 7, 0) || inFinder(0, N - 7)
+    if (finder) {
+      const lx = x < 7 ? x : x - (N - 7)
+      const ly = y < 7 ? y : y - (N - 7)
+      const ring = lx === 0 || ly === 0 || lx === 6 || ly === 6
+      const core = lx >= 2 && lx <= 4 && ly >= 2 && ly <= 4
+      if (ring || core) qr.push([x, y])
+    } else if (((x * 73856093) ^ (y * 19349663) ^ (x * y * 83492791)) % 7 < 3) qr.push([x, y])
+  }
+const trio = [
+  {
+    t: 'Live and past sessions',
+    b: 'Running agents sit next to every conversation already on disk — Claude Code, Codex, Gemini and eleven more.',
+    g: 'M2 2h4v4H2zM8 2h4v4H8zM2 8h4v4H2zM8 8h4v4H8z',
+  },
+  { t: 'Resume in one tap', b: 'Pick up any past session in a fresh terminal, or fork it into a new git worktree.', g: 'M3 2l9 5-9 5z' },
+  {
+    t: 'Search every conversation',
+    b: 'Full-text search across every transcript, with the matching message highlighted.',
+    g: 'M6 2a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM9 9l3.5 3.5',
+  },
+]
+const specs = [
+  { k: 'One port.', n: 'A single HTTPS listener. The terminal daemon only talks over a Unix socket.' },
+  { k: 'Passkeys.', n: 'Sign in with a tap. Optional TOTP. Five tries per five minutes, then backoff.' },
+  { k: 'Argon2id.', n: 'Passwords hashed with memory-hard parameters; API tokens hashed at rest.' },
+  { k: 'Sessions you can revoke.', n: 'Every device listed with last-seen; sign one out, or all the others.' },
+  { k: 'Zero telemetry.', n: 'No analytics, no phoning home, no account with us. There is no “us”.' },
+  { k: 'It stays on your machine.', n: 'Your code, transcripts and keys never leave the box you run it on.' },
+]
+---
+
+<Base
+  title="Relay"
+  description="Relay turns your computer or server into a private workspace you can open anywhere — terminals that work on a phone, every coding agent in one place, files, previews and a full desktop. One binary."
+  still="tower"
+>
+  <div class="home" data-island="home">
+    <!-- 01 · Signal acquired -->
+    <section class="hero" data-field="hero" data-boot="boot" aria-labelledby="hero-title">
+      <div class="wrap hero-grid">
+        <div class="hero-copy" data-quiet="0.08" data-quiet-mobile="0.24">
+          <p class="eyebrow hero-eyebrow">
+            <span>Open source</span><span class="dim">·</span><span>One binary</span><span class="dim">·</span><span>Linux &amp; macOS</span>
+          </p>
+          <h1 id="hero-title" class="display hero-title" data-split="now" data-split-delay="1.05" data-kinetic="scroll">
+            Leave the desk. <span class="hero-second">Keep the machine.</span>
+          </h1>
+          <p class="lede hero-lede will-reveal">
+            Relay turns your computer or server into a private workspace you can open anywhere — terminals that work on a
+            phone, every coding agent in one place, files, previews and a full desktop. One binary. One command to install.
+          </p>
+          <div class="hero-ctas will-reveal" data-island="copy">
+            <button class="btn btn-primary btn-lg" type="button" data-copy={INSTALL}>
+              <span data-copy-label>Get Relay</span>
+              <span class="mono btn-note" aria-hidden="true">curl … | bash</span>
+            </button>
+            <a class="btn btn-ghost btn-lg" href="#screens">See how it works <span aria-hidden="true">↓</span></a>
+            <span class="sr-only" role="status" data-copy-status></span>
+          </div>
+        </div>
+        <aside class="hero-ticker will-reveal" aria-label="Live sessions on an example machine">
+          <p class="ticker-head mono"><span class="dot dot-ok"></span> your-box · 3 sessions</p>
+          <FlapBoard rows={ticker} cycle={tickerCycle} size="sm" interval={2600} label="Sessions on your-box" />
+        </aside>
+      </div>
+      <div class="hero-foot wrap mono" aria-hidden="true">
+        <span>01 — Signal acquired</span>
+        <span class="hero-scroll">Scroll<i></i></span>
+        <span class="hide-sm">Your machine, relayed to every screen.</span>
+      </div>
+    </section>
+
+    <!-- 02 · Every screen -->
+    <section id="screens" class="shot shot-screens" data-field="manual" data-shot="screens" aria-labelledby="screens-title">
+      <div class="stage" data-stage>
+        <div class="wrap stage-grid">
+          <div class="screens-copy" data-quiet="0.2">
+            <p class="eyebrow">02 — Every screen</p>
+            <h2 id="screens-title" class="h-1" data-split>One machine. <span class="dim">Every screen.</span></h2>
+            <ol class="facts">
+              <li data-step class="is-on">
+                <span class="fact-k mono">Phone</span>
+                <strong>Installs like an app.</strong>
+                <span>Add it to your home screen. Push notifications on iOS and Android.</span>
+              </li>
+              <li data-step>
+                <span class="fact-k mono">Tablet</span>
+                <strong>Works on 3G.</strong>
+                <span>A tiny app shell and compressed streams. Drops the train Wi-Fi, reconnects on its own.</span>
+              </li>
+              <li data-step>
+                <span class="fact-k mono">Laptop</span>
+                <strong>No client to install.</strong>
+                <span>Any browser is the client. Your Mac or Windows shortcuts just work.</span>
+              </li>
+            </ol>
+          </div>
+          <p class="screens-fig mono" aria-hidden="true">
+            <span data-fig="0">FIG 02.1 — 390 × 844</span><span data-fig="1">FIG 02.2 — 820 × 1180</span><span data-fig="2"
+              >FIG 02.3 — 1440 × 900</span
+            >
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 · The terminal -->
+    <section class="shot shot-terminal" data-field="quiet" data-field-gain="0.6" data-shot="terminal" aria-labelledby="term-title">
+      <div class="stage" data-stage>
+        <div class="wrap term-grid">
+          <header class="term-head">
+            <p class="eyebrow">03 — The terminal</p>
+            <h2 id="term-title" class="h-1" data-split>A real terminal. <span class="dim">Even on a phone.</span></h2>
+          </header>
+          <ul class="callouts callouts-left" aria-label="Terminal features">
+            {
+              CALLOUTS.filter((c) => c.side === 'left').map((c) => (
+                <li class="callout" data-callout-for="home-phone" data-callout={c.id} data-t={c.t}>
+                  <strong>{c.title}</strong>
+                  <span>{c.body}</span>
+                </li>
+              ))
+            }
+          </ul>
+          <PhoneTerminal id="home-phone" class="term-phone" />
+          <ul class="callouts callouts-right" aria-label="More terminal features">
+            {
+              CALLOUTS.filter((c) => c.side === 'right').map((c) => (
+                <li class="callout" data-callout-for="home-phone" data-callout={c.id} data-t={c.t}>
+                  <strong>{c.title}</strong>
+                  <span>{c.body}</span>
+                </li>
+              ))
+            }
+          </ul>
+          <div class="term-progress" data-progress aria-hidden="true"><span></span></div>
+          <a class="term-more link-arrow" href={href('terminal/')}>The whole terminal story</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 · The board -->
+    <section class="section board-sec" data-field="quiet" data-field-gain="0.35" aria-labelledby="board-title">
+      <div class="wrap">
+        <div class="sec-head" data-quiet="0.2">
+          <p class="eyebrow">04 — The board</p>
+          <h2 id="board-title" class="h-1" data-split>Every agent. Every session. <span class="dim">One board.</span></h2>
+        </div>
+        <FlapBoard rows={rows} cycle={BOARD_NEXT} class="will-reveal" />
+        <div class="trio grid-3">
+          {
+            trio.map((t) => (
+              <div class="trio-item will-reveal">
+                <svg viewBox="0 0 14 14" width="28" height="28" aria-hidden="true" class="glyph">
+                  <path d={t.g} fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="0.1 1.9" stroke-linecap="round" />
+                </svg>
+                <h3 class="h-3">{t.t}</h3>
+                <p class="body">{t.b}</p>
+              </div>
+            ))
+          }
+        </div>
+        <p class="agents-strip mono will-reveal">
+          <span class="dim">Knows</span>
+          {AGENTS.map((a) => <span style={`--tint:${a.tint}`}>{a.name}</span>)}
+        </p>
+      </div>
+    </section>
+
+    <!-- 05 · The tap on the shoulder -->
+    <section class="section tap" data-field="tap" data-shot="tap" aria-labelledby="tap-title">
+      <div class="wrap tap-inner">
+        <Beacon size="lg" class="tap-beacon" />
+        <p class="eyebrow tap-eyebrow">05 — Attention</p>
+        <h2 id="tap-title" class="display tap-title" data-kinetic="hover">It taps you <span class="dim">on the shoulder.</span></h2>
+        <NotificationCard title="codex needs you" body="Approve `pnpm test` in ~/web?" class="tap-notif" />
+        <p class="lede tap-lede will-reveal">
+          Relay notices when an agent is waiting — through hooks or the terminal itself — and pings your phone. One tap and
+          you're back, right at the question.
+        </p>
+      </div>
+    </section>
+
+    <!-- 06 · ⌘K -->
+    <section class="section cmd" data-field="command" aria-labelledby="cmd-title">
+      <div class="wrap cmd-grid">
+        <div class="cmd-copy" data-quiet="0.3">
+          <p class="eyebrow">06 — Command center</p>
+          <h2 id="cmd-title" class="h-1" data-split>One shortcut for your <span class="dim">whole machine.</span></h2>
+          <p class="lede will-reveal">
+            <span class="kbd">⌘</span><span class="kbd">K</span> searches every terminal, agent conversation, file, port and
+            process — and acts on it. Quick AI answers with the agent CLIs you already pay for.
+          </p>
+          <a class="link-arrow will-reveal" href={href('command/')}>Everything ⌘K can do</a>
+        </div>
+        <PaletteDemo class="cmd-palette" />
+      </div>
+    </section>
+
+    <!-- 07 · See it running -->
+    <section class="section running" data-field="running" data-field-gain="0.7" aria-labelledby="run-title">
+      <div class="wrap">
+        <div class="sec-head" data-quiet="0.25">
+          <p class="eyebrow">07 — See it running</p>
+          <h2 id="run-title" class="h-1" data-split>Your dev server. <span class="dim">Your desktop. Anywhere.</span></h2>
+        </div>
+        <div class="run-grid">
+          <article class="run-card will-reveal" style="--accent: var(--area-previews)">
+            <div class="run-vis previews-vis" aria-hidden="true">
+              <ul class="ports mono">
+                {
+                  ports.map((p) => (
+                    <li>
+                      <span class:list={['dot', p.live ? 'dot-ok' : 'dot-idle']} />
+                      <b>:{p.port}</b>
+                      <span>{p.what}</span>
+                      <span class="dim">{p.where}</span>
+                      <span class="port-open">{p.live ? 'Open ↗' : 'Start'}</span>
+                    </li>
+                  ))
+                }
+              </ul>
+              <svg class="qr" viewBox={`0 0 ${N} ${N}`} width="132" height="132">
+                {qr.map(([x, y]) => <circle cx={x + 0.5} cy={y + 0.5} r="0.42" />)}
+              </svg>
+            </div>
+            <p class="eyebrow">Previews</p>
+            <h3 class="h-2">Your dev server, on your phone, over HTTPS.</h3>
+            <p class="body">
+              Relay spots new ports as they open — <span class="mono">5173.your-box</span> — with a QR code for the phone and
+              localhost links rewritten.
+            </p>
+          </article>
+          <article class="run-card will-reveal" style="--accent: var(--area-desktop)">
+            <div class="run-vis desktop-vis" aria-hidden="true">
+              <div class="win win-chrome">
+                <span class="win-bar"><i></i><i></i><i></i><span class="mono">localhost:5173</span></span>
+                <span class="win-body chrome-body"><span></span><span></span><span></span></span>
+              </div>
+              <div class="win win-blender">
+                <span class="win-bar"><i></i><i></i><i></i><span class="mono">scene.blend</span></span>
+                <span class="win-body blender-body"><span class="blender-obj"></span></span>
+              </div>
+              <span class="cursor-agent mono">agent</span>
+            </div>
+            <p class="eyebrow">Desktop</p>
+            <h3 class="h-2">A real desktop for when agents need eyes.</h3>
+            <p class="body">
+              Chrome, Blender and your tools on a desktop that starts on demand. Watch your agent browse — or take the mouse.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 08 · Night shift -->
+    <section class="section nightsec" data-field="night" aria-labelledby="night-title">
+      <div class="wrap">
+        <div class="sec-head sec-head-split" data-quiet="0.2">
+          <div>
+            <p class="eyebrow">08 — Night shift</p>
+            <h2 id="night-title" class="h-1" data-split>Give your agents <span class="dim">a night shift.</span></h2>
+          </div>
+          <p class="lede will-reveal">
+            Schedule agent runs and scripts with a cron you can read — “every weekday at 02:00”. Wake up to results, pull
+            requests, and the one question that needs you.
+          </p>
+        </div>
+        <NightShiftTimeline />
+      </div>
+    </section>
+
+    <!-- 09 · Locked down -->
+    <section class="section locked" data-field="locked" aria-labelledby="locked-title">
+      <div class="wrap">
+        <div class="sec-head" data-quiet="0.2">
+          <p class="eyebrow">09 — Locked down</p>
+          <h2 id="locked-title" class="sr-only">Security, by default</h2>
+        </div>
+        <ol class="specs">
+          {
+            specs.map((s, i) => (
+              <li class="spec will-reveal">
+                <span class="spec-i mono">{String(i + 1).padStart(2, '0')}</span>
+                <span class="spec-k">{s.k}</span>
+                <span class="spec-n">{s.n}</span>
+              </li>
+            ))
+          }
+        </ol>
+        <a class="link-arrow will-reveal" href={href('security/')}>Read the threat model</a>
+      </div>
+    </section>
+
+    <!-- 10 · Light -->
+    <section class="section light" data-field="light" aria-labelledby="light-title">
+      <div class="wrap">
+        <div class="sec-head" data-quiet="0.2">
+          <p class="eyebrow">10 — Light</p>
+          <h2 id="light-title" class="h-1" data-split>Light enough <span class="dim">to forget it's there.</span></h2>
+        </div>
+        <dl class="readouts">
+          {
+            READOUTS.map((r) => (
+              <div class="readout will-reveal">
+                <dt class="mono">{r.label}</dt>
+                <dd>
+                  <span class="readout-v">{r.value}</span>
+                  <span class="readout-u mono">{r.unit}</span>
+                </dd>
+                <dd class="readout-n mono">{r.note}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </div>
+    </section>
+
+    <!-- 11 · Install -->
+    <section class="section install" data-field="install" aria-labelledby="install-title">
+      <div class="wrap">
+        <p class="eyebrow">11 — Install</p>
+        <h2 id="install-title" class="display install-title" data-split>One line.</h2>
+        <InstallOneLiner size="xl" class="will-reveal" />
+        <div class="install-grid">
+          <pre class="install-log mono will-reveal" data-island="install-log" aria-label="Example install output"><span data-log="380" data-type class="t-fg">$ curl -fsSL …/install.sh | bash</span>
+<span data-log="160" class="t-dim">→ relay 0.1.0 · linux/amd64 · checksum ok</span>
+<span data-log="160" class="t-dim">→ installed relay · setup starting</span>
+<span data-log="260" class="t-fg">? How will you reach it?  <b class="t-ok">Tailscale</b></span>
+<span data-log="220" class="t-fg">? Password  ••••••••••••</span>
+<span data-log="160" class="t-dim">→ systemd user units · linger on</span>
+<span data-log="400" class="t-ok">✓ Relay is running</span>
+<span data-log="0" class="t-fg">  Open <b class="t-sig">https://your-box.tailnet.ts.net</b>  ▣ QR</span></pre>
+          <ol class="steps">
+            <li class="will-reveal">
+              <span class="mono">1</span><strong>Get a machine.</strong><span>A VPS, a home server, the Mac on your desk.</span>
+            </li>
+            <li class="will-reveal">
+              <span class="mono">2</span><strong>Run one line.</strong><span>It asks two questions and sets itself up.</span>
+            </li>
+            <li class="will-reveal">
+              <span class="mono">3</span><strong>Open it on your phone.</strong><span>Scan the QR. Add to home screen. Done.</span>
+            </li>
+          </ol>
+        </div>
+        <nav class="guides will-reveal" aria-label="Install guides">
+          <a href={href('install/')}>I have a VPS</a>
+          <a href={href('install/')}>My home computer</a>
+          <a href={href('install/')}>Only on my tailnet</a>
+          <a href={href('install/')}>macOS</a>
+          <a href={REPO}>Source on GitHub</a>
+        </nav>
+      </div>
+    </section>
+  </div>
+</Base>

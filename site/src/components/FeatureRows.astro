@@ -1,0 +1,20 @@
+---
+/** FeatureRows — numbered spec rows: index, title, description. */
+interface Props {
+  items: { t: string; b: string }[]
+  class?: string
+}
+const { items, class: cls } = Astro.props
+---
+
+<ol class:list={['feature-rows', cls]}>
+  {
+    items.map((it, i) => (
+      <li class="feature-row will-reveal">
+        <span class="mono">{String(i + 1).padStart(2, '0')}</span>
+        <h3 class="h-3">{it.t}</h3>
+        <p set:html={it.b.replace(/`([^`]+)`/g, '<code class="mono">$1</code>')} />
+      </li>
+    ))
+  }
+</ol>

@@ -1,0 +1,42 @@
+---
+/**
+ * DotWord — text in the 5×7 LED dot font as a crisp inline SVG. Used for
+ * the footer wordmark, the 404 fallback and the OG card. Decorative by
+ * default; pass `label` to expose it as an image with a name.
+ */
+import { DOT_H, eachDot, measure } from '../lib/dotfont'
+
+interface Props {
+  text: string
+  /** Height of one font pixel in SVG units. */
+  unit?: number
+  label?: string
+  class?: string
+  /** Characters (by index) rendered in the signal colour. */
+  accent?: number[]
+}
+
+const { text, unit = 10, label, class: cls, accent = [] } = Astro.props
+const w = measure(text) * unit
+const h = DOT_H * unit
+const dots: { x: number; y: number; a: boolean }[] = []
+eachDot(text, (x, y) => {
+  // Glyph index from the column: every glyph is 5 wide + 1 gap.
+  const index = Math.floor(x / 6)
+  dots.push({ x: x * unit + unit / 2, y: y * unit + unit / 2, a: accent.includes(index) })
+})
+const r = unit * 0.42
+---
+
+<svg
+  class:list={['dotword', cls]}
+  viewBox={`0 0 ${w} ${h}`}
+  width={w}
+  height={h}
+  role={label ? 'img' : undefined}
+  aria-label={label}
+  aria-hidden={label ? undefined : 'true'}
+  focusable="false"
+>
+  {dots.map((d) => <circle cx={d.x} cy={d.y} r={r} class={d.a ? 'dw-a' : undefined} />)}
+</svg>

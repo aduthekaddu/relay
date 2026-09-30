@@ -1,0 +1,61 @@
+---
+import { clockAt, nightPos } from '../lib/clock'
+/**
+ * NightShiftTimeline — 22:00 → 07:00 with scheduled agent runs. The
+ * `nightshift` island scrubs a "now" cursor with the scroll; runs light
+ * up as it passes them and the morning report appears at dawn. Without
+ * JS (or with reduced motion) it shows the finished night.
+ */
+interface Run {
+  at: string
+  agent: string
+  task: string
+  result: string
+  needs?: boolean
+}
+interface Props {
+  runs?: Run[]
+  class?: string
+}
+
+const defaults: Run[] = [
+  { at: '23:00', agent: 'codex', task: 'Bump dependencies', result: 'PR #311 · green' },
+  { at: '00:30', agent: 'claude', task: 'Hunt the flaky test', result: 'Fixed · race in retry()' },
+  { at: '02:00', agent: 'script', task: 'Nightly e2e suite', result: '148 passed' },
+  { at: '03:30', agent: 'gemini', task: 'Docs sweep', result: 'PR #312 · 9 files' },
+  { at: '05:00', agent: 'claude', task: 'Migrate billing API', result: 'Needs you · 1 question', needs: true },
+]
+const { runs = defaults, class: cls } = Astro.props
+const pos = nightPos
+const ticks = Array.from({ length: 10 }, (_, i) => clockAt(i / 9))
+const done = runs.filter((r) => !r.needs).length
+---
+
+<div class:list={['night', cls]} data-island="nightshift">
+  <ol class="night-track" aria-label="Scheduled runs overnight">
+    <li class="night-rail" aria-hidden="true">
+      <span class="night-fill"></span>
+      <span class="night-now"><span class="mono" data-now>07:00</span></span>
+    </li>
+    {
+      runs.map((r) => (
+        <li class:list={['night-run', { 'is-needs': r.needs }]} style={`--at:${pos(r.at).toFixed(4)}`} data-at={pos(r.at).toFixed(4)}>
+          <span class="night-pin" aria-hidden="true" />
+          <span class="night-card">
+            <span class="mono night-time">{r.at}</span>
+            <span class="night-task">{r.task}</span>
+            <span class="mono night-agent">{r.agent}</span>
+            <span class="mono night-result">{r.result}</span>
+          </span>
+        </li>
+      ))
+    }
+  </ol>
+  <div class="night-ticks mono" aria-hidden="true">{ticks.map((t) => <span>{t}</span>)}</div>
+  <div class="night-dawn" data-dawn>
+    <p class="mono night-dawn-k">07:00 · Morning report</p>
+    <p class="night-dawn-v">
+      <strong>{done} runs done</strong>, 2 pull requests, <span class="signal">1 waiting for you.</span>
+    </p>
+  </div>
+</div>

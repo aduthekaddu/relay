@@ -1,0 +1,47 @@
+---
+/** Site footer: the LED wordmark, navigation and the licence line. */
+import { NAV, REPO } from '../lib/site'
+import { href } from '../lib/url'
+import DotWord from './DotWord.astro'
+
+const year = new Date().getFullYear()
+---
+
+<footer class="footer">
+  <div class="wrap">
+    <a class="footer-word" href={href()} aria-label="Relay home">
+      <DotWord text="RELAY" unit={12} />
+    </a>
+    <div class="footer-grid">
+      <nav aria-label="Product">
+        <p class="eyebrow">Product</p>
+        <ul>
+          {NAV.slice(0, 4).map((n) => <li><a href={href(n.href)}>{n.label}</a></li>)}
+          <li><a href={href('install/')}>Install</a></li>
+        </ul>
+      </nav>
+      <nav aria-label="Resources">
+        <p class="eyebrow">Resources</p>
+        <ul>
+          <li><a href={href('docs/')} data-astro-reload>Docs</a></li>
+          <li><a href={href('security/')}>Security</a></li>
+          <li><a href={`${REPO}/releases`}>Releases</a></li>
+          <li><a href={`${REPO}/blob/main/docs/dev/ARCHITECTURE.md`}>Architecture</a></li>
+        </ul>
+      </nav>
+      <nav aria-label="Project">
+        <p class="eyebrow">Project</p>
+        <ul>
+          <li><a href={REPO}>GitHub</a></li>
+          <li><a href={`${REPO}/issues`}>Issues</a></li>
+          <li><a href={`${REPO}/security/advisories/new`}>Report a vulnerability</a></li>
+          <li><a href={`${REPO}/blob/main/LICENSE`}>MIT licence</a></li>
+        </ul>
+      </nav>
+      <p class="footer-line">
+        MIT licensed. Made for people who ship from anywhere.
+        <span class="mono dim">© {year} Relay contributors · no cookies, no analytics</span>
+      </p>
+    </div>
+  </div>
+</footer>

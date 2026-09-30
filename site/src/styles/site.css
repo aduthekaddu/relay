@@ -1,0 +1,430 @@
+/* Relay site — "Signal" design system, marketing edition.
+ * The marketing site is night-only on purpose (it is a short film about a
+ * signal at night); the docs follow Carbon / Paper. Tokens mirror
+ * docs/dev/DESIGN.md. */
+
+:root {
+  color-scheme: dark;
+  --bg: #0b0b0c;
+  --bg-sunken: #070708;
+  --surface-1: #111113;
+  --surface-2: #18181b;
+  --surface-3: #202024;
+  --surface-4: #2a2a2f;
+  --line: rgb(237 233 224 / 0.08);
+  --line-strong: rgb(237 233 224 / 0.15);
+  --text: #ede9e0;
+  --text-2: #b3aea4;
+  --text-3: #8a857c;
+  --text-4: #57534d;
+  --signal: #ff5b1f;
+  --signal-ink: #ff7c4a;
+  --signal-soft: rgb(255 91 31 / 0.14);
+  --on-signal: #0b0b0c;
+  --ok: #4fd18b;
+  --warn: #f5b93e;
+  --danger: #ff4d5e;
+  --info: #6aa9ff;
+
+  --area-terminal: #5fd89a;
+  --area-agents: #ff7c4a;
+  --area-files: #f2c14e;
+  --area-code: #6aa9ff;
+  --area-desktop: #57d4d1;
+  --area-previews: #ff79b0;
+  --area-system: #b69cff;
+  --accent: var(--signal);
+
+  --font-sans: 'Mona Sans Variable', 'Mona Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --d-1: 120ms;
+  --d-2: 180ms;
+  --d-3: 260ms;
+  --d-4: 420ms;
+
+  --gutter: clamp(20px, 4vw, 56px);
+  --max: 1440px;
+  --nav-h: 64px;
+  --display: clamp(44px, 9vw, 168px);
+  --display-2: clamp(38px, 6.4vw, 112px);
+  --display-3: clamp(30px, 4.2vw, 72px);
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --shadow-float: 0 24px 64px -24px rgb(0 0 0 / 0.6), 0 0 0 1px var(--line-strong);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scrollbar-color: var(--surface-4) var(--bg);
+}
+
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: clip;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.55;
+  font-weight: 430;
+  font-synthesis: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+
+/* The fine dot grain across the page (3 % texture). */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: radial-gradient(rgb(237 233 224 / 0.9) 0.6px, transparent 0.8px);
+  background-size: 3px 3px;
+  opacity: 0.035;
+}
+
+img,
+svg,
+canvas,
+picture,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+::selection {
+  background: var(--signal);
+  color: var(--on-signal);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip {
+  position: fixed;
+  left: 12px;
+  top: -60px;
+  z-index: 100;
+  padding: 10px 14px;
+  background: var(--text);
+  color: var(--bg);
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  text-decoration: none;
+  transition: top var(--d-2) var(--ease-out);
+}
+.skip:focus {
+  top: 12px;
+}
+
+main {
+  position: relative;
+  z-index: 2;
+}
+
+/* ---------- type ---------- */
+
+.display,
+.h-1,
+.h-2,
+.h-3 {
+  margin: 0;
+  font-weight: 700;
+  font-stretch: 100%;
+  letter-spacing: -0.04em;
+  line-height: 0.92;
+  text-wrap: balance;
+}
+.display {
+  font-size: var(--display);
+  font-variation-settings: 'wdth' 100;
+}
+.h-1 {
+  font-size: var(--display-2);
+}
+.h-2 {
+  font-size: var(--display-3);
+  letter-spacing: -0.035em;
+  line-height: 0.96;
+}
+.h-3 {
+  font-size: clamp(22px, 2vw, 30px);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  font-weight: 650;
+}
+.wide {
+  font-stretch: 125%;
+}
+.narrow {
+  font-stretch: 75%;
+}
+.dim {
+  color: var(--text-3);
+}
+.signal {
+  color: var(--signal);
+}
+.lede {
+  max-width: 34em;
+  margin: 0;
+  color: var(--text-2);
+  font-size: clamp(17px, 1.35vw, 21px);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+.body {
+  color: var(--text-2);
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.mono,
+.eyebrow,
+.kbd {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.eyebrow::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.7em;
+  padding: 0.1em 0.45em;
+  border: 1px solid var(--line-strong);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  color: var(--text-2);
+  font-size: 0.78em;
+  line-height: 1.4;
+}
+
+/* Line-mask reveal (SplitText wraps lines in .line-mask). */
+.line-mask {
+  display: block;
+  overflow: clip;
+  overflow-clip-margin: 0.12em;
+  padding-bottom: 0.06em;
+  margin-bottom: -0.06em;
+}
+
+/* ---------- layout ---------- */
+
+.wrap {
+  width: 100%;
+  max-width: var(--max);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+.section {
+  position: relative;
+  padding-block: clamp(96px, 16vh, 200px);
+}
+.stack > * + * {
+  margin-top: var(--stack, 24px);
+}
+.grid-3 {
+  display: grid;
+  gap: clamp(24px, 3vw, 48px);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+.hairline {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 0;
+}
+
+/* ---------- buttons ---------- */
+
+.btn {
+  --btn-bg: var(--surface-2);
+  --btn-fg: var(--text);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  font: 600 15px/1 var(--font-sans);
+  letter-spacing: -0.005em;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform var(--d-1) var(--ease-out),
+    background-color var(--d-2) var(--ease-out),
+    box-shadow var(--d-2) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:hover {
+  --btn-bg: var(--surface-3);
+}
+.btn:active {
+  transform: scale(0.98);
+}
+.btn-primary {
+  --btn-bg: var(--signal);
+  --btn-fg: var(--on-signal);
+  box-shadow: none;
+}
+.btn-primary:hover {
+  --btn-bg: #ff6c36;
+}
+.btn-ghost {
+  --btn-bg: transparent;
+}
+.btn .mono {
+  font-size: 12.5px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+.btn-sm {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+/* ---------- status dots ---------- */
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-4);
+  flex: none;
+}
+.dot-ok {
+  background: var(--ok);
+  box-shadow: 0 0 0 0 rgb(79 209 139 / 0.5);
+  animation: pulse-ok 1.6s var(--ease-out) infinite;
+}
+.dot-needs {
+  background: var(--signal);
+  animation: blink 1.2s steps(1, end) infinite;
+}
+.dot-idle {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--text-3);
+}
+@keyframes blink {
+  50% {
+    opacity: 0.15;
+  }
+}
+@keyframes pulse-ok {
+  0% {
+    box-shadow: 0 0 0 0 rgb(79 209 139 / 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 7px rgb(79 209 139 / 0);
+  }
+}
+
+/* ---------- reveal defaults ---------- */
+
+/* Elements start visible (no-JS); once the inline head script marks the
+ * page as `.js` they wait for the site script, and `.js-late` (set when
+ * that script never ran) shows everything again. */
+.js:not(.js-late) .will-reveal:not(.is-in) {
+  opacity: 0;
+  transform: translateY(14px);
+}
+.js .will-reveal.is-in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.9s var(--ease-out),
+    transform 0.9s var(--ease-out);
+}
+.js:not(.js-late) [data-split]:not(.is-split) {
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .dot-needs {
+    animation: none;
+  }
+  .js .will-reveal:not(.is-in) {
+    opacity: 1;
+    transform: none;
+  }
+}

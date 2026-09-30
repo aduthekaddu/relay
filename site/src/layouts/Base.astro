@@ -1,0 +1,104 @@
+---
+/**
+ * Base layout for every marketing page: head + meta, fonts, the
+ * persistent LED field canvas (kept across view-transition navigations),
+ * a static dithered still for no-WebGL / no-JS, nav, footer, and the
+ * single site script.
+ */
+import '@fontsource-variable/mona-sans/standard.css'
+import '@fontsource-variable/jetbrains-mono/index.css'
+import monaLatin from '@fontsource-variable/mona-sans/files/mona-sans-latin-standard-normal.woff2?url'
+import { ClientRouter } from 'astro:transitions'
+import Footer from '../components/Footer.astro'
+import Nav from '../components/Nav.astro'
+import '../styles/site.css'
+import '../styles/components.css'
+import '../styles/pages.css'
+import { href } from '../lib/url'
+
+interface Props {
+  title: string
+  description: string
+  /** Product area whose hue becomes the secondary accent. */
+  area?: string
+  /** Dithered still shown when the live field is unavailable. */
+  still?: 'tower' | 'train' | 'desk' | 'rack' | 'road' | 'windows' | 'none'
+  /** Page class (e.g. for the OG card). */
+  bodyClass?: string
+  chrome?: boolean
+}
+
+const { title, description, area, still = 'tower', bodyClass, chrome = true } = Astro.props
+const stills = import.meta.glob<string>('../assets/img/*.{avif,webp}', { eager: true, query: '?url', import: 'default' })
+const pick = (name: string) => {
+  const get = (f: string) => stills[`../assets/img/${f}`]
+  return {
+    avif: `${get(`${name}.avif`)} 1x, ${get(`${name}@2x.avif`)} 2x`,
+    webp: `${get(`${name}.webp`)} 1x, ${get(`${name}@2x.webp`)} 2x`,
+    src: get(`${name}.webp`),
+  }
+}
+const img = still !== 'none' ? pick(still) : null
+const site = Astro.site ? new URL(import.meta.env.BASE_URL, Astro.site).toString() : href()
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).toString() : undefined
+const pageTitle = title === 'Relay' ? 'Relay — your machine, relayed to every screen' : `${title} — Relay`
+---
+
+<!doctype html>
+<html lang="en" data-area={area}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    {canonical && <link rel="canonical" href={canonical} />}
+    <meta name="theme-color" content="#0b0b0c" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href={href('favicon.svg')} type="image/svg+xml" />
+    <link rel="icon" href={href('favicon-32.png')} sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href={href('apple-touch-icon.png')} />
+    <link rel="manifest" href={href('site.webmanifest')} />
+    <link rel="preload" href={monaLatin} as="font" type="font/woff2" crossorigin />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Relay" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={`${site}og.png`} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script is:inline>
+      document.documentElement.classList.add('js')
+      // Failsafe: never leave headlines hidden if the site script fails.
+      setTimeout(() => {
+        const r = document.documentElement
+        if (!r.classList.contains('app')) r.classList.add('js-late')
+      }, 3000)
+    </script>
+    <slot name="head" />
+    <ClientRouter fallback="swap" />
+  </head>
+  <body class={bodyClass}>
+    <a class="skip" href="#main">Skip to content</a>
+    <div class="led" aria-hidden="true" transition:persist="led">
+      <canvas id="led"></canvas>
+    </div>
+    {
+      img && (
+        <picture class="led-still" aria-hidden="true">
+          <source type="image/avif" srcset={img.avif} />
+          <source type="image/webp" srcset={img.webp} />
+          <img src={img.src} alt="" width="960" height="640" decoding="async" fetchpriority="low" />
+        </picture>
+      )
+    }
+    {chrome && <Nav />}
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    {chrome && <Footer />}
+    <script>
+      import '../lib/app'
+    </script>
+  </body>
+</html>

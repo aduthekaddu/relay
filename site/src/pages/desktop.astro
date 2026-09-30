@@ -1,0 +1,98 @@
+---
+import FeatureRows from '../components/FeatureRows.astro'
+import InstallOneLiner from '../components/InstallOneLiner.astro'
+import PageHero from '../components/PageHero.astro'
+import Base from '../layouts/Base.astro'
+import { href } from '../lib/url'
+
+const stills = import.meta.glob<string>('../assets/img/desk*.{avif,webp}', { eager: true, query: '?url', import: 'default' })
+const desk = (f: string) => stills[`../assets/img/${f}`]
+const desktop = [
+  { t: 'Starts when you need it', b: 'An X desktop with a light window manager and a panel, started from the browser and stopped when idle. Nothing runs at boot.' },
+  { t: 'A viewer that behaves on a phone', b: 'Scale to fit or 1:1, a quality slider that follows your bandwidth, touchpad-style pointer, right-click, scroll and a keyboard toggle.' },
+  { t: 'Clipboard both ways', b: 'Copy in Chrome on the box, paste on your laptop — and back.' },
+  { t: 'Watch your agent browse', b: 'Sessions get the display, so Playwright and Chrome DevTools MCP drive the same Chrome you can see. Take the mouse when it gets stuck.' },
+]
+const previews = [
+  { t: 'Found as they start', b: 'Relay lists listening ports with the process, folder and framework. Start `vite` and a toast says “Vite on :5173 — Open”.' },
+  { t: 'A real URL, over HTTPS', b: '`https://5173.your-box` with a wildcard domain, or `/p/5173/` without one — both behind your Relay sign-in.' },
+  { t: 'On your phone in one scan', b: 'Every preview has a QR code. localhost links inside the page are rewritten so they keep working.' },
+  { t: 'Code in the browser', b: 'VS Code (code-server) starts on demand behind the same sign-in, on the folder you pick, and stops when idle.' },
+]
+---
+
+<Base
+  title="Desktop & previews"
+  description="A real desktop when agents need eyes, your dev servers on your phone over HTTPS, and VS Code in the browser."
+  area="desktop"
+  still="desk"
+>
+  <PageHero
+    eyebrow="Desktop · Previews · Code"
+    field="page-desktop"
+    lede="When a terminal is not enough: a full desktop with Chrome and Blender, every dev server on a real HTTPS URL, and VS Code — all behind the same sign-in, all started on demand."
+  >
+    <Fragment slot="title">See it <span class="dim">running.</span></Fragment>
+    <Fragment slot="actions">
+      <a class="btn btn-primary btn-lg" href={href('install/')}>Get Relay</a>
+      <a class="btn btn-ghost btn-lg" href="#previews">Previews</a>
+    </Fragment>
+  </PageHero>
+
+  <section class="section" data-field="quiet" data-field-gain="0.25" aria-labelledby="d-desk">
+    <div class="wrap">
+      <div class="sec-head sec-head-split">
+        <div>
+          <p class="eyebrow">Desktop</p>
+          <h2 id="d-desk" class="h-1" data-split>A real desktop <span class="dim">for when agents need eyes.</span></h2>
+        </div>
+        <p class="lede will-reveal">Chrome, Blender, files, a terminal and your own apps, in a window in your browser.</p>
+      </div>
+      <figure class="desk-frame will-reveal">
+        <picture>
+          <source type="image/avif" srcset={`${desk('desk.avif')} 1x, ${desk('desk@2x.avif')} 2x`} />
+          <img
+            src={desk('desk.webp')}
+            srcset={`${desk('desk.webp')} 1x, ${desk('desk@2x.webp')} 2x`}
+            alt="A dark desk at night with one monitor glowing, rendered in dots."
+            width="960"
+            height="640"
+            loading="lazy"
+            decoding="async"
+          />
+        </picture>
+        <div class="desk-ui" aria-hidden="true">
+          <div class="win win-chrome">
+            <span class="win-bar"><i></i><i></i><i></i><span class="mono">localhost:5173</span></span>
+            <span class="win-body chrome-body"><span></span><span></span><span></span></span>
+          </div>
+          <div class="win win-blender">
+            <span class="win-bar"><i></i><i></i><i></i><span class="mono">scene.blend</span></span>
+            <span class="win-body blender-body"><span class="blender-obj"></span></span>
+          </div>
+          <span class="cursor-agent mono">agent</span>
+          <span class="desk-panel mono"><span>Chrome</span><span>Blender</span><span>Files</span><span>Terminal</span><span class="dim">03:12</span></span>
+        </div>
+        <figcaption class="mono dim">FIG — the desktop viewer, with an agent driving Chrome.</figcaption>
+      </figure>
+      <FeatureRows items={desktop} class="mt-lg" />
+    </div>
+  </section>
+
+  <section id="previews" class="section" data-field="quiet" data-field-gain="0.25" aria-labelledby="d-prev" style="--accent: var(--area-previews)">
+    <div class="wrap split">
+      <div>
+        <p class="eyebrow">Previews &amp; Code</p>
+        <h2 id="d-prev" class="h-1" data-split>Your dev server, <span class="dim">on your phone.</span></h2>
+      </div>
+      <FeatureRows items={previews} />
+    </div>
+  </section>
+
+  <section class="section" data-field="install" aria-labelledby="d-cta">
+    <div class="wrap">
+      <h2 id="d-cta" class="h-1" data-split>Everything on the box, <span class="dim">in a tab.</span></h2>
+      <InstallOneLiner size="xl" class="will-reveal mt-lg" />
+    </div>
+  </section>
+</Base>

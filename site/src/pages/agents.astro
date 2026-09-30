@@ -1,0 +1,177 @@
+---
+import FeatureRows from '../components/FeatureRows.astro'
+import FlapBoard from '../components/FlapBoard.astro'
+import InstallOneLiner from '../components/InstallOneLiner.astro'
+import NotificationCard from '../components/NotificationCard.astro'
+import PageHero from '../components/PageHero.astro'
+import Base from '../layouts/Base.astro'
+import { AGENTS, BOARD, BOARD_NEXT } from '../lib/site'
+import { href } from '../lib/url'
+
+const since = ['00:42', '00:07', '01:15', '03:02', '00:31', '00:12']
+const rows = BOARD.map((r, i) => ({ ...r, since: since[i] }))
+const history = [
+  { t: 'Launchpad', b: 'Pick an agent, a workspace and a prompt — optionally a fresh git worktree on a new branch — and Start. It opens in a terminal you can close.' },
+  { t: 'Every past session', b: 'Conversations already on disk from every agent, grouped by day or project. Filter, pin, rename, archive.' },
+  { t: 'Search every conversation', b: 'Full-text search across your prompts and the answers, with highlighted snippets. Open right at the matching message.' },
+  { t: 'A transcript you can read', b: 'Markdown, collapsible tool calls, diffs and images; thinking hidden until you want it. Resume from any message.' },
+  { t: 'Resume or fork in one tap', b: 'Continue a session in a new terminal, or fork it into a separate worktree so two agents never trip over each other.' },
+  { t: 'Review before you push', b: 'Changed files with +/−, a phone-friendly diff, stage, commit, push — and open the PR with `gh`.' },
+]
+const search = [
+  { agent: 'claude', when: 'Tue', title: 'refactor-auth', snip: '…move the <mark>session checks</mark> into middleware and keep the tests green…' },
+  { agent: 'codex', when: 'Mon', title: 'flaky-test', snip: '…the retry loop reads the <mark>session</mark> before the lock is taken…' },
+  { agent: 'gemini', when: 'Sep 12', title: 'docs-sweep', snip: '…document how <mark>session checks</mark> work for API tokens…' },
+]
+const usage = [
+  { d: 'Mon', v: [0.35, 0.2] },
+  { d: 'Tue', v: [0.62, 0.18] },
+  { d: 'Wed', v: [0.4, 0.34] },
+  { d: 'Thu', v: [0.8, 0.12] },
+  { d: 'Fri', v: [0.55, 0.3] },
+  { d: 'Sat', v: [0.14, 0.05] },
+  { d: 'Sun', v: [0.22, 0.4] },
+]
+---
+
+<Base
+  title="Agents"
+  description="Every coding agent session on your machine — live and past — on one board. Relay taps you when one needs you."
+  area="agents"
+  still="windows"
+>
+  <PageHero
+    eyebrow="Agents"
+    field="page-agents"
+    lede="Claude Code, Codex, Gemini CLI, OpenCode and ten more — running now or finished last week — in one place. Relay knows which one is waiting for you."
+  >
+    <Fragment slot="title">Every agent. <span class="dim">One board.</span></Fragment>
+    <Fragment slot="actions">
+      <a class="btn btn-primary btn-lg" href={href('install/')}>Get Relay</a>
+      <a class="btn btn-ghost btn-lg" href="#supported">Supported agents</a>
+    </Fragment>
+  </PageHero>
+
+  <section class="section" data-field="quiet" data-field-gain="0.3" aria-labelledby="a-board">
+    <div class="wrap">
+      <div class="sec-head sec-head-split">
+        <div>
+          <p class="eyebrow">Live board</p>
+          <h2 id="a-board" class="h-1" data-split>What is running, <span class="dim">at a glance.</span></h2>
+        </div>
+        <p class="lede will-reveal">
+          Each running agent is paired with its terminal: working, needs you, or idle; the task, the repo, the branch and how
+          long it has been at it.
+        </p>
+      </div>
+      <FlapBoard rows={rows} cycle={BOARD_NEXT} class="will-reveal" />
+    </div>
+  </section>
+
+  <section class="section" data-field="tap" aria-labelledby="a-attn">
+    <div class="wrap split">
+      <div>
+        <p class="eyebrow">Attention</p>
+        <h2 id="a-attn" class="h-1" data-split>Needs you? <span class="dim">You'll know.</span></h2>
+        <p class="lede will-reveal mt-lg">
+          One-click hooks for each agent call <span class="mono">relay hook</span> the moment it waits on you; for agents
+          without hooks, Relay watches the terminal go quiet. The push goes to every device — except the one you are
+          already looking at.
+        </p>
+      </div>
+      <div class="split-vis attn-vis">
+        <NotificationCard title="claude needs you" body="Push `refactor-auth` to origin?" />
+        <NotificationCard title="codex finished" body="flaky-test · 212 passed" actions={[]} time="2 min ago" live={false} class="notif-quiet" />
+      </div>
+    </div>
+  </section>
+
+  <section class="section" data-field="quiet" data-field-gain="0.3" aria-labelledby="a-hist">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">History</p>
+        <h2 id="a-hist" class="h-1" data-split>Every conversation, <span class="dim">searchable.</span></h2>
+      </div>
+      <div class="split">
+        <div class="panel search-panel sticky-vis will-reveal" aria-hidden="true">
+          <div class="search-q mono"><span class="dim">⌕</span> session checks <span class="dim search-n">3 results</span></div>
+          <ul>
+            {
+              search.map((s) => (
+                <li>
+                  <span class="mono dim">{s.agent} · {s.when}</span>
+                  <strong>{s.title}</strong>
+                  <span set:html={s.snip} />
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+        <FeatureRows items={history} />
+      </div>
+    </div>
+  </section>
+
+  <section class="section" data-field="quiet" data-field-gain="0.25" aria-labelledby="a-usage">
+    <div class="wrap split">
+      <div>
+        <p class="eyebrow">Usage</p>
+        <h2 id="a-usage" class="h-1" data-split>Know what it costs.</h2>
+        <p class="lede will-reveal mt-lg">
+          Tokens and cost by day, agent and model, parsed from the transcripts already on your disk — and plan quotas where
+          the agent exposes them. Nothing is sent anywhere.
+        </p>
+      </div>
+      <figure class="panel usage will-reveal">
+        <div class="usage-bars" aria-hidden="true">
+          {
+            usage.map((u) => (
+              <div class="usage-col">
+                <span class="usage-bar" style={`--a:${u.v[0]};--b:${u.v[1]}`}>
+                  <i />
+                  <i />
+                </span>
+                <span class="mono">{u.d}</span>
+              </div>
+            ))
+          }
+        </div>
+        <figcaption class="usage-legend mono">
+          <span><i class="lg-a"></i>Claude Code</span><span><i class="lg-b"></i>Codex</span><span class="dim">Example week</span>
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="supported" class="section" data-field="quiet" data-field-gain="0.2" aria-labelledby="a-sup">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Supported</p>
+        <h2 id="a-sup" class="h-1" data-split>Fourteen agents <span class="dim">and counting.</span></h2>
+      </div>
+      <ul class="agent-grid will-reveal">
+        {
+          AGENTS.map((a) => (
+            <li style={`--tint:${a.tint}`}>
+              <span class="agent-mark" aria-hidden="true">
+                {a.mark}
+              </span>
+              <strong>{a.name}</strong>
+              <span>{a.hooks}</span>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="body mt-lg dim">
+        Names are trademarks of their owners; Relay launches the CLIs you install and sign in to yourself.
+      </p>
+    </div>
+  </section>
+
+  <section class="section" data-field="install" aria-labelledby="a-cta">
+    <div class="wrap">
+      <h2 id="a-cta" class="h-1" data-split>Let them work. <span class="dim">Go outside.</span></h2>
+      <InstallOneLiner size="xl" class="will-reveal mt-lg" />
+    </div>
+  </section>
+</Base>

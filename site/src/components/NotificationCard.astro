@@ -1,0 +1,39 @@
+---
+/**
+ * NotificationCard — a lock-screen push from Relay. With the
+ * `notification` island it drops in when scrolled into view, and the
+ * LED field sends a beacon ring from it.
+ */
+import Mark from './Mark.astro'
+
+interface Props {
+  title: string
+  body: string
+  actions?: string[]
+  time?: string
+  class?: string
+  live?: boolean
+}
+const { title, body, actions = ['Approve', 'Open'], time = 'now', class: cls, live = true } = Astro.props
+---
+
+<div class:list={['notif', cls]} data-island={live ? 'notification' : undefined} role="img" aria-label={`Notification from Relay: ${title}. ${body}`}>
+  <div class="notif-card" aria-hidden="true">
+    <div class="notif-head">
+      <span class="notif-app"><Mark size={14} /></span>
+      <span class="notif-name">Relay</span>
+      <span class="notif-time">{time}</span>
+    </div>
+    <p class="notif-title"><span class="dot dot-needs"></span>{title}</p>
+    <p class="notif-body" set:html={body.replace(/`([^`]+)`/g, '<code>$1</code>')} />
+    {
+      actions.length > 0 && (
+        <div class="notif-actions">
+          {actions.map((a, i) => (
+            <span class:list={['notif-act', { 'is-primary': i === 0 }]}>{a}</span>
+          ))}
+        </div>
+      )
+    }
+  </div>
+</div>

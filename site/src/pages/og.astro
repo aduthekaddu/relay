@@ -1,0 +1,98 @@
+---
+/**
+ * The Open Graph card (1200×630). Not linked anywhere and excluded from
+ * the sitemap; `scripts/og.mjs` screenshots it into public/og.png.
+ */
+import DotWord from '../components/DotWord.astro'
+import Mark from '../components/Mark.astro'
+import Base from '../layouts/Base.astro'
+
+const stills = import.meta.glob<string>('../assets/img/tower.webp', { eager: true, query: '?url', import: 'default' })
+const tower = stills['../assets/img/tower.webp']
+---
+
+<Base title="Relay" description="Open Graph card" still="none" chrome={false} bodyClass="og-body">
+  <meta name="robots" content="noindex" slot="head" />
+  <div class="og" style={`--img: url(${tower})`}>
+    <div class="og-top mono">
+      <span class="og-brand"><Mark size={30} /> Relay</span>
+      <span>Open source · one binary</span>
+    </div>
+    <h1 class="og-title">Leave the desk. <span>Keep the machine.</span></h1>
+    <div class="og-bottom">
+      <p class="og-sub">Terminals that work on a phone, every coding agent in one place, files, previews and a desktop — from any browser.</p>
+      <DotWord text="RELAY" unit={9} class="og-word" />
+    </div>
+  </div>
+</Base>
+
+<style is:global>
+  .og-body::before {
+    display: none;
+  }
+  .og {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 1200px;
+    height: 630px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 56px 64px;
+    overflow: hidden;
+    background:
+      linear-gradient(90deg, #0b0b0c 38%, rgb(11 11 12 / 0.2)),
+      var(--img) 100% 40% / 820px auto no-repeat,
+      #0b0b0c;
+  }
+  .og-top {
+    display: flex;
+    justify-content: space-between;
+    color: #8a857c;
+    font-size: 18px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .og-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #ede9e0;
+    font-family: var(--font-sans);
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-transform: none;
+  }
+  .og-title {
+    margin: 0;
+    max-width: 8em;
+    font-size: 104px;
+    font-weight: 700;
+    line-height: 0.88;
+    letter-spacing: -0.05em;
+  }
+  .og-title span {
+    color: #8a857c;
+  }
+  .og-bottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 40px;
+  }
+  .og-sub {
+    max-width: 30em;
+    margin: 0;
+    color: #b3aea4;
+    font-size: 22px;
+    line-height: 1.4;
+  }
+  .og-word {
+    flex: none;
+    width: 260px;
+    height: auto;
+    fill: #ff5b1f;
+  }
+</style>
