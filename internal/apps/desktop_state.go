@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net"
 	"os"
+	"path/filepath"
+	"syscall"
 	"time"
 
 	"github.com/aduthekaddu/relay/internal/api"
@@ -137,7 +139,9 @@ func (k *desktop) stopLocked(ctx context.Context) error {
 	serr := k.session.Stop(ctx)
 	xerr := k.xvnc.Stop(ctx)
 	k.closeViewers()
+	k.killLeftovers(ctx)
 	_ = os.Remove(k.sock)
+	_ = os.Remove(filepath.Join(k.dir, "dbus-address"))
 	if xerr != nil {
 		return xerr
 	}
@@ -209,5 +213,28 @@ func (k *desktop) closeViewers() {
 	k.mu.Unlock()
 	for _, c := range conns {
 		_ = c.Close()
+	}
+}
+
+// killLeftovers ends launcher-started apps that outlived the X server
+// (e.g. waiting on D-Bus): SIGTERM, then SIGKILL after two seconds. Only
+// the user's own processes carrying this display's marker are touched.
+func (k *desktop) killLeftovers(ctx context.Context) {
+	procs := k.scanner.Procs()
+	if len(procs) == 0 {
+		return
+	}
+	for _, p := range procs {
+		_ = syscall.Kill(p.PID, syscall.SIGTERM)
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) && ctx.Err() == nil {
+		time.Sleep(100 * time.Millisecond)
+		if len(k.scanner.Procs()) == 0 {
+			return
+		}
+	}
+	for _, p := range k.scanner.Procs() { // re-scanned: no stale pids
+		_ = syscall.Kill(p.PID, syscall.SIGKILL)
 	}
 }

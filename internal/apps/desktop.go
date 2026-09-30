@@ -189,6 +189,13 @@ func (k *desktop) sessionEnv() []string {
 		"XDG_SESSION_TYPE":    "x11",
 		"XDG_CURRENT_DESKTOP": "Relay:Openbox",
 		"DESKTOP_SESSION":     "relay",
+		// Force X11 toolkits and skip the accessibility bus and portals:
+		// GTK apps otherwise hang waiting on services this bare session
+		// does not run.
+		"GDK_BACKEND":     "x11",
+		"QT_QPA_PLATFORM": "xcb",
+		"NO_AT_BRIDGE":    "1",
+		"GTK_USE_PORTAL":  "0",
 	})
 }
 

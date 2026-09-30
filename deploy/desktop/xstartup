@@ -8,6 +8,11 @@ set -u
 : "${RELAY_DESKTOP_DIR:?RELAY_DESKTOP_DIR is not set}"
 cd "${HOME:-/}" || exit 1
 
+# Apps launched through Relay's API join this session's D-Bus.
+if [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+	printf '%s\n' "$DBUS_SESSION_BUS_ADDRESS" >"$RELAY_DESKTOP_DIR/dbus-address"
+fi
+
 # Carbon background; the X root cursor instead of the default X cross.
 xsetroot -solid '#0b0b0c' -cursor_name left_ptr 2>/dev/null
 

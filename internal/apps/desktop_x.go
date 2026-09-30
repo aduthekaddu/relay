@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -33,7 +34,7 @@ func (k *desktop) Launch(ctx context.Context, id string) error {
 		return err
 	}
 	cmd := exec.Command(filepath.Join(k.dir, "bin", app.ID))
-	cmd.Env = k.sessionEnv()
+	cmd.Env = append(k.sessionEnv(), k.sessionBus()...)
 	cmd.Dir = k.d.Paths.Home
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	if err := cmd.Start(); err != nil {
@@ -47,6 +48,20 @@ func (k *desktop) Launch(ctx context.Context, id string) error {
 	k.log.Info("desktop app launched", "app", app.ID, "pid", cmd.Process.Pid)
 	k.changed()
 	return nil
+}
+
+// sessionBus returns the session's D-Bus address (written by xstartup)
+// as an environment entry, so API-launched apps share the session bus.
+func (k *desktop) sessionBus() []string {
+	b, err := os.ReadFile(filepath.Join(k.dir, "dbus-address"))
+	if err != nil {
+		return nil
+	}
+	addr, _, _ := strings.Cut(strings.TrimSpace(string(b)), "\n")
+	if !strings.HasPrefix(addr, "unix:") || strings.ContainsAny(addr, "\x00") {
+		return nil
+	}
+	return []string{"DBUS_SESSION_BUS_ADDRESS=" + addr}
 }
 
 // requireRunning returns a 409 unless the desktop is running.

@@ -145,6 +145,22 @@ func (r *runningScanner) Reset() { r.last = nil }
 
 func (r *runningScanner) scan() map[string]bool {
 	out := map[string]bool{}
+	for _, p := range r.Procs() {
+		out[p.App] = true
+	}
+	return out
+}
+
+// markedProc is a live process launched through a desktop launcher.
+type markedProc struct {
+	PID int
+	App string
+}
+
+// Procs lists the current user's processes on the display that carry the
+// launcher marker (uncached).
+func (r *runningScanner) Procs() []markedProc {
+	var out []markedProc
 	ents, err := os.ReadDir(r.procDir)
 	if err != nil {
 		return out
@@ -153,7 +169,8 @@ func (r *runningScanner) scan() map[string]bool {
 	wantDisplay := []byte("DISPLAY=" + r.display)
 	marker := []byte("RELAY_DESKTOP_APP=")
 	for _, e := range ents {
-		if _, err := strconv.Atoi(e.Name()); err != nil {
+		pid, err := strconv.Atoi(e.Name())
+		if err != nil || pid <= 0 {
 			continue
 		}
 		dir := filepath.Join(r.procDir, e.Name())
@@ -175,7 +192,7 @@ func (r *runningScanner) scan() map[string]bool {
 			}
 		}
 		if display && id != "" {
-			out[id] = true
+			out = append(out, markedProc{PID: pid, App: id})
 		}
 	}
 	return out
