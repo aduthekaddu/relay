@@ -106,11 +106,12 @@ fills up is dropped and should reconnect.
 `http://localhost:<port>` is a secure context, so passkeys work without TLS:
 
 ```sh
-PORT=47701 NAME=auth scripts/dev/run.sh   # RELAY_HOME=~/.relay-auth
+RELAY_PUBLIC_URL=http://localhost:47701 PORT=47701 NAME=auth scripts/dev/run.sh
 ```
 
-Open `http://localhost:47701` (not `127.0.0.1`, because IP origins have no RP
-ID). Chrome DevTools → More tools → WebAuthn → *Enable virtual authenticator
+Open `http://localhost:47701`. Don't use `127.0.0.1`: an IP origin has no RP
+ID, and the canonical origin must be `localhost` so that the browser's
+`Origin` header is allowed. Chrome DevTools → More tools → WebAuthn → *Enable virtual authenticator
 environment* gives a software authenticator with resident keys. Automated
 tests (`internal/auth/passkey_test.go`) run a full register → sign-in round
 trip with an in-test ES256 authenticator, plus option-shape and error-path
