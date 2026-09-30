@@ -5,6 +5,51 @@ The site sells Relay in ten seconds and documents it for years. It lives in
 Starlight under `/docs`, sourced from the repo's `/docs` folder so GitHub
 and the site show the same text.
 
+## What great looks like (research notes)
+
+From recent.design (Astro Dither, Interfere, Displace, Nothing to Watch,
+Orior AI), landing.love, 60fps.design, saaspo, minimal.gallery, and the
+dev-tool sites known for craft (ghostty, linear, raycast, warp, zed,
+cursor, vercel, teenage.engineering):
+
+- **One idea, visible in the first second.** Ghostty's animated ASCII ghost
+  says "terminal" before a word is read. The hero is the product's
+  *metaphor*, not a screenshot. For us: the live dot field.
+- **Restraint is the luxury signal.** The featured sites use one or two
+  colours and a lot of black. The accent appears only where the eye must
+  go (Astro Dither: dithered monochrome + one hue).
+- **Texture beats gradients.** Dither, halftone and dot grids (Interfere,
+  Nothing) feel physical and "made"; soft blurred blobs read as template.
+- **Type is the layout.** Linear and Vercel set huge, tightly-tracked
+  headlines with generous negative space and let the copy do the selling;
+  body copy is short, grey, and never competes.
+- **Scroll is a timeline, not a list.** The memorable sites pin a scene and
+  scrub it (Warp's terminal, Raycast's palette): each "shot" teaches one
+  thing, then gets out of the way.
+- **Show the product doing the thing.** Raycast types real queries into a
+  real-looking palette; Zed shows real code moving. Scripted, deterministic
+  demos beat videos (crisp, tiny, accessible, scrubbable).
+- **An instrument layer.** Linear's "FIG 0.1" captions and TE's spec labels:
+  small mono metadata next to big type gives precision and rhythm.
+- **Industrial precision (TE).** Physical-object metaphors (keys, knobs,
+  displays) rendered with care become the brand. Ours: the split-flap
+  board and the beacon.
+- **Motion with weight.** Expo-out reveals, line masks, 0.02–0.04 s
+  staggers; nothing bounces except things that are physical (flaps).
+- **Performance is part of the design.** The best of 60fps.design are
+  canvas/WebGL but ship text first; a janky hero kills the effect.
+- **Mobile is its own composition,** not a squashed desktop: fewer dots,
+  stacked type, the demo at full width (Cursor, Linear on phones).
+- **Consistent system across pages.** Product pages reuse the same shots
+  with a different accent hue; coherence reads as quality.
+- **A finale that converts.** Vercel/Warp end on one enormous command or
+  button; the install line is the last big type on the page.
+
+Direction chosen: carbon night, a live LED dot field that forms type,
+devices and dithered photographs; one orange beacon; Mona Sans at display
+sizes with width-axis motion; departures-board flaps as the "every agent"
+object. No gradients, no glass, no 3D.
+
 ## The idea in one line
 
 **Your machine, relayed to every screen.** The site is a short film about a
