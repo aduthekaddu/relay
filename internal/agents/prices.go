@@ -55,7 +55,7 @@ func loadPrices(b []byte) (*priceTable, error) {
 }
 
 var (
-	dateSuffixRe = regexp.MustCompile(`[-@](20\d{6}|\d{4}-\d{2}-\d{2}|latest|preview(-\d+)?|exp(-\d+)?)$`)
+	dateSuffixRe = regexp.MustCompile(`[-@](20\d{6}|\d{4}-\d{2}-\d{2}|latest|preview(-\d+)*|exp(-\d+)*)$`)
 	bracketRe    = regexp.MustCompile(`\[[^\]]*\]$`)
 )
 

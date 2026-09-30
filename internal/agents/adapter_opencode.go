@@ -258,7 +258,7 @@ type opencodePlugin struct{}
 const opencodePluginMarker = "// Installed by Relay (relay hook opencode)."
 
 func (opencodePlugin) path(e *env) string {
-	return e.path(".config", "opencode", "plugin", "relay-attention.js")
+	return e.path(".config", "opencode", "plugins", "relay-attention.js")
 }
 
 func (h opencodePlugin) status(e *env) api.HookStatus {
