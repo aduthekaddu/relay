@@ -1,16 +1,54 @@
 #!/usr/bin/env bash
-# Run a heavy command inside a memory-capped, low-priority systemd scope so
-# it cannot starve the rest of the machine (important on shared/remote
-# boxes). Falls back to plain nice when systemd --user is unavailable.
-#   scripts/dev/safe go test ./...
-#   SAFE_MEM=2G scripts/dev/safe pnpm build
+# Run a heavy command politely on a shared machine:
+#   * at most $SAFE_SLOTS (default 3) safe-wrapped commands run at once,
+#     machine-wide (flock slots in /tmp), others wait their turn;
+#   * inside a memory-capped, low-priority systemd scope when available,
+#     so a runaway build is killed alone instead of starving the machine;
+#   * fewer parallel Go compiles and a capped Node heap.
+#
+#   scripts/dev/safe go test ./internal/files/...
+#   SAFE_MEM=3G scripts/dev/safe pnpm build
 set -euo pipefail
+
 MEM="${SAFE_MEM:-2G}"
-# Fewer parallel compiles / smaller Node heaps: this runs on shared boxes.
+SLOTS="${SAFE_SLOTS:-3}"
 export GOFLAGS="${GOFLAGS:--p=2}"
 export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=1536}"
-if command -v systemd-run >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
-  exec systemd-run --user --scope --quiet -p MemoryMax="$MEM" -p MemorySwapMax=0 -p CPUWeight=20 \
+
+run() {
+  if command -v systemd-run >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
+    systemd-run --user --scope --quiet -p MemoryMax="$MEM" -p MemorySwapMax=512M -p CPUWeight=20 \
+      nice -n 10 "$@"
+  else
     nice -n 10 "$@"
+  fi
+}
+
+# Nested calls (safe inside safe) must not deadlock on their own slot.
+if [ -n "${RELAY_SAFE_HELD:-}" ] || ! command -v flock >/dev/null 2>&1; then
+  run "$@"
+  exit $?
 fi
-exec nice -n 10 "$@"
+
+waited=0
+while :; do
+  for i in $(seq 1 "$SLOTS"); do
+    lock="/tmp/relay-safe-slot-$i.lock"
+    exec {fd}>>"$lock"
+    if flock -n "$fd"; then
+      export RELAY_SAFE_HELD=1
+      set +e
+      run "$@"
+      rc=$?
+      set -e
+      flock -u "$fd"
+      exit $rc
+    fi
+    exec {fd}>&-
+  done
+  if [ "$waited" -eq 0 ]; then
+    echo "safe: waiting for a free build slot ($SLOTS busy)…" >&2
+  fi
+  waited=$((waited + 1))
+  sleep 2
+done
