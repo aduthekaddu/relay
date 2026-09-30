@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Run a heavy command inside a memory-capped, low-priority systemd scope so
+# it cannot starve the rest of the machine (important on shared/remote
+# boxes). Falls back to plain nice when systemd --user is unavailable.
+#   scripts/dev/safe go test ./...
+#   SAFE_MEM=2G scripts/dev/safe pnpm build
+set -euo pipefail
+MEM="${SAFE_MEM:-3G}"
+if command -v systemd-run >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
+  exec systemd-run --user --scope --quiet -p MemoryMax="$MEM" -p MemorySwapMax=0 -p CPUWeight=20 \
+    nice -n 10 "$@"
+fi
+exec nice -n 10 "$@"

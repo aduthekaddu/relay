@@ -1,0 +1,24 @@
+# build output
+/bin/
+/dist/
+internal/web/dist/*
+!internal/web/dist/index.html
+node_modules/
+site/dist/
+site/.astro/
+web/coverage/
+# local state and secrets
+.relay-*/
+*.pem
+*.key
+relay.toml
+.env
+.env.*
+# editors / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+# tool artefacts
+.playwright-mcp/
+coverage.out
