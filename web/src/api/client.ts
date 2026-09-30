@@ -42,13 +42,19 @@ async function request<T>(method: string, path: string, body?: unknown, init?: R
     ...init,
     headers: { ...headers, ...(init?.headers as Record<string, string> | undefined) },
   })
-  if (res.status === 401) unauthorizedListeners.forEach((fn) => fn())
+  if (res.status === 401) for (const fn of unauthorizedListeners) fn()
   if (res.status === 204) return undefined as T
   const ct = res.headers.get('Content-Type') || ''
   if (!res.ok) {
     if (ct.includes('application/json')) {
       const e = (await res.json()) as ErrorBody
-      throw new ApiError(res.status, e.error?.code ?? 'error', e.error?.message ?? res.statusText, e.error?.field, e.error?.retryIn)
+      throw new ApiError(
+        res.status,
+        e.error?.code ?? 'error',
+        e.error?.message ?? res.statusText,
+        e.error?.field,
+        e.error?.retryIn,
+      )
     }
     throw new ApiError(res.status, 'error', (await res.text()) || res.statusText)
   }

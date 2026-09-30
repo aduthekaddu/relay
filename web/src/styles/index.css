@@ -1,3 +1,5 @@
-/* STUB — replaced by the design system (tokens.css, base.css, ...). */
-:root { color-scheme: dark; background: #0b0b0c; color: #ede9e0; font-family: system-ui, sans-serif; }
-.stub { padding: 48px; }
+/* Global stylesheet entry: order matters (tokens → fonts → base → utilities). */
+@import "./tokens.css";
+@import "./fonts.css";
+@import "./base.css";
+@import "./utilities.css";

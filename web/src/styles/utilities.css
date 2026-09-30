@@ -1,0 +1,76 @@
+/* Deliberately small. Prefer component classes; these cover layout glue. */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap, var(--s-2));
+  min-width: 0;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap, var(--s-3));
+  min-width: 0;
+}
+
+.grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.muted {
+  color: var(--text-3);
+}
+
+.dim {
+  color: var(--text-2);
+}
+
+/* The dot-field grain, for large empty surfaces. */
+.grain {
+  background-image: radial-gradient(var(--grain-dot) 0.8px, transparent 1px);
+  background-size: 3px 3px;
+}
+
+/* Temporary route stubs (area screens replace these). */
+.stub {
+  padding: var(--s-8) var(--s-6);
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+
+.stub h1 {
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-stretch: 110%;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--s-2);
+}
+
+.stub p {
+  color: var(--text-3);
+}

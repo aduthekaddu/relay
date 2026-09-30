@@ -1,0 +1,248 @@
+/* /dev/ui kitchen sink */
+
+.devui {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.devui-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  align-items: center;
+}
+
+.devui-frames {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.devui-frames--both {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .devui-frames--both {
+    grid-template-columns: 1fr;
+  }
+}
+
+.devui-frame {
+  min-width: 0;
+  padding: var(--s-5);
+  border-radius: var(--r-lg);
+  background: var(--bg);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.devui-label {
+  margin-bottom: var(--s-4);
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  color: var(--text-3);
+}
+
+.devui-phone {
+  position: fixed;
+  right: var(--s-5);
+  bottom: var(--s-5);
+  z-index: var(--z-header);
+  padding: 10px;
+  border-radius: 44px;
+  background: #000;
+  box-shadow: var(--shadow-float);
+  transform: scale(0.72);
+  transform-origin: 100% 100%;
+}
+
+.devui-phone iframe {
+  display: block;
+  border: 0;
+  border-radius: 36px;
+  background: var(--bg);
+}
+
+.kit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-7);
+}
+
+.story {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.story__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.story__title {
+  font-size: var(--fs-section);
+  font-weight: 620;
+}
+
+.story__note {
+  font-size: var(--fs-small);
+  color: var(--text-3);
+}
+
+.story__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.story .wrap {
+  flex-wrap: wrap;
+}
+
+.t-display {
+  font-size: var(--fs-display);
+  line-height: var(--lh-display);
+  font-weight: 720;
+  font-stretch: 118%;
+  letter-spacing: -0.03em;
+}
+
+.t-title {
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 650;
+  font-stretch: 110%;
+  letter-spacing: -0.02em;
+}
+
+.t-section {
+  font-size: var(--fs-section);
+  font-weight: 620;
+}
+
+.t-small {
+  font-size: var(--fs-small);
+  color: var(--text-2);
+}
+
+.t-mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  letter-spacing: 0.02em;
+  color: var(--text-3);
+}
+
+.t-meter {
+  font-size: 44px;
+  line-height: 1;
+  font-weight: 600;
+  font-stretch: 125%;
+  letter-spacing: -0.02em;
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: var(--s-2);
+}
+
+.swatch {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.swatch code {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+
+.swatch__chip {
+  height: 40px;
+  border-radius: var(--r-sm);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.swatch__chip--glyph {
+  display: grid;
+  place-items: center;
+  background: var(--surface-1);
+}
+
+.glyph-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--s-2);
+}
+
+.glyph-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-1);
+}
+
+.glyph-cell code {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--s-4);
+  align-items: start;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--s-3);
+}
+
+.meters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--s-4);
+  align-items: center;
+}
+
+.phone-strip {
+  max-width: 390px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.split-demo,
+.vlist-demo {
+  height: 220px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px var(--line);
+  background: var(--surface-1);
+}
+
+.pane {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--text-3);
+}
+
+.vrow {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 var(--s-3);
+  border-bottom: 1px solid var(--line);
+}
