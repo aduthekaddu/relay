@@ -303,10 +303,17 @@ func TestShutdownClosesClients(t *testing.T) {
 func TestSlowClientDropped(t *testing.T) {
 	h := newHarness(t)
 	_ = h.connect(t, "slow") // never reads
-	for i := 0; i < sendQueue*8; i++ {
-		h.bus.Publish("flood", strings.Repeat("x", 4096))
+	// Dispatch directly: the bus itself drops events for a lagging fan-out
+	// loop, which would hide the per-client queue under test. Frames are
+	// large so kernel socket buffers fill quickly.
+	payload := strings.Repeat("x", 64<<10)
+	deadline := time.Now().Add(5 * time.Second)
+	for h.svc.Clients() > 0 {
+		if time.Now().After(deadline) {
+			t.Fatal("slow client was never dropped")
+		}
+		h.svc.dispatch(api.Event{Type: "flood", Data: payload})
 	}
-	waitFor(t, func() bool { return h.svc.Clients() == 0 })
 }
 
 func TestTerminalOf(t *testing.T) {

@@ -115,7 +115,7 @@ func (s *Service) dispatch(ev api.Event) {
 			continue
 		}
 		if !c.enqueue(msg) {
-			c.kill(websocket.StatusTryAgainLater, "too slow; reconnect")
+			c.drop()
 		}
 	}
 }
@@ -277,6 +277,16 @@ func (c *client) kill(code websocket.StatusCode, reason string) {
 	})
 }
 
+// drop disconnects a client whose queue is full. A peer that is not
+// reading cannot complete a close handshake either, so the socket is torn
+// down at once; the browser reconnects and receives a fresh snapshot.
+func (c *client) drop() {
+	c.killOnce.Do(func() {
+		c.cancel()
+		_ = c.conn.CloseNow()
+	})
+}
+
 func (s *Service) handleEvents(w http.ResponseWriter, r *http.Request) {
 	p := server.PrincipalFrom(r.Context())
 	// Origin was already verified by the router for cookie principals;
@@ -416,7 +426,7 @@ func (s *Service) handleClientEvent(c *client, ev api.ClientEvent) {
 	case "ping":
 		b, _ := json.Marshal(api.Event{Type: "pong", At: time.Now().UTC()})
 		if !c.enqueue(b) {
-			c.kill(websocket.StatusTryAgainLater, "too slow; reconnect")
+			c.drop()
 		}
 	}
 }
