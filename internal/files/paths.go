@@ -192,6 +192,10 @@ func (r *Resolver) ResolveCreate(p string) (string, error) {
 	}
 	base, err := r.Resolve(cur)
 	if err != nil {
+		if statusOf404(err) {
+			// cur exists (Lstat) but does not resolve: a dangling link.
+			return "", httpx.Forbidden("the path goes through a broken symbolic link")
+		}
 		return "", err
 	}
 	for i := len(missing) - 1; i >= 0; i-- {
@@ -204,6 +208,11 @@ func (r *Resolver) ResolveCreate(p string) (string, error) {
 		return "", errOutside()
 	}
 	return base, nil
+}
+
+func statusOf404(err error) bool {
+	var he *httpx.Err
+	return errors.As(err, &he) && he.Status == 404
 }
 
 // ValidName checks a single path component supplied by a client.

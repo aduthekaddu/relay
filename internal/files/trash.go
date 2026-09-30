@@ -30,6 +30,8 @@ type TrashItem struct {
 	Original  string // absolute original location
 	DeletedAt time.Time
 	Info      os.FileInfo // Lstat of Path
+
+	infoMod time.Time // .trashinfo mtime: orders items deleted in the same second
 }
 
 // TrashDir returns the home trash location: $XDG_DATA_HOME/Trash or
@@ -199,9 +201,18 @@ func (t *Trash) List() ([]TrashItem, error) {
 		if err != nil {
 			continue
 		}
-		items = append(items, TrashItem{Name: name, Path: p, Original: orig, DeletedAt: at, Info: fi})
+		it := TrashItem{Name: name, Path: p, Original: orig, DeletedAt: at, Info: fi}
+		if ii, err := de.Info(); err == nil {
+			it.infoMod = ii.ModTime()
+		}
+		items = append(items, it)
 	}
-	sort.Slice(items, func(i, j int) bool { return items[i].DeletedAt.After(items[j].DeletedAt) })
+	sort.Slice(items, func(i, j int) bool {
+		if !items[i].DeletedAt.Equal(items[j].DeletedAt) {
+			return items[i].DeletedAt.After(items[j].DeletedAt)
+		}
+		return items[i].infoMod.After(items[j].infoMod)
+	})
 	return items, nil
 }
 
