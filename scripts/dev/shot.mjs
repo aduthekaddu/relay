@@ -27,13 +27,15 @@ const opt = (n, d) => {
 function shotType(file) {
   return /\.jpe?g$/i.test(file) ? { type: 'jpeg', quality: Number(opt('--quality', '72')) } : { type: 'png' }
 }
+// Keep every image ≤ 1900 px per side (review tools reject bigger ones).
+const MAX = 1900
 const exe = process.env.CHROME || '/usr/bin/google-chrome'
 const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
 const mobile = flag('--mobile')
 const tablet = flag('--tablet')
 const ctx = await browser.newContext({
   viewport: mobile ? { width: 390, height: 844 } : tablet ? { width: 820, height: 1180 } : { width: 1440, height: 900 },
-  deviceScaleFactor: Number(opt('--dpr', '1')),
+  deviceScaleFactor: Math.min(Number(opt('--dpr', '1')), MAX / (mobile ? 844 : tablet ? 1180 : 1440)),
   isMobile: mobile,
   hasTouch: mobile || tablet,
   colorScheme: flag('--light') ? 'light' : 'dark',
@@ -74,7 +76,24 @@ if (frames) {
     await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), scroll)
     await page.waitForTimeout(700)
   }
-  await page.screenshot({ path: out, fullPage: flag('--full'), ...shotType(out) })
+  if (flag('--full')) {
+    // Image viewers used for review reject images larger than 2000 px on
+    // any side, so a full page is written as tiles of at most MAX px.
+    const dpr = Number(opt('--dpr', '1'))
+    const total = await page.evaluate(() => document.documentElement.scrollHeight)
+    const vw = page.viewportSize().width
+    const tileH = Math.floor(MAX / dpr)
+    const n = Math.max(1, Math.ceil(total / tileH))
+    for (let k = 0; k < n; k++) {
+      const y = k * tileH
+      const h = Math.min(tileH, total - y)
+      const file = n === 1 ? out : out.replace(/(\.[a-z]+)$/i, `-${k + 1}$1`)
+      await page.screenshot({ path: file, fullPage: true, clip: { x: 0, y, width: vw, height: h }, ...shotType(out) })
+      console.log(`wrote ${file}`)
+    }
+  } else {
+    await page.screenshot({ path: out, ...shotType(out) })
+  }
 }
 if (logs.length) console.log(logs.slice(0, 40).join('\n'))
 await browser.close()
