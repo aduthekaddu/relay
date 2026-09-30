@@ -16,7 +16,7 @@ later.
    `https://relay.example.com`.
 2. Enter the username and password you chose during setup.
 3. Tick **Keep me signed in** on your own devices. You then stay signed in
-   for 30 days of inactivity. Without it, the session ends after 12 hours.
+   for 30 days of inactivity. Without it, the session ends after 12 hours without use.
 4. Select **Sign in**. You see **Home**: what needs you, what is running,
    your workspaces and your machine's vital signs.
 

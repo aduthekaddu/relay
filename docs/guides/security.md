@@ -32,7 +32,7 @@ them can be reached from outside except through Relay's sign-in.
   nobody can find out which usernames exist.
 
 **Sessions you control.** Every signed-in browser has its own session,
-which you can see and revoke. Sessions end after 12 hours, or after 30 days
+which you can see and revoke. Sessions end after 12 hours without use, or after 30 days
 of inactivity when you tick *Keep me signed in*. Changing your password
 signs out every other device. A sign-in from a device Relay has never seen
 sends a **security** notification to your other devices.
