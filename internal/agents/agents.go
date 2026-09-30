@@ -187,7 +187,12 @@ func (s *Service) workspaceDirs(ctx context.Context) []string {
 		return s.wsCache
 	}
 	set := map[string]bool{}
-	if s.d.Workspaces != nil {
+	if wp, ok := s.d.Workspaces.(interface{ Paths(context.Context) []string }); ok {
+		// Cheap listing without git briefs.
+		for _, p := range wp.Paths(ctx) {
+			set[p] = true
+		}
+	} else if s.d.Workspaces != nil {
 		if ws, err := s.d.Workspaces.List(ctx); err == nil {
 			for _, w := range ws {
 				set[w.Path] = true

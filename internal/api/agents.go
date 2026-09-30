@@ -1,6 +1,9 @@
 package api
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"time"
+)
 
 // AgentHookRequest is sent by `relay hook <agent> <event>` (via the local
 // control socket) to POST /api/v1/agents/hook. Payload is the agent's own
@@ -33,4 +36,14 @@ type PinWorkspaceRequest struct {
 // runs the command visibly.
 type GitTaskResponse struct {
 	Terminal *TerminalSession `json:"terminal,omitempty"`
+}
+
+// CwdUsage summarises indexed agent sessions per working directory. It is
+// exchanged between internal/agents and internal/workspaces (workspace
+// discovery and the Workspace.Agents count); it is not part of the HTTP
+// contract.
+type CwdUsage struct {
+	Path       string    `json:"path"`
+	Sessions   int       `json:"sessions"`
+	LastUsedAt time.Time `json:"lastUsedAt"`
 }

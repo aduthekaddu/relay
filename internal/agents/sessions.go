@@ -369,3 +369,28 @@ func (s *Service) sourceFor(ctx context.Context, a *Adapter, row *sessionRow) (s
 	}
 	return src, nil
 }
+
+// AgentCwds returns the most recently used working directories of indexed
+// sessions (at most limit), newest first. internal/workspaces uses it to
+// discover projects and count sessions per workspace.
+func (s *Service) AgentCwds(ctx context.Context, limit int) []api.CwdUsage {
+	if limit <= 0 || limit > 5000 {
+		limit = 500
+	}
+	rows, err := s.ix.db.QueryContext(ctx, `SELECT cwd, count(*), max(updated) FROM agent_sessions
+		WHERE hidden=0 AND cwd<>'' GROUP BY cwd ORDER BY max(updated) DESC LIMIT ?`, limit)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	var out []api.CwdUsage
+	for rows.Next() {
+		var u api.CwdUsage
+		var updated int64
+		if rows.Scan(&u.Path, &u.Sessions, &updated) == nil {
+			u.LastUsedAt = msTime(updated)
+			out = append(out, u)
+		}
+	}
+	return out
+}
