@@ -1,0 +1,172 @@
+package apps
+
+import (
+	"os"
+	"os/exec"
+	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
+)
+
+// ideFlavor is which VS Code server we found.
+type ideFlavor int
+
+const (
+	flavorCodeServer ideFlavor = iota
+	flavorOpenVSCode
+)
+
+// codeBinary locates code-server or openvscode-server: the configured
+// binary first, then PATH, ~/.local/bin and ~/.local/lib/code-server-*.
+func codeBinary(configured, home string, lookPath func(string) (string, error)) (string, ideFlavor, bool) {
+	if configured != "" {
+		p := expandHome(configured, home)
+		if !strings.ContainsRune(p, '/') {
+			if lp, err := lookPath(p); err == nil {
+				p = lp
+			}
+		}
+		if isExecutable(p) {
+			return p, flavorOf(p), true
+		}
+		return p, flavorOf(p), false
+	}
+	for _, name := range []string{"code-server", "openvscode-server"} {
+		if p, err := lookPath(name); err == nil {
+			return p, flavorOf(p), true
+		}
+	}
+	for _, p := range []string{
+		filepath.Join(home, ".local", "bin", "code-server"),
+		filepath.Join(home, ".local", "bin", "openvscode-server"),
+	} {
+		if isExecutable(p) {
+			return p, flavorOf(p), true
+		}
+	}
+	// Standalone installs: ~/.local/lib/code-server-<version>/bin/code-server.
+	matches, _ := filepath.Glob(filepath.Join(home, ".local", "lib", "code-server-*", "bin", "code-server"))
+	sort.Slice(matches, func(i, j int) bool { return versionLess(matches[j], matches[i]) })
+	for _, p := range matches {
+		if isExecutable(p) {
+			return p, flavorCodeServer, true
+		}
+	}
+	return "", flavorCodeServer, false
+}
+
+func flavorOf(p string) ideFlavor {
+	if strings.Contains(filepath.Base(p), "openvscode") {
+		return flavorOpenVSCode
+	}
+	return flavorCodeServer
+}
+
+// versionLess orders "…/code-server-4.9.0/…" before "…/code-server-4.10.0/…".
+func versionLess(a, b string) bool {
+	va, vb := dirVersion(a), dirVersion(b)
+	for i := 0; i < len(va) && i < len(vb); i++ {
+		if va[i] != vb[i] {
+			return va[i] < vb[i]
+		}
+	}
+	return len(va) < len(vb)
+}
+
+func dirVersion(p string) []int {
+	for _, part := range strings.Split(p, string(filepath.Separator)) {
+		if v, ok := strings.CutPrefix(part, "code-server-"); ok {
+			var out []int
+			for _, n := range strings.Split(v, ".") {
+				i, _ := strconv.Atoi(n)
+				out = append(out, i)
+			}
+			return out
+		}
+	}
+	return nil
+}
+
+func isExecutable(p string) bool {
+	fi, err := os.Stat(p)
+	return err == nil && !fi.IsDir() && fi.Mode()&0o111 != 0
+}
+
+func expandHome(p, home string) string {
+	if p == "~" {
+		return home
+	}
+	if strings.HasPrefix(p, "~/") {
+		return filepath.Join(home, p[2:])
+	}
+	return p
+}
+
+// codeArgs builds the argv for an isolated IDE instance listening on sock
+// and served under base (e.g. "/apps/code"). The instance has its own
+// config file, user data and extensions, so it never touches another
+// code-server installation on the machine.
+func codeArgs(bin string, flavor ideFlavor, sock, dataDir, base string) []string {
+	user := filepath.Join(dataDir, "code", "user")
+	ext := filepath.Join(dataDir, "code", "extensions")
+	if flavor == flavorOpenVSCode {
+		return []string{bin,
+			"--socket-path", sock,
+			"--without-connection-token",
+			"--server-base-path", base,
+			"--user-data-dir", user,
+			"--extensions-dir", ext,
+			"--telemetry-level", "off",
+			"--accept-server-license-terms",
+		}
+	}
+	return []string{bin,
+		"--config", filepath.Join(dataDir, "code", "config.yaml"),
+		"--socket", sock,
+		"--socket-mode", "600",
+		"--auth", "none",
+		"--disable-telemetry",
+		"--disable-update-check",
+		"--disable-proxy", // Relay's previews own port proxying
+		"--user-data-dir", user,
+		"--extensions-dir", ext,
+		"--abs-proxy-base-path", base,
+	}
+}
+
+// codeConfigYAML is written to <data>/code/config.yaml so code-server
+// never reads ~/.config/code-server/config.yaml (another instance's).
+const codeConfigYAML = "# Managed by Relay. Flags on the command line take precedence.\nauth: none\ncert: false\n"
+
+// childEnv returns Relay's environment minus variables that would change
+// the child's authentication or leak Relay internals, plus extra.
+func childEnv(base []string, extra map[string]string) []string {
+	drop := map[string]bool{
+		"PASSWORD": true, "HASHED_PASSWORD": true, "PORT": true,
+		"CODE_SERVER_CONFIG": true, "VSCODE_PROXY_URI": true,
+		"RELAY_SOCKET": true, "RELAY_SESSION": true,
+	}
+	out := make([]string, 0, len(base)+len(extra))
+	for _, kv := range base {
+		k, _, _ := strings.Cut(kv, "=")
+		if drop[k] {
+			continue
+		}
+		if _, override := extra[k]; override {
+			continue
+		}
+		out = append(out, kv)
+	}
+	keys := make([]string, 0, len(extra))
+	for k := range extra {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		out = append(out, k+"="+extra[k])
+	}
+	return out
+}
+
+var _ = exec.LookPath

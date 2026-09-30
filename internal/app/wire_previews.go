@@ -13,5 +13,9 @@ func wirePreviews(ctx context.Context, a *App) error {
 		return err
 	}
 	svc.Routes(a.Router)
+	a.OnStart("previews", svc.Start)
+	a.OnClose(svc.Close)
+	a.AllowTLSHost(svc.TLSHostAllowed)
+	a.D.Search.Add(svc.SearchProvider())
 	return nil
 }
