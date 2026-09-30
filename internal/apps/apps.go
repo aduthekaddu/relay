@@ -176,7 +176,13 @@ func (s *Service) userApp(ac config.AppConfig) (*webApp, error) {
 		env["RELAY_APP_SOCKET"] = sock
 	case ac.Port > 0 && ac.Port <= 65535:
 		a.dial = revproxy.LoopbackTCP(ac.Port, 2*time.Second)
-		ready = func(ctx context.Context) error { c, err := a.dial(ctx); if err == nil { c.Close() }; return err }
+		ready = func(ctx context.Context) error {
+			c, err := a.dial(ctx)
+			if err == nil {
+				c.Close()
+			}
+			return err
+		}
 		env["PORT"] = strconv.Itoa(ac.Port)
 	default:
 		return nil, fmt.Errorf("app %q: needs a loopback port or a unix socket", id)
