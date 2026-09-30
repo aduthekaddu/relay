@@ -2,7 +2,9 @@
 // Headless screenshots with system Chrome and an isolated temporary
 // profile, so several people (or agents) can capture at once.
 //
-//   node scripts/dev/shot.mjs <url> <out.png> [--mobile|--tablet] [--full]
+//   node scripts/dev/shot.mjs <url> <out.jpg|out.png> [--mobile|--tablet] [--full]
+//        [--dpr 1]  (default 1: small files for reviewing; use 2 for crisp assets)
+//   Prefer .jpg outputs for reviewing (quality 72): they are ~10x smaller than PNG.
 //        [--wait ms] [--scroll px] [--dark|--light] [--eval "js"] [--click sel]
 //        [--login user:pass]  (signs in through /api/v1/auth/login first)
 //
@@ -22,13 +24,16 @@ const opt = (n, d) => {
   const i = args.indexOf(n)
   return i >= 0 ? args[i + 1] : d
 }
+function shotType(file) {
+  return /\.jpe?g$/i.test(file) ? { type: 'jpeg', quality: Number(opt('--quality', '72')) } : { type: 'png' }
+}
 const exe = process.env.CHROME || '/usr/bin/google-chrome'
 const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
 const mobile = flag('--mobile')
 const tablet = flag('--tablet')
 const ctx = await browser.newContext({
   viewport: mobile ? { width: 390, height: 844 } : tablet ? { width: 820, height: 1180 } : { width: 1440, height: 900 },
-  deviceScaleFactor: mobile || tablet ? 2 : 1,
+  deviceScaleFactor: Number(opt('--dpr', '1')),
   isMobile: mobile,
   hasTouch: mobile || tablet,
   colorScheme: flag('--light') ? 'light' : 'dark',
@@ -61,7 +66,7 @@ if (frames) {
   for (const y of frames.split(',').map(Number)) {
     await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), y)
     await page.waitForTimeout(Number(opt('--frame-wait', '900')))
-    await page.screenshot({ path: out.replace('%d', String(i++)) })
+    await page.screenshot({ path: out.replace('%d', String(i++)), ...shotType(out) })
   }
 } else {
   const scroll = Number(opt('--scroll', '0'))
@@ -69,7 +74,7 @@ if (frames) {
     await page.evaluate((y) => window.scrollTo({ top: y, behavior: 'instant' }), scroll)
     await page.waitForTimeout(700)
   }
-  await page.screenshot({ path: out, fullPage: flag('--full') })
+  await page.screenshot({ path: out, fullPage: flag('--full'), ...shotType(out) })
 }
 if (logs.length) console.log(logs.slice(0, 40).join('\n'))
 await browser.close()
