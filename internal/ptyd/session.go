@@ -30,6 +30,7 @@ const (
 	notifyInterval   = time.Second     // rate limit for OSC notifications
 	exitedReplayMax  = 256 << 10       // replay bytes kept after exit
 	screenScrollback = 1000            // lines kept by the snapshot model
+	replayFrame      = 64 << 10        // max bytes per replay frame
 )
 
 // Kill escalation timing (from the first signal).
@@ -65,6 +66,7 @@ type Session struct {
 	lastBell       time.Time
 	lastNotify     time.Time
 	previewSent    string
+	echoPending    []byte // recent input the pty may echo back
 	dirtyPreview   bool
 
 	done     chan struct{} // closed when the process exited
@@ -214,7 +216,7 @@ func (s *Session) output(b []byte) {
 		s.rec.Output(now, data)
 	}
 	s.info.LastOutputAt = now.UTC()
-	echo := now.Sub(s.info.LastInputAt) < echoWindow && len(data) <= echoMaxBytes
+	echo := s.isEchoLocked(now, data)
 	if !echo {
 		s.activityOutput = now
 		s.promptChecked = false
@@ -234,6 +236,45 @@ func (s *Session) output(b []byte) {
 	}
 	s.mu.Unlock()
 	s.d.emit(out...)
+}
+
+// expectEchoLocked remembers input so that its echo is not mistaken for
+// the application working.
+func (s *Session) expectEchoLocked(data []byte) {
+	if len(data) > echoMaxBytes {
+		s.echoPending = nil
+		return
+	}
+	if len(s.echoPending)+len(data) > echoMaxBytes {
+		s.echoPending = s.echoPending[:0]
+	}
+	for _, c := range data {
+		if c != '\r' {
+			s.echoPending = append(s.echoPending, c)
+		}
+	}
+}
+
+// isEchoLocked reports whether output is the terminal echoing recent input
+// (CRs ignored: the tty turns LF into CRLF).
+func (s *Session) isEchoLocked(now time.Time, data []byte) bool {
+	if len(s.echoPending) == 0 || now.Sub(s.info.LastInputAt) > echoWindow {
+		s.echoPending = s.echoPending[:0]
+		return false
+	}
+	i := 0
+	for _, c := range data {
+		if c == '\r' {
+			continue
+		}
+		if i >= len(s.echoPending) || s.echoPending[i] != c {
+			s.echoPending = s.echoPending[:0]
+			return false
+		}
+		i++
+	}
+	s.echoPending = append(s.echoPending[:0], s.echoPending[i:]...)
+	return true
 }
 
 // feed parses data (which starts at absolute offset base), recording safe
@@ -476,6 +517,7 @@ func (s *Session) Input(c *client, data []byte) error {
 		return conflict("session has exited")
 	}
 	s.info.LastInputAt = now.UTC()
+	s.expectEchoLocked(data)
 	var out []ptyclient.PtyEvent
 	out = append(out, s.setAttentionLocked(nil)...)
 	if c != nil {
@@ -599,8 +641,16 @@ func (s *Session) attach(c *client, replay bool) (nudge, exited bool) {
 		var b bytes.Buffer
 		b.WriteString("\x1bc")
 		b.Write(s.ring.Replay())
-		b.Write(s.term.Reassert())
-		c.push(frame{data: b.Bytes()})
+		if s.term != nil {
+			b.Write(s.term.Reassert())
+		}
+		// Frames of at most replayFrame bytes: progressive on slow links
+		// and within every reader's frame limit.
+		for data := b.Bytes(); len(data) > 0; {
+			n := min(len(data), replayFrame)
+			c.push(frame{data: data[:n]})
+			data = data[n:]
+		}
 		c.pushMsg(api.TermServerMsg{T: "replay-end"})
 	} else if s.term == nil {
 		// restored from disk: nothing to replay

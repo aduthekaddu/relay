@@ -10,7 +10,9 @@ package ptyclient
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"net/http"
 
 	"github.com/coder/websocket"
 
@@ -22,6 +24,22 @@ var ErrUnavailable = errors.New("ptyd unavailable")
 
 // ErrNotFound is returned for unknown session ids.
 var ErrNotFound = errors.New("terminal session not found")
+
+// StatusError is a non-2xx answer from the daemon other than 404. Status,
+// Code and Message come from the standard error envelope and are safe to
+// show to users.
+type StatusError struct {
+	Status  int
+	Code    string
+	Message string
+}
+
+func (e *StatusError) Error() string {
+	if e.Message != "" {
+		return e.Message
+	}
+	return fmt.Sprintf("ptyd: %s", http.StatusText(e.Status))
+}
 
 // CreateSpec describes a new session. Command empty = login shell.
 type CreateSpec struct {
@@ -58,27 +76,7 @@ type PtyEvent struct {
 // Client is safe for concurrent use.
 type Client struct {
 	socket string
-	impl   clientImpl
-}
-
-// clientImpl is implemented in client_impl.go by the ptyd owner. Keeping
-// the exported surface here stable lets other packages compile against it.
-type clientImpl interface {
-	Health(ctx context.Context) error
-	List(ctx context.Context) ([]api.TerminalSession, error)
-	Get(ctx context.Context, id string) (*api.TerminalSession, error)
-	Create(ctx context.Context, spec CreateSpec) (*api.TerminalSession, error)
-	Update(ctx context.Context, id string, req api.UpdateTerminalRequest) (*api.TerminalSession, error)
-	Kill(ctx context.Context, id, signal string) error
-	Remove(ctx context.Context, id string) error
-	Input(ctx context.Context, id string, data []byte) error
-	Resize(ctx context.Context, id string, cols, rows int) error
-	Snapshot(ctx context.Context, id string, lines int) (*api.TerminalSnapshot, error)
-	Attach(ctx context.Context, id string, opts AttachOptions) (*websocket.Conn, error)
-	Events(ctx context.Context) (<-chan PtyEvent, error)
-	SetAttention(ctx context.Context, id string, a *api.Attention) error
-	SetMeta(ctx context.Context, id string, meta map[string]string) error
-	Recording(ctx context.Context, id string) (io.ReadCloser, error)
+	impl   *httpImpl
 }
 
 // New returns a client for the daemon listening on socket.
@@ -89,33 +87,56 @@ func New(socket string) *Client {
 // Socket returns the daemon socket path.
 func (c *Client) Socket() string { return c.socket }
 
+// Health reports nil when the daemon answers.
 func (c *Client) Health(ctx context.Context) error { return c.impl.Health(ctx) }
+
+// List returns every session (live first, then exited).
 func (c *Client) List(ctx context.Context) ([]api.TerminalSession, error) {
 	return c.impl.List(ctx)
 }
+
+// Get returns one session.
 func (c *Client) Get(ctx context.Context, id string) (*api.TerminalSession, error) {
 	return c.impl.Get(ctx, id)
 }
+
+// Create starts a session.
 func (c *Client) Create(ctx context.Context, spec CreateSpec) (*api.TerminalSession, error) {
 	return c.impl.Create(ctx, spec)
 }
+
+// Update renames or (un)pins a session.
 func (c *Client) Update(ctx context.Context, id string, req api.UpdateTerminalRequest) (*api.TerminalSession, error) {
 	return c.impl.Update(ctx, id, req)
 }
 
-// Kill signals the session's process group. signal: TERM (default), KILL, INT, HUP.
+// Kill signals the session's process group. signal: TERM, KILL, INT, HUP,
+// QUIT, USR1, USR2; empty closes the terminal (HUP, TERM after 2 s, KILL
+// after 5 s).
 func (c *Client) Kill(ctx context.Context, id, signal string) error {
 	return c.impl.Kill(ctx, id, signal)
 }
 
 // Remove forgets an exited session (kills it first if still running).
 func (c *Client) Remove(ctx context.Context, id string) error { return c.impl.Remove(ctx, id) }
+
+// Input writes raw bytes to the session's pty.
 func (c *Client) Input(ctx context.Context, id string, data []byte) error {
-	return c.impl.Input(ctx, id, data)
+	return c.impl.Input(ctx, id, data, false)
 }
+
+// Paste writes text as a paste: wrapped in bracketed-paste markers when
+// the application enabled them, with embedded end markers removed.
+func (c *Client) Paste(ctx context.Context, id string, data []byte) error {
+	return c.impl.Input(ctx, id, data, true)
+}
+
+// Resize sets the pty size (the HTTP caller becomes the size owner).
 func (c *Client) Resize(ctx context.Context, id string, cols, rows int) error {
 	return c.impl.Resize(ctx, id, cols, rows)
 }
+
+// Snapshot returns the last lines of the screen as plain text.
 func (c *Client) Snapshot(ctx context.Context, id string, lines int) (*api.TerminalSnapshot, error) {
 	return c.impl.Snapshot(ctx, id, lines)
 }
@@ -134,6 +155,8 @@ func (c *Client) Events(ctx context.Context) (<-chan PtyEvent, error) { return c
 func (c *Client) SetAttention(ctx context.Context, id string, a *api.Attention) error {
 	return c.impl.SetAttention(ctx, id, a)
 }
+
+// SetMeta merges meta into the session's metadata (empty values delete).
 func (c *Client) SetMeta(ctx context.Context, id string, meta map[string]string) error {
 	return c.impl.SetMeta(ctx, id, meta)
 }
@@ -141,4 +164,10 @@ func (c *Client) SetMeta(ctx context.Context, id string, meta map[string]string)
 // Recording returns the asciicast v2 stream for a recorded session.
 func (c *Client) Recording(ctx context.Context, id string) (io.ReadCloser, error) {
 	return c.impl.Recording(ctx, id)
+}
+
+// Restore starts a new session with the command, cwd and environment of
+// an exited (or lost) one. The new session's meta has restoredFrom=<id>.
+func (c *Client) Restore(ctx context.Context, id string) (*api.TerminalSession, error) {
+	return c.impl.Restore(ctx, id)
 }
