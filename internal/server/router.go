@@ -62,6 +62,8 @@ type Router struct {
 	hostDispatch []func(r *http.Request) http.Handler
 }
 
+// NewRouter returns a router using auth (may be nil until SetAuthenticator)
+// and the allowed browser origins for CSRF checks.
 func NewRouter(auth Authenticator, allowedOrigins func() []string) *Router {
 	return &Router{mux: http.NewServeMux(), auth: auth, origins: allowedOrigins}
 }
@@ -118,7 +120,25 @@ func (rt *Router) Authenticate(r *http.Request) *Principal {
 	if rt.auth == nil {
 		return nil
 	}
-	return rt.auth.Identify(r)
+	p := rt.auth.Identify(r)
+	if p == nil || p.User == "" || p.Method == "" {
+		return nil
+	}
+	return p
+}
+
+// OriginAllowed reports whether r carries an Origin header naming one of
+// the allowed browser origins (and is not flagged cross-site by Fetch
+// Metadata). Public handlers that accept unsafe requests use it to refuse
+// cross-site form posts.
+func (rt *Router) OriginAllowed(r *http.Request) bool { return rt.originAllowed(r) }
+
+// AllowedOrigins returns the browser origins accepted for unsafe requests.
+func (rt *Router) AllowedOrigins() []string {
+	if rt.origins == nil {
+		return nil
+	}
+	return rt.origins()
 }
 
 func (rt *Router) protect(h http.HandlerFunc, ws bool) http.Handler {
@@ -154,7 +174,7 @@ func (rt *Router) originAllowed(r *http.Request) bool {
 		return false
 	}
 	norm := strings.ToLower(o.Scheme + "://" + o.Host)
-	for _, a := range rt.origins() {
+	for _, a := range rt.AllowedOrigins() {
 		if strings.EqualFold(strings.TrimRight(a, "/"), norm) {
 			return true
 		}

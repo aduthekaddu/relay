@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -14,10 +15,11 @@ func init() {
 		Name:    "serve",
 		Group:   "Server",
 		Summary: "Run the Relay web server",
-		Usage:   "relay serve [--listen addr] [--debug]",
+		Usage:   "relay serve [--listen addr] [--debug] [--open]",
 		Flags: func(fs *flag.FlagSet) {
 			fs.String("listen", "", "override server.listen (e.g. 127.0.0.1:7777)")
 			fs.Bool("debug", false, "verbose logging")
+			fs.Bool("open", false, "print the URL to open in a browser once the server is set up")
 		},
 		Run: func(ctx context.Context, fs *flag.FlagSet, args []string) error {
 			level := slog.LevelInfo
@@ -31,6 +33,11 @@ func init() {
 			a, err := Build(ctx, log)
 			if err != nil {
 				return err
+			}
+			if fs.Lookup("open").Value.String() == "true" {
+				// Printed on stdout (logs go to stderr) so scripts can
+				// capture it: relay serve --open | head -1
+				fmt.Println("Open " + a.D.Cfg.Origin() + "/")
 			}
 			return a.Run(ctx)
 		},
