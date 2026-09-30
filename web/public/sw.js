@@ -131,7 +131,14 @@ self.addEventListener('notificationclick', (event) => {
   if (event.action === 'dismiss') return
   const raw = (event.notification.data && event.notification.data.link) || '/'
   // Only ever open same-origin paths.
-  const target = new URL(raw.startsWith('/') && !raw.startsWith('//') ? raw : '/', self.location.origin)
+  // Backslashes are rejected: URL parsing treats a leading "/" + backslash as "//" (another host).
+  let target = new URL('/', self.location.origin)
+  try {
+    const u = new URL(typeof raw === 'string' && raw.startsWith('/') && !/^\/[\\/]|\\/.test(raw) ? raw : '/', self.location.origin)
+    if (u.origin === self.location.origin) target = u
+  } catch {
+    /* keep "/" */
+  }
   event.waitUntil(
     (async () => {
       const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
