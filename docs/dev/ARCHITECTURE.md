@@ -98,6 +98,23 @@ Rules:
 - All filesystem paths from clients are cleaned and validated; see
   `docs/dev/SECURITY.md`.
 
+## Cross-feature events
+
+Besides the `api.Ev*` events streamed to browsers, two backend-only bus
+events connect features without imports:
+
+- `core.BusAudit` (`core.AuditEvent`) — publish after destructive or
+  security-relevant actions (file delete, process kill, git discard, hook
+  install). `internal/auth` records them in the audit log.
+- `core.BusClipCapture` (`core.ClipCapture`) — publish when text arrives
+  for the universal clipboard from a non-HTTP source (OSC 52 in a
+  terminal, the desktop clipboard). `internal/clip` stores it and emits
+  `api.EvClip`.
+
+Services set on `core.Deps` during wiring (nil-check before use):
+`Notifier` (notify), `Workspaces` (workspaces), `Agents` (agents),
+`Presence` (live), `Search` registry (always present).
+
 ## Routing and authentication
 
 `server.Router` has four registration levels:
