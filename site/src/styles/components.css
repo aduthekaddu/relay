@@ -1450,7 +1450,7 @@
 }
 .oneliner-xl .ol-code,
 .oneliner-xl .ol-prompt {
-  font-size: clamp(14px, 1.75vw, 26px);
+  font-size: clamp(13px, 1.22vw, 19px);
 }
 .oneliner-xl .ol-copy {
   min-height: 56px;

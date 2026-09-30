@@ -47,24 +47,22 @@ export const TARGETS: Record<string, (v: View) => Target> = {
   }),
   quiet: () => ({ layers: [], ambient: 0.28 }),
   dark: () => ({ layers: [], ambient: 0.05 }),
-  tap: () => ({ layers: [], ambient: 0.08, beacon: [0.5, 0.36] }),
+  tap: () => ({ layers: [], ambient: 0.08, beacon: [0.5, 0.2] }),
   command: (v) => ({
-    layers: [{ kind: 'dotfont', text: 'K', h: v.mobile ? 0.3 : 0.62, x: v.mobile ? 0.8 : 0.84, y: 0.5, gain: 0.32 }],
+    layers: [{ kind: 'text', text: '⌘K', h: v.mobile ? 0.26 : 0.72, x: v.mobile ? 0.62 : 0.7, y: v.mobile ? 0.8 : 0.52, gain: 0.2 }],
     ambient: 0.18,
   }),
   running: (v) => ({ layers: [image(desk, 'desk', 0.55, v.mobile ? [0.2, 0.4] : [0.3, 0.45])], ambient: 0.12 }),
   night: (v) => ({ layers: [image(road, 'road', 0.85, v.mobile ? [0.72, 0.6] : [0.6, 0.55])], ambient: 0.1 }),
   locked: (v) => ({ layers: [image(rack, 'rack', 0.55, v.mobile ? [0.8, 0.3] : [0.7, 0.4])], ambient: 0.08 }),
   light: () => ({ layers: [image(windows, 'windows', 0.42, [0.5, 0.5])], ambient: 0.05 }),
-  install: (v) => ({
-    layers: [{ kind: 'dotfont', text: 'RELAY', h: v.mobile ? 0.12 : 0.28, w: 0.9, y: 0.8, gain: 0.6 }],
-    ambient: 0.35,
-  }),
+  // Bookend: the relay tower again, quieter, as the signal signs off.
+  install: (v) => ({ layers: [image(tower, 'tower', 0.5, v.mobile ? [0.85, 0.3] : [0.86, 0.36])], ambient: 0.3 }),
   // Product page openers.
   'page-terminal': (v) => ({ layers: [image(train, 'train', 0.8, v.mobile ? [0.35, 0.5] : [0.4, 0.5])], ambient: 0.1 }),
   'page-agents': (v) => ({ layers: [image(windows, 'windows', 0.6, v.mobile ? [0.5, 0.45] : [0.4, 0.46])], ambient: 0.08 }),
   'page-command': (v) => ({
-    layers: [{ kind: 'dotfont', text: 'K', h: v.mobile ? 0.28 : 0.66, x: v.mobile ? 0.78 : 0.8, y: 0.5, gain: 0.5 }],
+    layers: [{ kind: 'text', text: '⌘K', h: v.mobile ? 0.24 : 0.7, x: v.mobile ? 0.6 : 0.72, y: v.mobile ? 0.3 : 0.5, gain: 0.45 }],
     ambient: 0.3,
   }),
   'page-desktop': (v) => ({ layers: [image(desk, 'desk', 0.85, v.mobile ? [0.16, 0.4] : [0.2, 0.42])], ambient: 0.1 }),

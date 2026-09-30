@@ -75,6 +75,7 @@ const pageTitle = title === 'Relay' ? 'Relay — your machine, relayed to every 
         if (!r.classList.contains('app')) r.classList.add('js-late')
       }, 3000)
     </script>
+    <slot name="head" />
     <ClientRouter fallback="swap" />
   </head>
   <body class={bodyClass}>

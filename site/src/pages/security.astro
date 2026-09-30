@@ -1,0 +1,189 @@
+---
+import FeatureRows from '../components/FeatureRows.astro'
+import PageHero from '../components/PageHero.astro'
+import Base from '../layouts/Base.astro'
+import { REPO } from '../lib/site'
+import { href } from '../lib/url'
+
+const threats = [
+  {
+    who: 'Someone on the internet',
+    what: 'reaches your sign-in page.',
+    how: 'Argon2id password hashes, passkeys, optional TOTP, 5 tries per 5 minutes then backoff, no user enumeration, and no default password — the first run makes you create one.',
+  },
+  {
+    who: 'A malicious web page',
+    what: 'in the same browser tries to act as you.',
+    how: 'SameSite cookies plus a strict Origin check on every state-changing request and every WebSocket upgrade.',
+  },
+  {
+    who: 'Untrusted content',
+    what: '— a file you preview, a dev server, HTML an agent wrote.',
+    how: 'It never runs on the Relay origin: raw files are served with a sandbox CSP and nosniff; previews run on their own origin or in a sandbox, and never see your session cookie.',
+  },
+  {
+    who: 'Another user on the machine',
+    what: 'pokes at the sockets.',
+    how: 'Sockets are 0600 inside a 0700 runtime directory, the control socket checks the caller’s uid, and data files are 0600.',
+  },
+  {
+    who: 'A leaked session or token',
+    what: 'ends up somewhere it should not.',
+    how: 'Sessions live on the server and can be revoked one by one; API tokens are hashed at rest; the audit log shows every use.',
+  },
+]
+const defaults = [
+  { t: 'One port', b: 'Relay serves everything from a single HTTPS listener. The terminal daemon only listens on a Unix socket.' },
+  { t: 'No telemetry', b: 'Relay does not phone home. There is no account with us and no analytics — on the app or on this site.' },
+  { t: 'Audited actions', b: 'Sign-ins, failures, token use, revocations and destructive file and process actions are written to an audit log you can read.' },
+  { t: 'Nothing leaves the box', b: 'Transcripts, files and keys stay on your machine. Quick AI uses the agent CLIs you installed, signed in as you.' },
+]
+const expose = [
+  { id: 'tailscale', name: 'Tailscale', level: 'Private', body: 'Only devices on your tailnet can reach Relay. The simplest safe choice; HTTPS comes from Tailscale.' },
+  { id: 'tunnel', name: 'Cloudflare Tunnel', level: 'Private + edge', body: 'No open ports on the machine. Add Cloudflare Access in front for a second, independent sign-in.' },
+  { id: 'public', name: 'Public HTTPS', level: 'Public', body: 'A domain pointing at the box with automatic certificates. Use a passkey, turn on TOTP, keep Relay updated.' },
+]
+---
+
+<Base
+  title="Security"
+  description="Relay gives a browser a shell on your machine. Here is exactly how it keeps that shell yours."
+  still="rack"
+>
+  <PageHero
+    eyebrow="Security"
+    field="page-security"
+    lede="Relay gives a browser a shell on your machine. Every change is treated as security-sensitive, and the defaults assume the worst. Here is the model in plain words."
+  >
+    <Fragment slot="title">A shell in a browser. <span class="dim">Yours alone.</span></Fragment>
+    <Fragment slot="actions">
+      <a class="btn btn-primary btn-lg" href="#threats">Threat model</a>
+      <a class="btn btn-ghost btn-lg" href={`${REPO}/security/advisories/new`}>Report a vulnerability</a>
+    </Fragment>
+  </PageHero>
+
+  <section id="threats" class="section" data-field="quiet" data-field-gain="0.25" aria-labelledby="s-threats">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Threat model</p>
+        <h2 id="s-threats" class="h-1" data-split>Who we defend against.</h2>
+      </div>
+      <ol class="threats">
+        {
+          threats.map((t, i) => (
+            <li class="threat will-reveal">
+              <span class="mono spec-i">{String(i + 1).padStart(2, '0')}</span>
+              <p class="threat-who">
+                <strong>{t.who}</strong> <span class="dim">{t.what}</span>
+              </p>
+              <p class="threat-how">{t.how}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <section class="section" data-field="quiet" data-field-gain="0.2" aria-labelledby="s-arch">
+    <div class="wrap">
+      <div class="sec-head sec-head-split">
+        <div>
+          <p class="eyebrow">Architecture</p>
+          <h2 id="s-arch" class="h-1" data-split>One door. <span class="dim">Everything behind it.</span></h2>
+        </div>
+        <p class="lede will-reveal">
+          The browser talks to one process over HTTPS. Terminals live in a separate daemon that is only reachable through a
+          private socket, so upgrading or restarting Relay never kills a session.
+        </p>
+      </div>
+      <figure class="panel will-reveal arch">
+        <svg class="diagram" viewBox="0 0 960 300" role="img" aria-labelledby="arch-t">
+          <title id="arch-t">
+            Browser, over HTTPS on one port, to relay serve, which talks to the terminal daemon over a 0600 Unix socket and
+            proxies loopback-only previews and apps.
+          </title>
+          <defs>
+            <pattern id="dots" width="8" height="8" patternUnits="userSpaceOnUse">
+              <circle cx="4" cy="4" r="1" fill="currentColor" opacity="0.22"></circle>
+            </pattern>
+          </defs>
+          <rect x="0" y="0" width="960" height="300" fill="url(#dots)"></rect>
+          <g font-family="var(--font-mono)" font-size="13" fill="currentColor">
+            <rect x="24" y="110" width="170" height="80" rx="14" fill="#0b0b0c" stroke="currentColor" stroke-opacity="0.4"></rect>
+            <text x="109" y="146" text-anchor="middle" fill="#ede9e0" font-size="15">Your browser</text>
+            <text x="109" y="168" text-anchor="middle" opacity="0.6">phone · laptop</text>
+
+            <path d="M194 150 H 360" stroke="#ff5b1f" stroke-width="2" stroke-dasharray="2 6" stroke-linecap="round"></path>
+            <text x="277" y="136" text-anchor="middle" fill="#ff7c4a">HTTPS · one port</text>
+            <circle cx="360" cy="150" r="5" fill="#ff5b1f"></circle>
+
+            <rect x="366" y="90" width="220" height="120" rx="14" fill="#111113" stroke="#ff5b1f" stroke-opacity="0.7"></rect>
+            <text x="476" y="128" text-anchor="middle" fill="#ede9e0" font-size="15">relay serve</text>
+            <text x="476" y="152" text-anchor="middle" opacity="0.6">auth · origin checks</text>
+            <text x="476" y="172" text-anchor="middle" opacity="0.6">audit · rate limits</text>
+
+            <path d="M586 120 H 724" stroke="currentColor" stroke-opacity="0.6" stroke-width="1.5" stroke-dasharray="2 5" stroke-linecap="round"></path>
+            <text x="655" y="108" text-anchor="middle" opacity="0.7">unix socket 0600</text>
+            <rect x="730" y="80" width="206" height="76" rx="14" fill="#0b0b0c" stroke="currentColor" stroke-opacity="0.4"></rect>
+            <text x="833" y="114" text-anchor="middle" fill="#ede9e0" font-size="15">relay ptyd</text>
+            <text x="833" y="136" text-anchor="middle" opacity="0.6">terminal sessions</text>
+
+            <path d="M586 186 H 724" stroke="currentColor" stroke-opacity="0.6" stroke-width="1.5" stroke-dasharray="2 5" stroke-linecap="round"></path>
+            <text x="655" y="176" text-anchor="middle" opacity="0.7">loopback only</text>
+            <rect x="730" y="168" width="206" height="76" rx="14" fill="#0b0b0c" stroke="currentColor" stroke-opacity="0.4"></rect>
+            <text x="833" y="202" text-anchor="middle" fill="#ede9e0" font-size="15">previews · apps</text>
+            <text x="833" y="224" text-anchor="middle" opacity="0.6">no session cookie</text>
+          </g>
+        </svg>
+      </figure>
+    </div>
+  </section>
+
+  <section class="section" data-field="page-security" data-field-gain="0.35" aria-labelledby="s-def">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Defaults</p>
+        <h2 id="s-def" class="h-1" data-split>Safe before <span class="dim">you touch a setting.</span></h2>
+      </div>
+      <FeatureRows items={defaults} />
+    </div>
+  </section>
+
+  <section class="section" data-field="quiet" data-field-gain="0.2" aria-labelledby="s-expose">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="eyebrow">Exposing it</p>
+        <h2 id="s-expose" class="h-1" data-split>Three ways in. <span class="dim">Pick one.</span></h2>
+      </div>
+      <div class="expose grid-3">
+        {
+          expose.map((e) => (
+            <article class="panel will-reveal">
+              <p class="mono expose-level">{e.level}</p>
+              <h3 class="h-2">{e.name}</h3>
+              <p class="body">{e.body}</p>
+            </article>
+          ))
+        }
+      </div>
+      <p class="body mt-lg">
+        Step-by-step guides live in the <a href={href('docs/')} data-astro-reload>docs</a>.
+      </p>
+    </div>
+  </section>
+
+  <section class="section" data-field="quiet" data-field-gain="0.15" aria-labelledby="s-report">
+    <div class="wrap">
+      <p class="eyebrow">Responsible disclosure</p>
+      <h2 id="s-report" class="h-1" data-split>Found something? <span class="dim">Tell us first.</span></h2>
+      <p class="lede will-reveal mt-lg">
+        Please report vulnerabilities privately through a GitHub security advisory rather than a public issue. We will
+        confirm receipt, keep you updated while we fix it, and credit you in the release notes if you like.
+      </p>
+      <div class="page-hero-ctas will-reveal">
+        <a class="btn btn-primary btn-lg" href={`${REPO}/security/advisories/new`}>Open a private advisory</a>
+        <a class="btn btn-ghost btn-lg" href={`${REPO}/blob/main/docs/dev/SECURITY.md`}>Security model on GitHub</a>
+      </div>
+    </div>
+  </section>
+</Base>

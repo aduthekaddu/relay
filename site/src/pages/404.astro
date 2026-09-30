@@ -1,0 +1,19 @@
+---
+import DotWord from '../components/DotWord.astro'
+import Base from '../layouts/Base.astro'
+import { href } from '../lib/url'
+---
+
+<Base title="No signal" description="This page is not on the air." still="none">
+  <section class="nosignal" data-field="no-signal" aria-labelledby="ns-title">
+    <div>
+      <DotWord text="NO SIGNAL" unit={10} />
+      <h1 id="ns-title" class="h-2 ns-title">This page is not on the air.</h1>
+      <p class="lede ns-lede">The link may be old, or the page moved. The rest of Relay is still transmitting.</p>
+      <div class="page-hero-ctas ns-ctas">
+        <a class="btn btn-primary btn-lg" href={href()}>Back to Relay</a>
+        <a class="btn btn-ghost btn-lg" href={href('docs/')} data-astro-reload>Search the docs</a>
+      </div>
+    </div>
+  </section>
+</Base>

@@ -16,7 +16,7 @@ import { type Island, onVisible, runtime } from '../lib/runtime'
 /** Drum order (a real board can only go forward through it). */
 export const DRUM = ' ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-:.●'
 const FLIP_MS = 60
-const MAX_FLIPS = 12
+const MAX_FLIPS = 8
 const CASCADE_MS = 28
 
 /** The sequence of glyphs a flap shows going from `from` to `to`. */

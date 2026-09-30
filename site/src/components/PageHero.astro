@@ -1,0 +1,24 @@
+---
+/**
+ * PageHero — the opening shot of a product page: eyebrow, huge headline
+ * (slot `title`), lede and actions, over the page's LED-field target.
+ */
+interface Props {
+  eyebrow: string
+  field: string
+  lede: string
+  id?: string
+}
+const { eyebrow, field, lede, id = 'page-title' } = Astro.props
+---
+
+<section class="page-hero" data-field={field} aria-labelledby={id}>
+  <div class="wrap">
+    <div data-quiet="0.1">
+      <p class="eyebrow">{eyebrow}</p>
+      <h1 {id} class="display" data-split="now" data-split-delay="0.3"><slot name="title" /></h1>
+      <p class="lede will-reveal">{lede}</p>
+      <div class="page-hero-ctas will-reveal"><slot name="actions" /></div>
+    </div>
+  </div>
+</section>

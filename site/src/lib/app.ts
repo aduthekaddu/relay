@@ -48,7 +48,11 @@ function setupField(): Promise<void> {
   return new Promise((resolve) => {
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
-        const field = LedField.create(canvas, { still: runtime.reduced })
+        const field = LedField.create(canvas, {
+          still: runtime.reduced,
+          // `?field=full` keeps full density on any renderer (visual QA).
+          adaptive: !/[?&]field=full\b/.test(location.search),
+        })
         if (field) {
           runtime.field = field
           document.documentElement.classList.add('webgl')

@@ -92,8 +92,8 @@ function tap(root: HTMLElement): Cleanup {
     onToggle: (self) => {
       clearInterval(timer)
       if (!self.isActive) return
-      runtime.field?.pulse(0.5, 0.36, 0.9)
-      timer = window.setInterval(() => runtime.field?.pulse(0.5, 0.36, 0.7), 2400)
+      runtime.field?.pulse(0.5, 0.2, 0.9)
+      timer = window.setInterval(() => runtime.field?.pulse(0.5, 0.2, 0.7), 2400)
     },
   })
   return () => {

@@ -132,6 +132,8 @@ export interface FieldOptions {
   mobilePitch?: number
   /** Render one static frame and never animate. */
   still?: boolean
+  /** Coarsen the grid on software GL or slow frames (default true). */
+  adaptive?: boolean
 }
 
 type Rect = [number, number, number, number]
@@ -172,6 +174,13 @@ export class LedField {
   private running = false
   private paused = false
   private start = performance.now()
+  /** Extra pitch added when the device cannot keep up (software GL, slow GPU). */
+  private pitchBoost = 0
+  /** Render every n-th animation frame while only the ambient wave moves. */
+  private frameStride = 1
+  private frameCount = 0
+  private lastDraw = 0
+  private slowFrames = 0
   private token = 0
   private readonly opts: Required<FieldOptions>
   private readonly offs: (() => void)[] = []
@@ -182,7 +191,12 @@ export class LedField {
     opts: FieldOptions,
   ) {
     this.gl = gl
-    this.opts = { pitch: opts.pitch ?? 8, mobilePitch: opts.mobilePitch ?? 11, still: opts.still ?? false }
+    this.opts = {
+      pitch: opts.pitch ?? 8,
+      mobilePitch: opts.mobilePitch ?? 11,
+      still: opts.still ?? false,
+      adaptive: opts.adaptive ?? true,
+    }
     const prog = gl.createProgram()!
     gl.attachShader(prog, compile(gl, gl.VERTEX_SHADER, VERT))
     gl.attachShader(prog, compile(gl, gl.FRAGMENT_SHADER, FRAG))
@@ -210,11 +224,23 @@ export class LedField {
       this.u[name] = gl.getUniformLocation(prog, name)
     }
     this.tex = [this.makeTexture(), this.makeTexture()]
+    if (this.opts.adaptive && LedField.softwareRenderer(gl)) {
+      // CPU rasterisers: fewer, larger dots and half frame rate.
+      this.pitchBoost = 4
+      this.frameStride = 2
+    }
     gl.bindVertexArray(gl.createVertexArray())
     gl.enable(gl.BLEND)
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
     this.listen()
     this.resize()
+  }
+
+  /** True when WebGL is rendered on the CPU (SwiftShader, llvmpipe, …). */
+  static softwareRenderer(gl: WebGL2RenderingContext): boolean {
+    const ext = gl.getExtension('WEBGL_debug_renderer_info')
+    const name = String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER))
+    return /swiftshader|llvmpipe|softpipe|software|basic render/i.test(name)
   }
 
   /** Create a field on `canvas`; returns null when WebGL2 is unavailable. */
@@ -289,7 +315,7 @@ export class LedField {
   resize() {
     const w = window.innerWidth
     const h = window.innerHeight
-    let pitch = w < 768 ? this.opts.mobilePitch : this.opts.pitch
+    let pitch = (w < 768 ? this.opts.mobilePitch : this.opts.pitch) + this.pitchBoost
     while (Math.ceil(w / pitch) * Math.ceil(h / pitch) > MAX_DOTS) pitch += 0.5
     const cols = Math.ceil(w / pitch)
     const rows = Math.ceil(h / pitch)
@@ -391,7 +417,11 @@ export class LedField {
     this.gain = ease(this.gain, this.gainTo, 4)
     this.pointer.s = ease(this.pointer.s, this.pointer.to, 6)
     this.rings = this.rings.filter((r) => now - r.t0 < 2600)
-    this.draw(now)
+    const settled = this.mix >= 1 && this.rings.length === 0 && this.pointer.s < 0.01
+    if (!settled || this.frameCount++ % this.frameStride === 0) {
+      this.adapt(now)
+      this.draw(now)
+    }
     const settling =
       this.mix < 1 ||
       Math.abs(this.ambient - this.ambientTo) > 0.005 ||
@@ -402,6 +432,23 @@ export class LedField {
       return
     }
     this.raf = requestAnimationFrame(this.frame)
+  }
+
+  /**
+   * Adaptive quality: if frames keep arriving late (> 34 ms apart for ~2 s)
+   * coarsen the grid, at most twice. Cheap insurance for old phones.
+   */
+  private adapt(now: number) {
+    const gap = now - this.lastDraw
+    this.lastDraw = now
+    if (!this.opts.adaptive || gap > 200 || this.pitchBoost >= 6) return
+    this.slowFrames = gap > 34 * this.frameStride ? this.slowFrames + 1 : Math.max(0, this.slowFrames - 1)
+    if (this.slowFrames > 60) {
+      this.slowFrames = 0
+      this.pitchBoost += 3
+      this.frameStride = 2
+      this.resize()
+    }
   }
 
   private draw(now: number) {
