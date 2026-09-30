@@ -5,7 +5,10 @@
 #   scripts/dev/safe go test ./...
 #   SAFE_MEM=2G scripts/dev/safe pnpm build
 set -euo pipefail
-MEM="${SAFE_MEM:-3G}"
+MEM="${SAFE_MEM:-2G}"
+# Fewer parallel compiles / smaller Node heaps: this runs on shared boxes.
+export GOFLAGS="${GOFLAGS:--p=2}"
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=1536}"
 if command -v systemd-run >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
   exec systemd-run --user --scope --quiet -p MemoryMax="$MEM" -p MemorySwapMax=0 -p CPUWeight=20 \
     nice -n 10 "$@"

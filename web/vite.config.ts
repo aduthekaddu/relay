@@ -41,7 +41,9 @@ export default defineConfig({
     chunkSizeWarningLimit: 900,
   },
   server: {
-    port: 5173,
+    port: Number(process.env.VITE_PORT || 47780),
+    strictPort: true,
+    host: '127.0.0.1',
     proxy: {
       '/api': { target: relay, ws: true, changeOrigin: false },
       '/apps': { target: relay, ws: true },

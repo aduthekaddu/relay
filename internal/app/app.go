@@ -78,7 +78,9 @@ func (a *App) Origins() []string {
 	out = append(out, a.extraOrigins...)
 	// Local development origins for the Vite dev server.
 	if os.Getenv("RELAY_DEV") == "1" {
-		out = append(out, "http://localhost:5173", "http://127.0.0.1:5173")
+		for port := 47780; port <= 47789; port++ {
+			out = append(out, fmt.Sprintf("http://127.0.0.1:%d", port), fmt.Sprintf("http://localhost:%d", port))
+		}
 	}
 	return out
 }
