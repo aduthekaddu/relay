@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aduthekaddu/relay/internal/api"
 )
@@ -18,7 +19,7 @@ func newAmp() *Adapter {
 	return &Adapter{
 		ID: "amp", Name: "Amp", Vendor: "Sourcegraph", Color: "#F34E3F",
 		Binaries: []string{"amp"}, ExtraDirs: []string{".amp/bin"}, InstallHint: "amp",
-		Caps: api.AgentCapabilities{Resume: true, Headless: true, History: true, Usage: true, Worktrees: true},
+		Caps:        api.AgentCapabilities{Resume: true, Headless: true, History: true, Usage: true, Worktrees: true},
 		Interactive: func(bin, _, _ string) []string { return []string{bin} },
 		Resume:      func(bin, id string) []string { return []string{bin, "threads", "continue", id} },
 		Headless: func(bin, prompt, _ string) []string {
@@ -98,7 +99,7 @@ func (ampReader) parse(ctx context.Context, e *env, src source, _ int64) (*parse
 	tools := map[string]string{}
 	for i, m := range t.Messages {
 		id := "m" + strconv.Itoa(i)
-		var at timeT
+		var at time.Time
 		if m.Meta != nil {
 			at = unixAny(m.Meta.SentAt)
 		}

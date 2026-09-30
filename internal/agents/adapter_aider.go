@@ -25,7 +25,7 @@ func newAider() *Adapter {
 	return &Adapter{
 		ID: "aider", Name: "Aider", Vendor: "Aider", Color: "#14B014",
 		Binaries: []string{"aider"}, InstallHint: "aider",
-		Caps:     api.AgentCapabilities{Headless: true, History: true, Worktrees: true},
+		Caps: api.AgentCapabilities{Headless: true, History: true, Worktrees: true},
 		Interactive: func(bin, _, model string) []string {
 			return withFlag([]string{bin}, "--model", model)
 		},

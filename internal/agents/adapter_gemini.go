@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/aduthekaddu/relay/internal/api"
@@ -131,7 +132,7 @@ func geminiAdd(p *parsed, i int, m *geminiMessage) {
 	p.touch(at)
 	id := m.ID
 	if id == "" {
-		id = "m" + itoa(i)
+		id = "m" + strconv.Itoa(i)
 	}
 	text := geminiText(m.Content)
 	switch m.Type {

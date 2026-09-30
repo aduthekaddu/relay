@@ -3,7 +3,6 @@ package agents
 import (
 	"context"
 	"crypto/rand"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -204,9 +203,6 @@ func parseVersion(out string) string {
 	}
 	return ""
 }
-
-// errUnknownAgent is returned for adapter ids that do not exist or are disabled.
-var errUnknownAgent = errors.New("unknown agent")
 
 // withPrompt appends prompt as a single argv element when non-empty. A
 // prompt that starts with "-" gets a leading space so the agent CLI can

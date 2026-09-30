@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/aduthekaddu/relay/internal/api"
 )
@@ -137,7 +138,7 @@ func (piReader) parse(ctx context.Context, e *env, src source, offset int64) (*p
 	return p, err
 }
 
-func piMessageEntry(p *parsed, id string, at timeT, m *piMessage) {
+func piMessageEntry(p *parsed, id string, at time.Time, m *piMessage) {
 	if m.Usage != nil {
 		u := m.Usage
 		p.Usage = append(p.Usage, usageRec{Key: id, At: at, Model: m.Model, Input: u.Input, Output: u.Output,

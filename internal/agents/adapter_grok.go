@@ -49,15 +49,15 @@ func (grokReader) sources(ctx context.Context, e *env) ([]source, error) {
 }
 
 type grokSummary struct {
-	CreatedAt    string `json:"created_at"`
-	UpdatedAt    string `json:"updated_at"`
-	LastActive   string `json:"last_active_at"`
-	Title        string `json:"generated_title"`
-	Summary      string `json:"session_summary"`
-	Model        string `json:"current_model_id"`
-	SessionKind  string `json:"session_kind"`
-	WorkingDir   string `json:"working_directory"`
-	Info         struct {
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
+	LastActive  string `json:"last_active_at"`
+	Title       string `json:"generated_title"`
+	Summary     string `json:"session_summary"`
+	Model       string `json:"current_model_id"`
+	SessionKind string `json:"session_kind"`
+	WorkingDir  string `json:"working_directory"`
+	Info        struct {
 		Cwd string `json:"cwd"`
 		ID  string `json:"id"`
 	} `json:"info"`

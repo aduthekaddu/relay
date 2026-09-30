@@ -168,9 +168,9 @@ func (l *liveState) snapshot(ctx context.Context) liveSnapshot {
 	l.mu.Unlock()
 
 	snap := liveSnapshot{bySession: map[string]api.TerminalSession{}, byTerm: map[string]string{}}
-	if l.s.d.Pty != nil {
+	if l.s.pty != nil {
 		lctx, cancel := context.WithTimeout(ctx, time.Second)
-		terms, err := l.s.d.Pty.List(lctx)
+		terms, err := l.s.pty.List(lctx)
 		cancel()
 		if err == nil {
 			snap.terms = terms

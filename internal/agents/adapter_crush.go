@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aduthekaddu/relay/internal/api"
 )
@@ -20,7 +21,7 @@ func newCrush() *Adapter {
 	return &Adapter{
 		ID: "crush", Name: "Crush", Vendor: "Charm", Color: "#FF5FD2",
 		Binaries: []string{"crush"}, InstallHint: "crush",
-		Caps:     api.AgentCapabilities{Headless: true, History: true, Usage: true, Worktrees: true},
+		Caps:        api.AgentCapabilities{Headless: true, History: true, Usage: true, Worktrees: true},
 		Interactive: func(bin, _, _ string) []string { return []string{bin} },
 		Headless: func(bin, prompt, _ string) []string {
 			return []string{bin, "run", safeArg(prompt)}
@@ -136,7 +137,7 @@ func (crushReader) parse(ctx context.Context, e *env, src source, _ int64) (*par
 	return p, rows.Err()
 }
 
-func crushMessage(p *parsed, id, role, model string, at timeT, partsJSON string) {
+func crushMessage(p *parsed, id, role, model string, at time.Time, partsJSON string) {
 	var raw []struct {
 		Type string          `json:"type"`
 		Data json.RawMessage `json:"data"`

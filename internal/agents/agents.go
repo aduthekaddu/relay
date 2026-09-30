@@ -16,11 +16,13 @@ import (
 	"path/filepath"
 	"slices"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/aduthekaddu/relay/internal/api"
 	"github.com/aduthekaddu/relay/internal/core"
+	"github.com/aduthekaddu/relay/internal/httpx"
 	"github.com/aduthekaddu/relay/internal/server"
 )
 
@@ -35,7 +37,8 @@ type Service struct {
 	prices   *priceTable
 	dbs      *agentDBs
 	live     *liveState
-	quotas   *quotaCache
+	pty      ptyAPI // nil when ptyd is not configured
+	quota    *quotaCache
 	usage    *usageCache
 	search   *limiter
 	home     string
@@ -46,6 +49,8 @@ type Service struct {
 	worktrees worktreeCreator
 	// relayPath is the executable hooks call back into.
 	relayPath string
+
+	hookMu sync.Mutex // serialises hook config edits
 
 	wsMu    sync.Mutex
 	wsCache []string
@@ -77,7 +82,7 @@ func New(d *core.Deps) (*Service, error) {
 	s := &Service{
 		d: d, det: newDetector(home), ix: ix, prices: prices, dbs: newAgentDBs(),
 		home: home, byID: map[string]*Adapter{},
-		quotas: newQuotaCache(), usage: newUsageCache(), search: newLimiter(20, time.Second),
+		quota: newQuotaCache(), usage: newUsageCache(), search: newLimiter(20, time.Second),
 	}
 	if d.Paths.CacheDir != "" {
 		s.tmp = filepath.Join(d.Paths.CacheDir, "agents")
@@ -96,6 +101,9 @@ func New(d *core.Deps) (*Service, error) {
 		}
 		s.adapters = append(s.adapters, a)
 		s.byID[a.ID] = a
+	}
+	if d.Pty != nil {
+		s.pty = d.Pty
 	}
 	if wc, ok := d.Workspaces.(worktreeCreator); ok {
 		s.worktrees = wc
@@ -210,7 +218,7 @@ func (s *Service) adapter(id string) (*Adapter, error) {
 	if a, ok := s.byID[id]; ok {
 		return a, nil
 	}
-	return nil, fmt.Errorf("%w: %q", errUnknownAgent, id)
+	return nil, &httpx.Err{Status: 404, Code: "not_found", Message: "unknown agent " + strconv.Quote(id)}
 }
 
 // List implements core.AgentService: adapter info for every enabled agent.
@@ -251,7 +259,7 @@ func (s *Service) List(ctx context.Context) []api.AgentInfo {
 func (s *Service) binary(ctx context.Context, a *Adapter) (string, error) {
 	det := s.det.detect(ctx, a)
 	if det.Binary == "" {
-		return "", fmt.Errorf("%s is not installed", a.Name)
+		return "", httpx.Conflict(a.Name + " is not installed")
 	}
 	return det.Binary, nil
 }
@@ -263,7 +271,7 @@ func (s *Service) Command(ctx context.Context, agent, prompt, model string) ([]s
 		return nil, nil, err
 	}
 	if !validModel(model) {
-		return nil, nil, fmt.Errorf("invalid model name")
+		return nil, nil, httpx.BadRequest("invalid model name")
 	}
 	bin, err := s.binary(ctx, a)
 	if err != nil {
@@ -282,10 +290,10 @@ func (s *Service) HeadlessCommand(ctx context.Context, agent, prompt, model stri
 		return nil, err
 	}
 	if a.Headless == nil {
-		return nil, fmt.Errorf("%s has no headless mode", a.Name)
+		return nil, httpx.Conflict(a.Name + " has no headless mode")
 	}
 	if !validModel(model) {
-		return nil, fmt.Errorf("invalid model name")
+		return nil, httpx.BadRequest("invalid model name")
 	}
 	bin, err := s.binary(ctx, a)
 	if err != nil {
