@@ -1,0 +1,268 @@
+/* Reset, typography, focus, scrollbars, selection, reduced motion. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  font-weight: 430;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scrollbar-color: var(--surface-4) transparent;
+}
+
+body {
+  min-height: 100dvh;
+  overscroll-behavior-y: none;
+}
+
+img,
+svg,
+video,
+canvas,
+picture {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+
+button {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  overflow-wrap: break-word;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-weight: 620;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+ul[role='list'],
+ol[role='list'] {
+  list-style: none;
+  padding: 0;
+}
+
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* ---- focus: visible only for keyboard users ---- */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
+[data-area] :focus-visible {
+  outline-color: color-mix(in oklab, var(--hue, var(--focus)) 75%, transparent);
+}
+
+/* ---- selection ---- */
+::selection {
+  background: color-mix(in oklab, var(--signal) 34%, transparent);
+  color: var(--text);
+}
+
+/* ---- scrollbars (thin, quiet) ---- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-4);
+  border: 3px solid transparent;
+  border-radius: var(--r-full);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-4);
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ---- type roles ---- */
+.t-display {
+  font-size: var(--fs-display);
+  line-height: var(--lh-display);
+  font-weight: 720;
+  font-stretch: 118%;
+  letter-spacing: -0.03em;
+}
+
+.t-title {
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 650;
+  font-stretch: 110%;
+  letter-spacing: -0.02em;
+}
+
+.t-section {
+  font-size: var(--fs-section);
+  line-height: var(--lh-section);
+  font-weight: 620;
+}
+
+.t-body {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+}
+
+.t-small {
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+  font-weight: 450;
+}
+
+/* The instrument layer: ids, paths, counts, timestamps, key hints. */
+.t-mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  line-height: var(--lh-mono);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.t-readout {
+  font-stretch: 125%;
+  font-weight: 640;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- reduced motion: keep opacity changes only ---- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property: opacity, color, background-color, border-color !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+:root[data-motion='reduce'] *,
+:root[data-motion='reduce'] *::before,
+:root[data-motion='reduce'] *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-property: opacity, color, background-color, border-color !important;
+}
+
+/* View Transitions: chrome stays put, only the page content (named
+   "content" in shell.css) cross-fades with a 6 px rise. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-old(content) {
+  animation: vt-out var(--d-1) var(--ease-in) both;
+}
+
+::view-transition-new(content) {
+  animation: vt-in var(--d-3) var(--ease-out) both;
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

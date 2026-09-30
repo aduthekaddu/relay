@@ -1,0 +1,303 @@
+/* Signature pieces: Glyph, RelayMark, DotText, StatusDot, AgentMark,
+   DotMeter, Sparkline. */
+
+/* ---- Glyph ---- */
+.glyph {
+  flex: none;
+  display: inline-block;
+  vertical-align: middle;
+  overflow: visible;
+}
+
+.glyph__off {
+  fill: currentColor;
+  opacity: var(--dot-off);
+}
+
+.glyph__on {
+  fill: currentColor;
+}
+
+.glyph--active .glyph__on {
+  animation: glyph-light var(--d-3) var(--ease-out) both;
+}
+
+.glyph--pulse .glyph__on {
+  animation: glyph-breathe 1.6s var(--ease-inout) infinite;
+}
+
+@keyframes glyph-light {
+  from {
+    opacity: 0.12;
+    transform: scale(0.6);
+  }
+}
+
+.glyph__on,
+.glyph__off {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes glyph-breathe {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.relay-mark .glyph__on {
+  fill: var(--text);
+}
+
+.relay-mark__beacon {
+  fill: var(--signal);
+}
+
+.relay-mark--beacon .relay-mark__beacon {
+  animation: beacon 1.2s steps(1, end) infinite;
+}
+
+@keyframes beacon {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+/* ---- DotText ---- */
+.dot-text {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.dot-text--reveal .glyph__on {
+  animation: dot-reveal 360ms var(--ease-out) both;
+}
+
+@keyframes dot-reveal {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+    fill: var(--signal);
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ---- StatusDot ---- */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--fs-small);
+  line-height: 1;
+  white-space: nowrap;
+  --sz: 8px;
+}
+
+.status--sm {
+  --sz: 6px;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.status__dot {
+  position: relative;
+  flex: none;
+  width: var(--sz);
+  height: var(--sz);
+  border-radius: 50%;
+  background: var(--c, var(--text-3));
+}
+
+.status__label {
+  color: var(--text-2);
+}
+
+.status--working {
+  --c: var(--ok);
+}
+
+.status--working .status__dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--ok);
+  animation: pulse-ring 1.6s var(--ease-out) infinite;
+}
+
+@keyframes pulse-ring {
+  from {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+.status--needs-you {
+  --c: var(--signal);
+}
+
+.status--needs-you .status__dot {
+  box-shadow: 0 0 0 3px var(--signal-soft);
+  animation: beacon 1.2s steps(1, end) infinite;
+}
+
+.status--needs-you .status__label {
+  color: var(--signal-ink);
+  font-weight: 560;
+}
+
+.status--idle .status__dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--text-3);
+}
+
+.status--exited,
+.status--done {
+  --c: var(--text-4);
+}
+
+.status--exited .status__label,
+.status--done .status__label {
+  color: var(--text-3);
+}
+
+.status--failed {
+  --c: var(--danger);
+}
+
+.status--failed .status__label {
+  color: var(--danger);
+}
+
+.status--offline .status__dot {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--text-4);
+}
+
+/* ---- AgentMark ---- */
+.agent-mark {
+  --sz: 28px;
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: var(--sz);
+  height: var(--sz);
+  border-radius: calc(var(--sz) * 0.29);
+  font-family: var(--font-mono);
+  font-weight: 650;
+  font-size: calc(var(--sz) * 0.39);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: color-mix(in oklab, var(--agent) 72%, var(--text));
+  background: color-mix(in oklab, var(--agent) 17%, var(--surface-2));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--agent) 32%, transparent);
+  user-select: none;
+}
+
+.agent-mark--sm {
+  --sz: 20px;
+  font-size: 8.5px;
+}
+
+.agent-mark--lg {
+  --sz: 40px;
+}
+
+.agent-mark-named {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.agent-mark-named__name {
+  font-weight: 540;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- DotMeter ---- */
+.dot-meter {
+  --meter: var(--text);
+  --d: 6px;
+  --g: 3px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.dot-meter--sm {
+  --d: 4px;
+  --g: 2px;
+}
+
+.dot-meter__dots {
+  display: inline-flex;
+  gap: var(--g);
+}
+
+.dot-meter__dots i {
+  width: var(--d);
+  height: var(--d);
+  border-radius: 50%;
+  background: var(--text);
+  opacity: calc(var(--dot-off) * 1.6);
+  transition:
+    opacity var(--d-2) var(--ease-out),
+    background-color var(--d-2);
+}
+
+.dot-meter__dots i.on {
+  opacity: 1;
+  background: var(--meter);
+}
+
+.dot-meter--warn .dot-meter__dots i.on {
+  background: var(--warn);
+}
+
+.dot-meter--danger .dot-meter__dots i.on {
+  background: var(--danger);
+}
+
+.dot-meter__value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+  min-width: 4ch;
+}
+
+/* ---- Sparkline ---- */
+.sparkline {
+  display: block;
+  overflow: visible;
+  color: var(--text-2);
+}
+
+.sparkline__line {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.sparkline__fill {
+  fill: currentColor;
+  opacity: 0.1;
+}
+
+.sparkline__dot {
+  fill: currentColor;
+}

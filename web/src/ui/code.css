@@ -1,0 +1,260 @@
+/* CodeBlock + Markdown + highlight.js theme (token colours from the
+   Signal palette, tuned per theme). */
+
+.code {
+  margin: 0;
+  border-radius: var(--r-sm);
+  background: var(--bg-sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.code__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  height: 32px;
+  padding: 0 4px 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.code__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code__copy {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: var(--text-3);
+}
+
+.code__copy:hover {
+  color: var(--text);
+  background: var(--surface-3);
+}
+
+.code__scroll {
+  display: flex;
+  overflow: auto;
+}
+
+.code__gutter,
+.code__pre {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 19px;
+  padding: 10px 12px;
+  margin: 0;
+}
+
+.code__gutter {
+  flex: none;
+  white-space: pre;
+  text-align: right;
+  color: var(--text-4);
+  user-select: none;
+  padding-right: 8px;
+  border-right: 1px solid var(--line);
+}
+
+.code__pre {
+  flex: 1;
+  min-width: 0;
+  white-space: pre;
+  tab-size: 4;
+  color: var(--text);
+}
+
+.code--wrap .code__pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---- highlight.js tokens ---- */
+.hljs-comment,
+.hljs-quote {
+  color: var(--text-3);
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-type {
+  color: var(--area-system);
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-attribute {
+  color: var(--area-terminal);
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet {
+  color: var(--area-files);
+}
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-section {
+  color: var(--area-code);
+}
+
+.hljs-built_in,
+.hljs-name,
+.hljs-tag {
+  color: var(--area-desktop);
+}
+
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-params {
+  color: var(--signal-ink);
+}
+
+.hljs-meta {
+  color: var(--area-previews);
+}
+
+.hljs-deletion {
+  color: var(--danger);
+}
+
+.hljs-addition,
+.hljs-deletion {
+  display: inline-block;
+  width: 100%;
+}
+
+.hljs-addition {
+  background: var(--ok-soft);
+}
+
+.hljs-deletion {
+  background: var(--danger-soft);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 700;
+}
+
+/* ---- Markdown ---- */
+.md {
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.md > * + * {
+  margin-top: 0.75em;
+}
+
+.md h1,
+.md h2,
+.md h3,
+.md h4 {
+  margin-top: 1.4em;
+  line-height: 1.25;
+  font-stretch: 106%;
+}
+
+.md h1 {
+  font-size: 1.5em;
+}
+
+.md h2 {
+  font-size: 1.25em;
+}
+
+.md h3 {
+  font-size: 1.08em;
+}
+
+.md a {
+  color: var(--info);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--info) 40%, transparent);
+  text-underline-offset: 2px;
+}
+
+.md code {
+  padding: 0.12em 0.36em;
+  border-radius: 5px;
+  background: var(--surface-3);
+  font-size: 0.86em;
+}
+
+.md pre {
+  padding: 10px 12px;
+  border-radius: var(--r-sm);
+  background: var(--bg-sunken);
+  box-shadow: inset 0 0 0 1px var(--line);
+  overflow-x: auto;
+  line-height: 19px;
+}
+
+.md pre code {
+  padding: 0;
+  background: none;
+  font-size: 12.5px;
+}
+
+.md ul,
+.md ol {
+  padding-left: 1.4em;
+}
+
+.md li + li {
+  margin-top: 0.25em;
+}
+
+.md blockquote {
+  padding-left: var(--s-3);
+  border-left: 2px solid var(--line-strong);
+  color: var(--text-2);
+}
+
+.md table {
+  display: block;
+  overflow-x: auto;
+  font-size: var(--fs-small);
+}
+
+.md th,
+.md td {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  text-align: left;
+}
+
+.md hr {
+  border: 0;
+  height: 1px;
+  background: var(--line);
+}
+
+.md img {
+  border-radius: var(--r-sm);
+  max-height: 480px;
+}
+
+.md--compact {
+  font-size: var(--fs-small);
+  line-height: 1.55;
+}
