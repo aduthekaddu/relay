@@ -1,7 +1,8 @@
 /** Shared site data: copy that appears on several pages. */
 
 export const REPO = 'https://github.com/aduthekaddu/relay'
-export const INSTALL = 'curl -fsSL https://raw.githubusercontent.com/aduthekaddu/relay/main/scripts/install.sh | bash'
+export const INSTALL =
+  'curl -fsSL https://raw.githubusercontent.com/aduthekaddu/relay/main/scripts/install.sh | bash'
 
 export interface NavItem {
   href: string
@@ -38,7 +39,12 @@ export const AGENTS: { id: string; mark: string; name: string; tint: string; hoo
 ]
 
 /** Rows for the departures board (agent, task, status). */
-export const BOARD: { agent: string; task: string; where: string; status: 'RUNNING' | 'NEEDS YOU' | 'IDLE' | 'DONE' }[] = [
+export const BOARD: {
+  agent: string
+  task: string
+  where: string
+  status: 'RUNNING' | 'NEEDS YOU' | 'IDLE' | 'DONE'
+}[] = [
   { agent: 'CLAUDE', task: 'refactor-auth', where: 'api', status: 'RUNNING' },
   { agent: 'CODEX', task: 'flaky-test', where: 'web', status: 'NEEDS YOU' },
   { agent: 'GEMINI', task: 'docs-sweep', where: 'site', status: 'RUNNING' },

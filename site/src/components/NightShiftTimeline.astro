@@ -1,4 +1,5 @@
 ---
+import { clockAt, nightPos } from '../lib/clock'
 /**
  * NightShiftTimeline — 22:00 → 07:00 with scheduled agent runs. The
  * `nightshift` island scrubs a "now" cursor with the scroll; runs light
@@ -25,14 +26,8 @@ const defaults: Run[] = [
   { at: '05:00', agent: 'claude', task: 'Migrate billing API', result: 'Needs you · 1 question', needs: true },
 ]
 const { runs = defaults, class: cls } = Astro.props
-const START = 22
-const SPAN = 9
-const pos = (t: string) => {
-  const [h, m] = t.split(':').map(Number) as [number, number]
-  const hh = (h < START ? h + 24 : h) + m / 60
-  return (hh - START) / SPAN
-}
-const ticks = Array.from({ length: SPAN + 1 }, (_, i) => `${String((START + i) % 24).padStart(2, '0')}:00`)
+const pos = nightPos
+const ticks = Array.from({ length: 10 }, (_, i) => clockAt(i / 9))
 const done = runs.filter((r) => !r.needs).length
 ---
 

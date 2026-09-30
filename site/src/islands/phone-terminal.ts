@@ -4,7 +4,7 @@
  * scroll position; `data-autoplay` plays it on a loop while visible.
  * Server markup is the final frame (readable without JS).
  */
-import { COMPOSE, NEEDS } from '../lib/phone-script'
+import { COMPOSE, NEEDS, typed } from '../lib/phone-script'
 import { type Island, onVisible, runtime } from '../lib/runtime'
 
 /** Controller attached to the element for other islands. */
@@ -17,14 +17,6 @@ const controllers = new WeakMap<HTMLElement, PhoneController>()
 /** Get (or wait for) the controller of a phone element. */
 export function phoneController(el: HTMLElement): PhoneController | undefined {
   return controllers.get(el)
-}
-
-/** Portion of text visible at p for a line typing between t and end. */
-export function typed(text: string, p: number, t: number, end?: number): string {
-  if (p < t) return ''
-  if (end === undefined || p >= end) return text
-  const k = (p - t) / (end - t)
-  return text.slice(0, Math.max(1, Math.round(text.length * k)))
 }
 
 const phoneTerminal: Island = (root) => {

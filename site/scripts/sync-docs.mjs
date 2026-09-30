@@ -18,7 +18,16 @@
 //
 // When /docs has no index page yet, a generated one lists what exists, so
 // local builds work before the user guides land.
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { dirname, join, posix, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -43,7 +52,16 @@ const FOLDER_LABELS = {
 }
 
 /** Preferred order of top-level pages; everything else follows alphabetically. */
-const TOP_ORDER = ['index', 'getting-started', 'quickstart', 'install', 'installation', 'setup', 'faq', 'troubleshooting']
+const TOP_ORDER = [
+  'index',
+  'getting-started',
+  'quickstart',
+  'install',
+  'installation',
+  'setup',
+  'faq',
+  'troubleshooting',
+]
 
 /** Normalise the site base to "/x/" form ("/" for root). */
 export function normalizeBase(base) {

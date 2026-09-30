@@ -10,9 +10,10 @@
  *
  * Reduced motion: nothing pins; every shot shows its final frame.
  */
-import type { PhoneController } from './phone-terminal'
+
 import { type Cleanup, type Island, runtime } from '../lib/runtime'
 import { target } from '../lib/targets'
+import type { PhoneController } from './phone-terminal'
 
 const SCREENS = ['screens-phone', 'screens-tablet', 'screens-laptop'] as const
 
@@ -25,7 +26,9 @@ function screens(root: HTMLElement): Cleanup {
   const show = (i: number, force = false) => {
     if (i === index && !force) return
     index = i
-    steps.forEach((s, j) => s.classList.toggle('is-on', j === i))
+    steps.forEach((s, j) => {
+      s.classList.toggle('is-on', j === i)
+    })
     shot.dataset.step = String(i)
     void runtime.field?.setTarget(target(SCREENS[i]!, { mobile: runtime.mobile }), force ? 0.9 : 1.1)
   }

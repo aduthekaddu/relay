@@ -20,7 +20,10 @@ const tabs: Island = (root) => {
     })
     if (focus) tabEls[i]?.focus()
   }
-  const initial = Math.max(0, tabEls.findIndex((t) => t.getAttribute('aria-selected') === 'true'))
+  const initial = Math.max(
+    0,
+    tabEls.findIndex((t) => t.getAttribute('aria-selected') === 'true'),
+  )
   select(initial)
   const onClick = (e: Event) => {
     const i = tabEls.indexOf((e.target as HTMLElement).closest('[role="tab"]') as HTMLButtonElement)

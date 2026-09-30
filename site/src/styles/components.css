@@ -577,7 +577,7 @@
 }
 @media (max-width: 767px) {
   .flap:not(.flap-sm) {
-    --cw: min(13px, calc((100vw - 2 * var(--gutter) - 70px) / 30));
+    --cw: min(13px, calc((100vw - 2 * var(--gutter) - 96px) / 30));
     --gap: 1px;
     padding: 12px;
   }

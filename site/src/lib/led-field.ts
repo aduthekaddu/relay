@@ -142,7 +142,8 @@ function compile(gl: WebGL2RenderingContext, type: number, src: string): WebGLSh
   const s = gl.createShader(type)!
   gl.shaderSource(s, src)
   gl.compileShader(s)
-  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(`led-field shader: ${gl.getShaderInfoLog(s)}`)
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+    throw new Error(`led-field shader: ${gl.getShaderInfoLog(s)}`)
   return s
 }
 
@@ -157,7 +158,6 @@ export class LedField {
   private dpr = 1
   private target: Target = { layers: [] }
   private mix = 1
-  private mixFrom = 1
   private mixStart = 0
   private mixDur = 1
   private ambient = 0.6
@@ -201,7 +201,8 @@ export class LedField {
     gl.attachShader(prog, compile(gl, gl.VERTEX_SHADER, VERT))
     gl.attachShader(prog, compile(gl, gl.FRAGMENT_SHADER, FRAG))
     gl.linkProgram(prog)
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(`led-field link: ${gl.getProgramInfoLog(prog)}`)
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS))
+      throw new Error(`led-field link: ${gl.getProgramInfoLog(prog)}`)
     this.prog = prog
     for (const name of [
       'uGrid',
@@ -245,7 +246,12 @@ export class LedField {
 
   /** Create a field on `canvas`; returns null when WebGL2 is unavailable. */
   static create(canvas: HTMLCanvasElement, opts: FieldOptions = {}): LedField | null {
-    const gl = canvas.getContext('webgl2', { alpha: true, antialias: false, premultipliedAlpha: true, powerPreference: 'low-power' })
+    const gl = canvas.getContext('webgl2', {
+      alpha: true,
+      antialias: false,
+      premultipliedAlpha: true,
+      powerPreference: 'low-power',
+    })
     if (!gl) return null
     try {
       return new LedField(canvas, gl, opts)
@@ -276,7 +282,11 @@ export class LedField {
   }
 
   private listen() {
-    const on = <K extends keyof WindowEventMap>(t: K, fn: (e: WindowEventMap[K]) => void, o?: AddEventListenerOptions) => {
+    const on = <K extends keyof WindowEventMap>(
+      t: K,
+      fn: (e: WindowEventMap[K]) => void,
+      o?: AddEventListenerOptions,
+    ) => {
       window.addEventListener(t, fn, o)
       this.offs.push(() => window.removeEventListener(t, fn))
     }
@@ -302,7 +312,8 @@ export class LedField {
     on(
       'pointerdown',
       (e) => {
-        if (e.pointerType === 'touch') this.pulse(e.clientX / window.innerWidth, e.clientY / window.innerHeight, 0.5)
+        if (e.pointerType === 'touch')
+          this.pulse(e.clientX / window.innerWidth, e.clientY / window.innerHeight, 0.5)
       },
       { passive: true },
     )
@@ -354,7 +365,6 @@ export class LedField {
       this.sources[0] = raster.beacon[0]
       this.sources[1] = raster.beacon[1]
     }
-    this.mixFrom = 0
     this.mix = duration <= 0 || this.opts.still ? 1 : 0
     this.mixStart = performance.now()
     this.mixDur = Math.max(0.001, duration) * 1000
@@ -476,7 +486,12 @@ export class LedField {
     const q = this.quiet
     gl.uniform4f(this.u.uQuiet!, q[0] * d, q[1] * d, q[2] * d, q[3] * d)
     gl.uniform1f(this.u.uQuietLevel!, this.quietLevel)
-    gl.uniform3f(this.u.uPointer!, this.pointer.x * d, this.pointer.y * d, this.opts.still ? 0 : this.pointer.s)
+    gl.uniform3f(
+      this.u.uPointer!,
+      this.pointer.x * d,
+      this.pointer.y * d,
+      this.opts.still ? 0 : this.pointer.s,
+    )
     const rings = new Float32Array(12)
     this.rings.forEach((r, i) => {
       rings.set([r.x * d, r.y * d, (now - r.t0) / 1000, r.s], i * 4)

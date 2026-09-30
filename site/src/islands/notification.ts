@@ -21,7 +21,11 @@ const notification: Island = (root) => {
     timer = window.setTimeout(() => {
       root.classList.add('is-in')
       const r = root.getBoundingClientRect()
-      runtime.field?.pulse((r.left + r.width / 2) / window.innerWidth, (r.top + r.height / 2) / window.innerHeight, 1)
+      runtime.field?.pulse(
+        (r.left + r.width / 2) / window.innerWidth,
+        (r.top + r.height / 2) / window.innerHeight,
+        1,
+      )
     }, 450)
   })
   return () => {

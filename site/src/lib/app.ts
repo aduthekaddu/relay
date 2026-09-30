@@ -29,7 +29,7 @@ const islands: Record<string, () => Promise<{ default: Island }>> = {
   nightshift: () => import('../islands/nightshift'),
 }
 
-let cleanups: Cleanup[] = []
+const cleanups: Cleanup[] = []
 let firstLoad = true
 
 function setupLenis() {
@@ -84,7 +84,7 @@ function director(boot: boolean): Cleanup {
     else void field.setTarget(target(name, view()), duration)
     field.setGain(Number(el.dataset.fieldGain ?? 1))
     quietEl = el.querySelector<HTMLElement>('[data-quiet]')
-    quietLevel = Number(quietEl?.dataset.quiet || 0.15)
+    quietLevel = Number((runtime.mobile && quietEl?.dataset.quietMobile) || quietEl?.dataset.quiet || 0.15)
     updateQuiet()
   }
   const first = sections[0]!
@@ -141,7 +141,12 @@ function splits(boot: boolean): Cleanup {
       el.classList.add('is-split')
       continue
     }
-    const split = SplitText.create(el, { type: 'lines,words', mask: 'lines', linesClass: 'line-mask', autoSplit: false })
+    const split = SplitText.create(el, {
+      type: 'lines,words',
+      mask: 'lines',
+      linesClass: 'line-mask',
+      autoSplit: false,
+    })
     made.push(split)
     el.classList.add('is-split')
     const delay = Number(el.dataset.splitDelay ?? 0) * (boot ? 1 : 0.35)
@@ -207,7 +212,10 @@ function kinetic(): Cleanup {
     )
     offs.push(() => tween.scrollTrigger?.kill())
   }
-  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return () => offs.forEach((o) => o())
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches)
+    return () => {
+      for (const o of offs) o()
+    }
   for (const el of document.querySelectorAll<HTMLElement>('[data-kinetic~="hover"]')) {
     const split = SplitText.create(el, { type: 'chars', charsClass: 'k-char', autoSplit: false })
     const chars = split.chars as HTMLElement[]

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
@@ -57,9 +57,18 @@ test('extractTitle skips fenced code and strips inline markdown', () => {
 
 test('extractDescription', () => {
   const cases = [
-    ['Relay turns your machine into a workspace you open from any browser.', 'Relay turns your machine into a workspace you open from any browser.'],
-    ['## Heading\n\n- a list item that is long enough\n\nA [linked](x.md) paragraph with `code` in it.', 'A linked paragraph with code in it.'],
-    ['```\nfenced paragraph that is long enough to count\n\nstill fenced text here\n```\n\nAfter the fence it is prose.', 'After the fence it is prose.'],
+    [
+      'Relay turns your machine into a workspace you open from any browser.',
+      'Relay turns your machine into a workspace you open from any browser.',
+    ],
+    [
+      '## Heading\n\n- a list item that is long enough\n\nA [linked](x.md) paragraph with `code` in it.',
+      'A linked paragraph with code in it.',
+    ],
+    [
+      '```\nfenced paragraph that is long enough to count\n\nstill fenced text here\n```\n\nAfter the fence it is prose.',
+      'After the fence it is prose.',
+    ],
     ['short', ''],
     ['| a | b |\n| - | - |', ''],
   ]
@@ -76,7 +85,11 @@ test('rewriteLinks', () => {
     ['install.md', '[x](dev/API.md)', '[x](/relay/docs/contributing/api/)'],
     ['install.md', '[x](./guides/)', '[x](/relay/docs/guides/)'],
     ['install.md', '[x](README.md)', '[x](/relay/docs/)'],
-    ['dev/API.md', '[x](../../internal/api/types.go)', '[x](https://github.com/aduthekaddu/relay/blob/main/internal/api/types.go)'],
+    [
+      'dev/API.md',
+      '[x](../../internal/api/types.go)',
+      '[x](https://github.com/aduthekaddu/relay/blob/main/internal/api/types.go)',
+    ],
     ['dev/API.md', '[x](../../scripts)', '[x](https://github.com/aduthekaddu/relay/tree/main/scripts)'],
     ['install.md', '[x](https://example.com/a.md)', '[x](https://example.com/a.md)'],
     ['install.md', '[x](#anchor)', '[x](#anchor)'],
@@ -86,18 +99,30 @@ test('rewriteLinks', () => {
     ['install.md', 'see `[x](a.md)` literally', 'see `[x](a.md)` literally'],
     ['install.md', '```\n[x](a.md)\n```', '```\n[x](a.md)\n```'],
   ]
-  for (const [from, input, want] of cases) assert.equal(rewriteLinks(input, from, opts), want, `${from}: ${input}`)
+  for (const [from, input, want] of cases)
+    assert.equal(rewriteLinks(input, from, opts), want, `${from}: ${input}`)
   assert.equal(rewriteLinks('[x](a.md)', 'b.md', { base: '/' }), '[x](/docs/a/)')
 })
 
 test('transformMarkdown keeps existing frontmatter and adds missing keys', () => {
-  const out = transformMarkdown('---\ntitle: Kept\n---\n# Heading stays\n\nA description long enough to use.\n', 'x.md', { base: '/' })
-  assert.match(out, /^---\ntitle: Kept\ndescription: "A description long enough to use."\neditUrl: ".*docs\/x.md"\n---/)
+  const out = transformMarkdown(
+    '---\ntitle: Kept\n---\n# Heading stays\n\nA description long enough to use.\n',
+    'x.md',
+    { base: '/' },
+  )
+  assert.match(
+    out,
+    /^---\ntitle: Kept\ndescription: "A description long enough to use."\neditUrl: ".*docs\/x.md"\n---/,
+  )
   assert.ok(out.includes('# Heading stays'))
-  const gen = transformMarkdown('# Install "Relay"\n\nBody text that is long enough.\n', 'install.md', { base: '/' })
+  const gen = transformMarkdown('# Install "Relay"\n\nBody text that is long enough.\n', 'install.md', {
+    base: '/',
+  })
   assert.match(gen, /title: "Install \\"Relay\\""/)
   assert.ok(!gen.includes('# Install'))
-  const untitled = transformMarkdown('Just text without any heading at all.', 'guides/home-server.md', { base: '/' })
+  const untitled = transformMarkdown('Just text without any heading at all.', 'guides/home-server.md', {
+    base: '/',
+  })
   assert.match(untitled, /title: "Home Server"/)
 })
 
@@ -126,7 +151,10 @@ test('syncDocs end to end, with and without an index', () => {
     const dest = join(root, 'out')
     mkdirSync(join(src, 'dev'), { recursive: true })
     mkdirSync(join(src, 'img'), { recursive: true })
-    writeFileSync(join(src, 'dev', 'API.md'), '# API\n\nThe HTTP contract for every endpoint. See [install](../install.md).\n')
+    writeFileSync(
+      join(src, 'dev', 'API.md'),
+      '# API\n\nThe HTTP contract for every endpoint. See [install](../install.md).\n',
+    )
     writeFileSync(join(src, 'install.md'), '# Install\n\nOne line installs Relay on Linux or macOS.\n')
     writeFileSync(join(src, 'img', 'a.png'), 'png')
     let r = syncDocs({ src, dest, base: '/relay/' })

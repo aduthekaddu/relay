@@ -122,7 +122,11 @@ async function processImage(file) {
   const src = sharp(readFileSync(file)).removeAlpha()
   const { width = 1, height = 1 } = await src.metadata()
   const rows = Math.round((COLS * height) / width)
-  const { data } = await src.clone().resize(COLS, rows, { fit: 'fill', kernel: 'lanczos3' }).raw().toBuffer({ resolveWithObject: true })
+  const { data } = await src
+    .clone()
+    .resize(COLS, rows, { fit: 'fill', kernel: 'lanczos3' })
+    .raw()
+    .toBuffer({ resolveWithObject: true })
   const lum = new Float32Array(COLS * rows)
   const mask = new Float32Array(COLS * rows)
   let bx = 0
@@ -145,8 +149,14 @@ async function processImage(file) {
     const { buf, W, H } = renderDots(bits, mask, COLS, rows, PITCH * scale)
     const img = sharp(buf, { raw: { width: W, height: H, channels: 3 } })
     const suffix = scale === 2 ? '@2x' : ''
-    await img.clone().avif({ quality: 52, effort: 4 }).toFile(join(OUT, `${name}${suffix}.avif`))
-    await img.clone().webp({ quality: 78, effort: 5 }).toFile(join(OUT, `${name}${suffix}.webp`))
+    await img
+      .clone()
+      .avif({ quality: 52, effort: 4 })
+      .toFile(join(OUT, `${name}${suffix}.avif`))
+    await img
+      .clone()
+      .webp({ quality: 78, effort: 5 })
+      .toFile(join(OUT, `${name}${suffix}.webp`))
   }
   // Field texture: R = tone-mapped luminance, G = orange mask, B = 0.
   const fh = Math.round((FIELD_W * height) / width)
@@ -156,7 +166,8 @@ async function processImage(file) {
     .raw()
     .toBuffer({ resolveWithObject: true })
   const fl = new Float32Array(FIELD_W * fh)
-  for (let i = 0; i < fl.length; i++) fl[i] = 0.2126 * fd[i * 3] + 0.7152 * fd[i * 3 + 1] + 0.0722 * fd[i * 3 + 2]
+  for (let i = 0; i < fl.length; i++)
+    fl[i] = 0.2126 * fd[i * 3] + 0.7152 * fd[i * 3 + 1] + 0.0722 * fd[i * 3 + 2]
   const ft = toneMap(fl, tune.gamma, tune.black * 0.8)
   const field = Buffer.alloc(FIELD_W * fh * 3)
   for (let i = 0; i < fl.length; i++) {

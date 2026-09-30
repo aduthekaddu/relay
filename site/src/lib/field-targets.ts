@@ -9,10 +9,35 @@
 import { DOT_H, eachDot, measure } from './dotfont'
 
 export type Layer =
-  | { kind: 'dotfont'; text: string; x?: number; y?: number; h?: number; w?: number; accent?: boolean; gain?: number }
-  | { kind: 'text'; text: string; x?: number; y?: number; h?: number; weight?: number; accent?: boolean; gain?: number }
+  | {
+      kind: 'dotfont'
+      text: string
+      x?: number
+      y?: number
+      h?: number
+      w?: number
+      accent?: boolean
+      gain?: number
+    }
+  | {
+      kind: 'text'
+      text: string
+      x?: number
+      y?: number
+      h?: number
+      weight?: number
+      accent?: boolean
+      gain?: number
+    }
   | { kind: 'image'; src: string; focus?: [number, number]; gain?: number; beacon?: [number, number] | null }
-  | { kind: 'device'; device: 'phone' | 'tablet' | 'laptop'; x?: number; y?: number; h?: number; gain?: number }
+  | {
+      kind: 'device'
+      device: 'phone' | 'tablet' | 'laptop'
+      x?: number
+      y?: number
+      h?: number
+      gain?: number
+    }
   | { kind: 'ring'; x?: number; y?: number; r?: number; accent?: boolean; gain?: number }
   | { kind: 'noise'; density?: number; gain?: number }
 
@@ -130,7 +155,9 @@ export async function rasterize(target: Target, g: Geometry): Promise<Raster> {
   ctx.fillStyle = '#000'
   ctx.fillRect(0, 0, g.cols, g.rows)
   ctx.globalCompositeOperation = 'lighter'
-  let beacon: [number, number] | null = target.beacon ? [target.beacon[0] * g.width, target.beacon[1] * g.height] : null
+  let beacon: [number, number] | null = target.beacon
+    ? [target.beacon[0] * g.width, target.beacon[1] * g.height]
+    : null
   for (const l of target.layers) {
     switch (l.kind) {
       case 'image': {

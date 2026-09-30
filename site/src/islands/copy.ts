@@ -46,7 +46,10 @@ const copy: Island = (root) => {
       }
       if (label) label.textContent = msg
       btn.dataset.state = ok ? 'copied' : 'failed'
-      if (status) status.textContent = ok ? 'Install command copied to the clipboard.' : 'Copy failed; the command is selected.'
+      if (status)
+        status.textContent = ok
+          ? 'Install command copied to the clipboard.'
+          : 'Copy failed; the command is selected.'
       clearTimeout(timers.get(btn))
       timers.set(
         btn,

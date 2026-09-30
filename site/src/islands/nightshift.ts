@@ -3,16 +3,8 @@
  * from 22:00 to 07:00; runs light up as the cursor passes them and the
  * morning report appears at dawn.
  */
+import { clockAt } from '../lib/clock'
 import { type Island, runtime } from '../lib/runtime'
-
-const START_MIN = 22 * 60
-const SPAN_MIN = 9 * 60
-
-/** Clock label for a 0..1 position on the night. */
-export function clockAt(p: number): string {
-  const m = Math.round(START_MIN + Math.max(0, Math.min(1, p)) * SPAN_MIN) % (24 * 60)
-  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
-}
 
 const nightshift: Island = (root) => {
   if (runtime.reduced) return undefined
