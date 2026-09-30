@@ -98,7 +98,7 @@ export function ConnectionPill() {
   return (
     <div class={cx('conn-pill', offline && 'conn-pill--offline')} role="status">
       <Icon name={offline ? 'wifi-off' : 'refresh-cw'} size={14} class={cx(!offline && 'conn-pill__spin')} />
-      <span>
+      <span class="conn-pill__long">
         {offline
           ? 'Offline'
           : c.state === 'connecting'
@@ -106,6 +106,10 @@ export function ConnectionPill() {
             : secs > 1
               ? `Reconnecting in ${secs}s`
               : 'Reconnecting…'}
+      </span>
+      {/* Phones: the header is narrow, so only the countdown shows (the role=status text above stays for AT). */}
+      <span class="conn-pill__short" aria-hidden="true">
+        {offline ? 'Offline' : secs > 1 ? `${secs}s` : '…'}
       </span>
       {!offline && c.state !== 'connecting' && (
         <button type="button" class="conn-pill__retry" onClick={retryConnection}>

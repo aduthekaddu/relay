@@ -25,8 +25,11 @@ Principles, in priority order:
 ## Colour
 
 Tokens live in `web/src/styles/tokens.css` as CSS custom properties on
-`:root[data-theme="carbon"]` (dark, default) and `[data-theme="paper"]`
-(light). `data-theme="auto"` follows the OS.
+`[data-theme="carbon"]` (dark, default) and `[data-theme="paper"]`
+(light). The user's preference (`carbon | paper | auto`) is stored in
+`data-theme-pref` and localStorage; `auto` resolves `data-theme` from the OS
+and follows changes live. A boot script sets both attributes before first
+paint, so there is never a flash of the wrong theme.
 
 | Token | Carbon (dark) | Paper (light) | Use |
 | --- | --- | --- | --- |
@@ -199,3 +202,52 @@ keep only opacity changes.
 
 Area glyphs are custom (dot matrix). Utility icons use `lucide-preact` at
 16/18 px, stroke 1.75, `currentColor`. Never mix icon sets.
+
+## Refinements from building it (wave 1)
+
+Decisions taken while implementing the kit, with the reason for each.
+`UI_KIT.md` is the usage reference.
+
+- **Carbon is the default, not Auto.** Relay is mostly opened on a phone
+  next to a terminal, often at night; the dark instrument panel is the
+  brand. Auto and Paper are one tap away (rail toggle on desktop, More sheet on phones, the
+  palette: "Change theme").
+- **Paper needs its own ink for brand colours.** Agent brand colours are
+  tuned for carbon; on paper pale ones (Grok, Cursor) fell below 3:1. Agent
+  marks on paper mix the brand colour 45 % into `--text` for the monogram,
+  and skeletons use `--surface-4` so placeholders stay visible on white
+  cards.
+- **Meters and progress take fractions (0–1), always.** One convention
+  across `DotMeter`, `Progress`, `ProgressRing` and `pct()` prevents the
+  "every dot is red" bug where a percentage is passed.
+- **The signal line is the only route progress indicator.** No spinners
+  for navigation: the 2 px sweep in the destination area's hue plus a 6 px
+  content rise, via View Transitions when supported. Within an area (e.g.
+  `/terminal` → `/terminal/t1`) there is no transition — it would feel like
+  leaving.
+- **Immersive screens own the whole viewport.** On phones the header and
+  tab bar are removed (not hidden) and the screen renders a `CompactBar`;
+  on desktop the rail stays so the areas are one click away. Heights use
+  `dvh` with `interactive-widget=resizes-content`, and `--vvh` tracks the
+  visual viewport for keyboards on iOS.
+- **Connection state is a pill in the header, never a modal.** "Reconnecting
+  in 4s · Retry" on desktop; on phones only the countdown and Retry show
+  (the full sentence stays for screen readers) so the title keeps its
+  room. Retry has a 44 px hit area around a small visual button.
+- **Login is top-anchored on phones** (`clamp(40px, 11dvh, 120px)` from the
+  top) instead of centred, so the on-screen keyboard never shoves the form.
+  The dot field is a canvas at ~24 fps (DPR ≤ 2) that pauses when hidden or
+  off-screen and is static under reduced motion. The orange beacon on the
+  field echoes the marketing site's "signal lands here" motif.
+- **Commands close the palette themselves.** `ctx.close()` / `ctx.navigate()`
+  is explicit so repeatable commands (copy, toggle) can keep it open —
+  Raycast's behaviour for list items. Esc pops a view, then clears the
+  query, then closes; ⌫ on an empty field pops.
+- **Budget is enforced, not hoped for.** `pnpm build` prints the initial
+  shell's JS (entry + static imports, gzip) and fails above 60 KB. Wave 1
+  ships at ~51 KB; area screens, the palette, markdown, highlighting and QR
+  are all separate chunks.
+- **Mona Sans `wdth` is used for rhythm, not decoration:** 110 for titles,
+  118 for display, 125 only for numeric readouts. Body stays at 100 for
+  reading comfort on small screens.
+

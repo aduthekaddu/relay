@@ -451,7 +451,26 @@
   animation: spin 1.2s linear infinite;
 }
 
+.conn-pill__short {
+  display: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.shell--mobile .conn-pill__long {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.shell--mobile .conn-pill__short {
+  display: inline;
+}
+
 .conn-pill__retry {
+  position: relative;
   height: 22px;
   padding: 0 8px;
   border-radius: var(--r-full);
@@ -459,6 +478,13 @@
   background: var(--surface-2);
   font-size: 12px;
   font-weight: 600;
+}
+
+/* 44 px touch target around the small visual button. */
+.conn-pill__retry::before {
+  content: "";
+  position: absolute;
+  inset: -11px -4px;
 }
 
 @keyframes spin {

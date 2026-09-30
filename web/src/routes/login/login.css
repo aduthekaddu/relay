@@ -161,6 +161,7 @@
   font-size: var(--fs-small);
   color: var(--text-3);
   text-align: center;
+  text-wrap: balance;
 }
 
 .login-foot {
