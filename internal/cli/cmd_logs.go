@@ -26,46 +26,6 @@ func init() {
 	})
 }
 
-// LogsCommand returns the argv that shows Relay's logs on goos.
-func LogsCommand(goos, logDir, service string, lines int, follow bool) ([]string, error) {
-	if lines <= 0 || lines > 1_000_000 {
-		return nil, fmt.Errorf("-n must be between 1 and 1000000")
-	}
-	var units, files []string
-	switch service {
-	case "all", "":
-		units = []string{"relay-ptyd.service", "relay.service"}
-		files = []string{"relay-ptyd.log", "relay.log"}
-	case "serve", "relay":
-		units, files = []string{"relay.service"}, []string{"relay.log"}
-	case "ptyd":
-		units, files = []string{"relay-ptyd.service"}, []string{"relay-ptyd.log"}
-	default:
-		return nil, fmt.Errorf("unknown service %q (use all, serve or ptyd)", service)
-	}
-	n := strconv.Itoa(lines)
-	if goos == "darwin" {
-		argv := []string{"tail", "-n", n}
-		if follow {
-			argv = append(argv, "-F")
-		}
-		for _, f := range files {
-			argv = append(argv, filepath.Join(logDir, f))
-		}
-		return argv, nil
-	}
-	argv := []string{"journalctl", "--user", "-n", n, "-o", "short-iso"}
-	for _, u := range units {
-		argv = append(argv, "-u", u)
-	}
-	if follow {
-		argv = append(argv, "-f")
-	} else {
-		argv = append(argv, "--no-pager")
-	}
-	return argv, nil
-}
-
 func runLogs(ctx context.Context, fs *flag.FlagSet, _ []string) error {
 	paths, err := config.ResolvePaths()
 	if err != nil {
@@ -73,7 +33,7 @@ func runLogs(ctx context.Context, fs *flag.FlagSet, _ []string) error {
 	}
 	lines, _ := strconv.Atoi(fs.Lookup("n").Value.String())
 	sys := setup.OSSystem{}
-	argv, err := LogsCommand(sys.GOOS(), filepath.Join(paths.DataDir, "logs"), fs.Lookup("service").Value.String(),
+	argv, err := setup.LogsCommand(sys.GOOS(), filepath.Join(paths.DataDir, "logs"), fs.Lookup("service").Value.String(),
 		lines, fs.Lookup("f").Value.String() == "true")
 	if err != nil {
 		return &ExitError{Code: 2, Msg: err.Error()}
