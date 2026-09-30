@@ -7,6 +7,8 @@ import { defineConfig, type Plugin } from 'vite'
 
 // Fill the service worker's precache list and version from the bundle:
 // the entry chunk, its static imports, their CSS and the two fonts.
+const BUDGET_JS = 60 * 1024
+
 function serviceWorker(): Plugin {
   let shell: string[] = []
   return {
@@ -25,6 +27,15 @@ function serviceWorker(): Plugin {
       }
       for (const [name, c] of Object.entries(bundle)) if (c.type === 'chunk' && c.isEntry) add(name)
       for (const name of Object.keys(bundle)) if (/(mona-sans-latin-standard|jetbrains-mono-latin-wght)-normal[^/]*\.woff2$/.test(name)) files.add(name)
+      // Performance budget (DESIGN.md): the initial shell's JS must stay ≤ 60 KB gzip.
+      let js = 0
+      for (const f of files) {
+        const c = bundle[f]
+        if (c?.type === 'chunk') js += gzipSync(c.code).length
+      }
+      const kb = (js / 1024).toFixed(1)
+      if (js > BUDGET_JS) this.error(`initial shell JS is ${kb} KB gzip; the budget is ${BUDGET_JS / 1024} KB`)
+      this.info(`initial shell JS: ${kb} KB gzip (budget ${BUDGET_JS / 1024} KB)`)
       shell = ['/', '/offline.html', '/manifest.webmanifest', '/boot.js', '/icons/icon.svg', '/icons/icon-192.png', ...[...files].map((f) => `/${f}`)]
     },
     closeBundle: {
