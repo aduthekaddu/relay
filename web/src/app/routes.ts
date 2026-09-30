@@ -49,3 +49,18 @@ export const ROUTES: RouteDef[] = [
   { path: '/login', area: 'home', public: true, component: Login },
   { path: '/dev/ui', area: 'settings', component: DevUI },
 ]
+
+const compiled = ROUTES.map((r) => {
+  const src = r.path
+    .split('/')
+    .map((seg) => (seg === '*' ? '.*' : seg.startsWith(':') ? '[^/]+' : seg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+    .join('/')
+  return { def: r, re: new RegExp(`^${src === '' ? '/' : src}/?$`) }
+})
+
+/** The route definition for a pathname (first match; unknown → home area, not public). Pure. */
+export function matchRoute(pathname: string): RouteDef | null {
+  const p = pathname.replace(/\/+$/, '') || '/'
+  for (const c of compiled) if (c.re.test(p)) return c.def
+  return null
+}

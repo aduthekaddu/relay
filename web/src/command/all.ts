@@ -11,8 +11,11 @@ import { commands as system } from '../routes/system/commands'
 import { commands as settings } from '../routes/settings/commands'
 import { commands as workspace } from '../routes/workspace/commands'
 import { commands as toolbox } from '../routes/toolbox/commands'
-import { commands as core } from './core'
+import { commands as core, registerCoreProviders } from './core'
+import { commands as devui } from '../routes/devui/commands'
+import { commands as login } from '../routes/login/commands'
 
 export function registerAll(): void {
-  registerCommands([...core, ...home, ...terminal, ...agents, ...files, ...code, ...desktop, ...previews, ...system, ...settings, ...workspace, ...toolbox])
+  registerCommands([...core, ...home, ...terminal, ...agents, ...files, ...code, ...desktop, ...previews, ...system, ...settings, ...workspace, ...toolbox, ...login, ...devui])
+  registerCoreProviders()
 }
