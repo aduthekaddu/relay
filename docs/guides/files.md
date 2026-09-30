@@ -89,7 +89,7 @@ panel shows each file. The size limit is
 | Rename | Item menu → **Rename**, or F2 on a computer |
 | Move | Drag onto a folder or a breadcrumb, or item menu → **Move to…** |
 | Copy | Item menu → **Copy to…**. Large copies run in the background with progress |
-| Delete | Item menu → **Move to Trash** (Delete key on a computer) |
+| Delete | Item menu → **Move to Trash** (⌘⌫ on a Mac, Delete on Windows/Linux) |
 
 ## Restore from the Trash
 
