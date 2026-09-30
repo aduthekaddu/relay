@@ -432,11 +432,11 @@ function Kit() {
         <div class="meters">
           <DotMeter
             label="CPU"
-            value={wave[wave.length - 1]}
+            value={wave[wave.length - 1] / 100}
             valueText={`${Math.round(wave[wave.length - 1])}%`}
           />
-          <DotMeter label="Memory" value={78} valueText="25.1 / 32 GB" warn={70} />
-          <DotMeter label="Disk" value={93} valueText="93%" danger={90} size="sm" />
+          <DotMeter label="Memory" value={0.78} valueText="25.1 / 32 GB" warn={0.7} />
+          <DotMeter label="Disk" value={0.93} valueText="93%" danger={0.9} size="sm" />
           <Sparkline values={wave} width={220} height={44} fill dot label="CPU, last 40 s" />
           <Sparkline
             values={wave.map((v) => 100 - v)}
@@ -445,13 +445,13 @@ function Kit() {
             color="var(--area-system)"
             label="Network"
           />
-          <Progress label="Uploading photo.jpg" value={64} />
+          <Progress label="Uploading photo.jpg" value={0.64} />
           <Progress label="Indexing" tone="signal" />
           <div class="row" style={{ '--gap': 'var(--s-4)' }}>
-            <ProgressRing value={62} label="5-hour quota">
+            <ProgressRing value={0.62} label="5-hour quota">
               <span class="tnum t-small">62%</span>
             </ProgressRing>
-            <ProgressRing value={91} tone="danger" label="Weekly quota" size={56} />
+            <ProgressRing value={0.91} tone="danger" label="Weekly quota" size={56} />
             <Spinner />
             <Spinner size="lg" />
           </div>

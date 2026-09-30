@@ -203,6 +203,14 @@
   user-select: none;
 }
 
+/* Paper: brand colours are tuned for carbon; pull the ink toward --text so
+   pale marks (Grok, Cursor) keep >= 4.5:1 on the light tint. */
+[data-theme="paper"] .agent-mark {
+  color: color-mix(in oklab, var(--agent) 45%, var(--text));
+  background: color-mix(in oklab, var(--agent) 14%, var(--surface-2));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--agent) 40%, var(--line-strong));
+}
+
 .agent-mark--sm {
   --sz: 20px;
   font-size: 8.5px;

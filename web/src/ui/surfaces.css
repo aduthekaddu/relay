@@ -451,6 +451,12 @@
   animation: scan 1.4s linear infinite;
 }
 
+/* Paper's surface-2 is white on a near-white card; use the hover step so
+   placeholders stay visible. */
+[data-theme="paper"] .skeleton {
+  background-color: var(--surface-4);
+}
+
 .skeleton-stack {
   display: flex;
   flex-direction: column;
