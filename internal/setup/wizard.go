@@ -232,7 +232,8 @@ func (w *Wizard) access(ctx context.Context) error {
 		return w.accessProxy()
 	case AccessLocal:
 		u.OK("Relay will listen on %s only", firstNonEmpty(a.Listen, DefaultLocalListen))
-		u.Dim("From another computer: ssh -L 7777:127.0.0.1:7777 <this-machine>, then open http://localhost:7777")
+		port := w.listenPort()
+		u.Dim("From another computer: ssh -L %d:127.0.0.1:%d <this-machine>, then open http://localhost:%d", port, port, port)
 	default:
 		return fmt.Errorf("unknown access mode %q (use %s)", a.Access, strings.Join(AccessModes, ", "))
 	}
