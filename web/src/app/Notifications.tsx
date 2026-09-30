@@ -4,6 +4,7 @@ import { signal } from '@preact/signals'
 import { useRef } from 'preact/hooks'
 import type { Notification, NotificationKind } from '../api/types'
 import { ago } from '../lib/format'
+import { safeNext } from '../lib/url'
 import { cx } from '../lib/util'
 import {
   markAllRead,
@@ -113,7 +114,7 @@ export function BellButton({ size = 'md' }: { size?: 'md' | 'lg' }) {
 function open(n: Notification) {
   inboxOpen.value = false
   if (!n.read) void markRead([n.id])
-  if (n.link) navigate(n.link)
+  if (n.link) navigate(safeNext(n.link))
 }
 
 /** The inbox list (used in the popover and the mobile sheet). */

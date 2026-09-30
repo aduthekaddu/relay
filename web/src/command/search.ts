@@ -1,7 +1,9 @@
 // Server-side federated search (GET /api/v1/search) as a palette provider.
 // Debounced 80 ms by the palette; stale requests are aborted.
+
 import { api, qs } from '../api/client'
 import type { SearchResponse, SearchResult, SearchScope } from '../api/types'
+import { navTarget } from '../app/nav'
 import { ago } from '../lib/format'
 import type { Status } from '../ui/StatusDot'
 import type { PaletteAction, PaletteItem, PaletteProvider } from './registry'
@@ -43,8 +45,10 @@ const ACTIVITY: Record<string, Status> = {
 export function resultItem(r: SearchResult): PaletteItem {
   const actions: PaletteAction[] = []
   const path = r.meta?.path
-  if (r.link) {
-    const link = r.link
+  // Server links are untrusted: only http(s) URLs survive (no javascript:/data:).
+  const target = r.link ? navTarget(r.link, location.origin) : null
+  if (target) {
+    const link = target.href
     actions.push({
       id: 'new-tab',
       title: 'Open in new tab',
@@ -77,7 +81,7 @@ export function resultItem(r: SearchResult): PaletteItem {
     status,
     section: SCOPE_LABEL[r.scope] ?? 'Results',
     accessory: r.at ? ago(r.at) : undefined,
-    link: r.link,
+    link: target?.href,
     runLabel: 'Open',
     score: r.score,
     actions,

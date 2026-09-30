@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { backoffDelay, events } from '../api/events'
 import type { Notification, TerminalSession } from '../api/types'
 import { areaForPath } from '../app/areas'
-import { shouldTransition } from '../app/nav'
+import { navTarget, shouldTransition } from '../app/nav'
 import { deriveConnection } from './connection'
 import { mergeNotifications } from './notifications'
 import { sortTerminals } from './terminals'
@@ -153,4 +153,18 @@ describe('live events client', () => {
     vi.advanceTimersByTime(700)
     expect(FakeSocket.last).not.toBe(ws)
   })
+})
+
+describe('navTarget', () => {
+  const o = 'https://relay.example'
+  it.each([
+    ['/files?path=/a#x', { kind: 'app', href: '/files?path=/a#x' }],
+    ['terminal', { kind: 'app', href: '/terminal' }],
+    ['https://relay.example/agents', { kind: 'app', href: '/agents' }],
+    ['https://4321.relay.example/', { kind: 'external', href: 'https://4321.relay.example/' }],
+    ['//evil.example/x', { kind: 'external', href: 'https://evil.example/x' }],
+    ['javascript:alert(1)', null],
+    ['data:text/html,hi', null],
+    ['http://[::1', null],
+  ] as const)('%s', (url, want) => expect(navTarget(url, o)).toEqual(want))
 })

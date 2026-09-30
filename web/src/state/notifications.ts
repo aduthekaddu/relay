@@ -5,6 +5,7 @@ import { computed, signal } from '@preact/signals'
 import { api, qs, seg } from '../api/client'
 import { on } from '../api/events'
 import type { Notification } from '../api/types'
+import { safeNext } from '../lib/url'
 import { toast } from '../ui/Toast'
 
 /** Newest first, at most 100 kept in memory. */
@@ -107,7 +108,12 @@ export function trackNotifications(): void {
             label: n.kind === 'attention' ? 'Open' : 'View',
             onClick: () => {
               void markRead([n.id])
-              if (n.link) navigate ? navigate(n.link) : location.assign(n.link)
+              // Links come from the server (and agents via /notify): only same-origin paths.
+              if (n.link) {
+                const to = safeNext(n.link)
+                if (navigate) navigate(to)
+                else location.assign(to)
+              }
             },
           }
         : undefined,

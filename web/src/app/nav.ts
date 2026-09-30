@@ -100,8 +100,32 @@ function transition(change: () => void): void {
   change()
 }
 
+/**
+ * Classify a navigation target: same-origin paths stay in the app,
+ * http(s) URLs on other origins (e.g. preview subdomains) open in a new
+ * tab, anything else (javascript:, data:, garbage) is dropped. Pure.
+ */
+export function navTarget(url: string, origin: string): { kind: 'app' | 'external'; href: string } | null {
+  let u: URL
+  try {
+    u = new URL(url, origin)
+  } catch {
+    return null
+  }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') return null
+  if (u.origin === origin) return { kind: 'app', href: u.pathname + u.search + u.hash }
+  return { kind: 'external', href: u.href }
+}
+
 /** Navigate inside the app (animated across areas). */
-export function navigate(url: string, opts: { replace?: boolean } = {}): void {
+export function navigate(raw: string, opts: { replace?: boolean } = {}): void {
+  const t = navTarget(raw, location.origin)
+  if (!t) return
+  if (t.kind === 'external') {
+    window.open(t.href, '_blank', 'noopener')
+    return
+  }
+  const url = t.href
   const from = location.pathname + location.search
   const go = () => {
     if (routeFn) routeFn(url, opts.replace)
