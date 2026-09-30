@@ -1,0 +1,25 @@
+# Relay web server — UI, API, proxies. Safe to restart at any time:
+# terminals live in relay-ptyd.service and are not affected.
+# Rendered by `relay setup`; re-run it to regenerate this file.
+[Unit]
+Description=Relay web workspace
+Documentation=https://github.com/aduthekaddu/relay
+Wants=relay-ptyd.service network-online.target
+After=relay-ptyd.service network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+ExecStart={{ exec .Binary "serve" }}
+Restart=on-failure
+RestartSec=2
+UMask=0077
+# Do not set NoNewPrivileges: it would drop the cap_net_bind_service file
+# capability that lets relay bind :443 without root.
+{{- range .Env }}
+Environment={{ envq . }}
+{{- end }}
+
+[Install]
+WantedBy=default.target

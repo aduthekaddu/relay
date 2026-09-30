@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Relay terminal session daemon. Rendered by `relay setup` into ~/Library/LaunchAgents. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>dev.relay.ptyd</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>{{ xml .Binary }}</string>
+    <string>ptyd</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+{{- range .EnvPairs }}
+    <key>{{ xml .Key }}</key>
+    <string>{{ xml .Value }}</string>
+{{- end }}
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+  <key>AbandonProcessGroup</key>
+  <true/>
+  <key>ThrottleInterval</key>
+  <integer>5</integer>
+  <key>Umask</key>
+  <integer>63</integer>
+  <key>StandardOutPath</key>
+  <string>{{ xml .LogDir }}/relay-ptyd.log</string>
+  <key>StandardErrorPath</key>
+  <string>{{ xml .LogDir }}/relay-ptyd.log</string>
+</dict>
+</plist>

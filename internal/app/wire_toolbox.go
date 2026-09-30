@@ -13,5 +13,7 @@ func wireToolbox(ctx context.Context, a *App) error {
 		return err
 	}
 	svc.Routes(a.Router)
+	a.OnStart("toolbox", svc.Start)
+	a.OnClose(svc.Close)
 	return nil
 }

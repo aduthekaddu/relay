@@ -1,0 +1,25 @@
+# Relay terminal session daemon — owns every shell, agent and task.
+# Rendered by `relay setup`; edit relay.toml instead of this file and
+# re-run `relay setup` to regenerate it.
+[Unit]
+Description=Relay terminal session daemon
+Documentation=https://github.com/aduthekaddu/relay
+# Survive `relay serve` restarts and upgrades: ptyd is its own unit.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+ExecStart={{ exec .Binary "ptyd" }}
+Restart=on-failure
+RestartSec=2
+# Only signal the daemon itself on stop; sessions live in their own
+# process groups and ptyd shuts them down gracefully.
+KillMode=process
+UMask=0077
+{{- range .Env }}
+Environment={{ envq . }}
+{{- end }}
+
+[Install]
+WantedBy=default.target
