@@ -3,22 +3,34 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
-    <meta name="theme-color" content="#0b0b0c" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#f3f0e8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b0c" />
     <meta name="color-scheme" content="dark light" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Relay" />
     <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="same-origin" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>Relay</title>
-    <script type="module" crossorigin src="/assets/index-Bzbnf-D8.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BSzdOy_5.css">
+    <script src="/boot.js"></script>
+    <style>html{background:#0b0b0c}html[data-theme=paper]{background:#f3f0e8}.boot{place-items:center;display:grid;position:fixed;inset:0}.boot svg{opacity:0;width:40px;height:40px;animation:.4s ease-out .12s forwards boot-in}.boot circle{fill:#ede9e0}html[data-theme=paper] .boot circle{fill:#16150f}.boot circle.b{fill:#ff5b1f;animation:1.2s step-end infinite boot-blink}@keyframes boot-in{to{opacity:1}}@keyframes boot-blink{50%{opacity:.2}}@media (prefers-reduced-motion:reduce){.boot svg,.boot circle.b{opacity:1;animation:none}}</style>
+    <script type="module" crossorigin src="/assets/index-DEYf3wOT.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/jsxRuntime.module-CY0cbphu.js">
+    <link rel="modulepreload" crossorigin href="/assets/compat.module-Cxh7N00-.js">
+    <link rel="stylesheet" crossorigin href="/assets/compat-DzJsJidR.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-D1AH9l7P.css">
+    <link rel="preload" href="/assets/jetbrains-mono-latin-wght-normal-B9CIFXIH.woff2" as="font" type="font/woff2" crossorigin="">
+    <link rel="preload" href="/assets/mona-sans-latin-standard-normal-BMVx8nn_.woff2" as="font" type="font/woff2" crossorigin="">
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div class="boot" aria-hidden="true">
+        <svg viewBox="0 0 7 7"><circle cx="1.5" cy="1.5" r=".41"/><circle cx="2.5" cy="1.5" r=".41"/><circle cx="3.5" cy="1.5" r=".41"/><circle class="b" cx="4.5" cy="1.5" r=".5"/><circle cx="1.5" cy="2.5" r=".41"/><circle cx="4.5" cy="2.5" r=".41"/><circle cx="1.5" cy="3.5" r=".41"/><circle cx="2.5" cy="3.5" r=".41"/><circle cx="3.5" cy="3.5" r=".41"/><circle cx="1.5" cy="4.5" r=".41"/><circle cx="3.5" cy="4.5" r=".41"/><circle cx="1.5" cy="5.5" r=".41"/><circle cx="4.5" cy="5.5" r=".41"/></svg>
+      </div>
+    </div>
+    <noscript>Relay needs JavaScript.</noscript>
   </body>
 </html>

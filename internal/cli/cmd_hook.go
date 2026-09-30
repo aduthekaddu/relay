@@ -118,8 +118,3 @@ func readHookInput(r io.Reader, wait time.Duration) []byte {
 		return nil
 	}
 }
-
-func isTTY(f *os.File) bool {
-	st, err := f.Stat()
-	return err == nil && st.Mode()&os.ModeCharDevice != 0
-}

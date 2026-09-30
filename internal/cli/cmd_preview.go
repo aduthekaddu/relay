@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"golang.org/x/term"
 	"rsc.io/qr"
 
 	"github.com/aduthekaddu/relay/internal/api"
@@ -61,8 +60,6 @@ func parsePortArg(s string) (int, error) {
 	}
 	return p, nil
 }
-
-func isTTY(f *os.File) bool { return term.IsTerminal(int(f.Fd())) }
 
 func printPreview(out, errOut io.Writer, link api.PreviewLink, withQR, ansi bool) error {
 	if link.URL == "" {
