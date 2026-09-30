@@ -91,6 +91,7 @@ func New(d *core.Deps) (*Service, error) {
 	}
 	disabled := map[string]bool{}
 	if d.Cfg != nil {
+		ix.noText = !d.Cfg.Agents.IndexHistory
 		for _, id := range d.Cfg.Agents.Disabled {
 			disabled[id] = true
 		}
@@ -187,7 +188,9 @@ func (s *Service) workspaceDirs(ctx context.Context) []string {
 		return s.wsCache
 	}
 	set := map[string]bool{}
-	if wp, ok := s.d.Workspaces.(interface{ Paths(context.Context) []string }); ok {
+	if wp, ok := s.d.Workspaces.(interface {
+		Paths(context.Context) []string
+	}); ok {
 		// Cheap listing without git briefs.
 		for _, p := range wp.Paths(ctx) {
 			set[p] = true

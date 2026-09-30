@@ -103,6 +103,9 @@ type index struct {
 	db  *sql.DB
 	st  *store.Store
 	fts bool
+	// noText disables full-text indexing (agents.index_history = false):
+	// sessions and usage are still indexed, message text is not stored.
+	noText bool
 }
 
 func openIndex(ctx context.Context, st *store.Store) (*index, error) {
@@ -252,8 +255,10 @@ func (ix *index) apply(ctx context.Context, agent string, src source, known know
 		if res.New, err = upsertSession(ctx, tx, agent, native, id, src, p, incremental); err != nil {
 			return res, err
 		}
-		if err := insertText(ctx, tx, id, p.Messages); err != nil {
-			return res, err
+		if !ix.noText {
+			if err := insertText(ctx, tx, id, p.Messages); err != nil {
+				return res, err
+			}
 		}
 	}
 	if err := upsertUsage(ctx, tx, id, p); err != nil {

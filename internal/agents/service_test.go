@@ -114,7 +114,7 @@ func newTestService(t *testing.T) *testSvc {
 	home := t.TempDir()
 	ws := &fakeWorkspaces{root: filepath.Join(home, "repo")}
 	nt := &fakeNotifier{}
-	d := &core.Deps{Cfg: &config.Config{}, Paths: config.Paths{Home: home, CacheDir: t.TempDir()}, Store: st,
+	d := &core.Deps{Cfg: config.Defaults(), Paths: config.Paths{Home: home, CacheDir: t.TempDir()}, Store: st,
 		Bus: events.New(), Workspaces: ws, Notifier: nt, Search: core.NewSearchRegistry()}
 	s, err := New(d)
 	if err != nil {
