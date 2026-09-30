@@ -21,7 +21,17 @@ export interface PopoverProps {
 }
 
 /** A floating panel anchored to an element (notifications, pickers). */
-export function Popover({ open, onClose, anchor, placement = 'bottom-end', label, trapFocus = true, class: className, style, children }: PopoverProps) {
+export function Popover({
+  open,
+  onClose,
+  anchor,
+  placement = 'bottom-end',
+  label,
+  trapFocus = true,
+  class: className,
+  style,
+  children,
+}: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null)
   const pos = useAnchoredPosition(ref, anchor, open, placement)
   useDismiss(ref, open, onClose, { ignore: anchor instanceof HTMLElement ? anchor : null })

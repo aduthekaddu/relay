@@ -92,7 +92,9 @@ export default function LoginRoute() {
       const ctrl = new AbortController()
       conditional.current = ctrl
       try {
-        const opts = await api.post<RequestOptionsJSON>('auth/passkey/begin', undefined, { signal: ctrl.signal })
+        const opts = await api.post<RequestOptionsJSON>('auth/passkey/begin', undefined, {
+          signal: ctrl.signal,
+        })
         const cred = await getAssertion(parseRequestOptions(opts), { conditional: true, signal: ctrl.signal })
         if (!cred || !live) return
         setBusy('passkey')
@@ -123,13 +125,21 @@ export default function LoginRoute() {
     e.preventDefault()
     if (busy || locked) return
     if (!username.trim() || !password) {
-      setError({ text: !username.trim() ? 'Enter your username.' : 'Enter your password.', field: !username.trim() ? 'username' : 'password' })
+      setError({
+        text: !username.trim() ? 'Enter your username.' : 'Enter your password.',
+        field: !username.trim() ? 'username' : 'password',
+      })
       return
     }
     setBusy('password')
     setError(null)
     try {
-      const res = await api.post<LoginResponse>('auth/login', { username: username.trim(), password, remember, ...(mode === 'totp' ? { totp } : {}) })
+      const res = await api.post<LoginResponse>('auth/login', {
+        username: username.trim(),
+        password,
+        remember,
+        ...(mode === 'totp' ? { totp } : {}),
+      })
       if (res.needTotp) {
         setMode('totp')
         requestAnimationFrame(() => totpRef.current?.focus())
@@ -164,12 +174,16 @@ export default function LoginRoute() {
     }
   }
 
-  const strength = useMemo(() => passwordStrength(password, [username, state?.user ?? '']), [password, username])
+  const strength = useMemo(
+    () => passwordStrength(password, [username, state?.user ?? '']),
+    [password, username],
+  )
   const setup = async (e: Event) => {
     e.preventDefault()
     if (busy) return
     if (!username.trim()) return setError({ text: 'Choose a username.', field: 'username' })
-    if (strength.score < 2) return setError({ text: strength.hint || 'Choose a stronger password.', field: 'password' })
+    if (strength.score < 2)
+      return setError({ text: strength.hint || 'Choose a stronger password.', field: 'password' })
     if (confirm !== password) return setError({ text: 'The passwords don’t match.', field: 'confirm' })
     setBusy('password')
     setError(null)
@@ -209,7 +223,15 @@ export default function LoginRoute() {
               <p class="login-lede">This machine has no account yet. The first one becomes its owner.</p>
               <div class="login-fields">
                 <Field label="Username" error={err('username')}>
-                  <Input size="lg" autoComplete="username" autoCapitalize="off" spellcheck={false} value={username} onInput={(e) => setUsername(e.currentTarget.value)} autoFocus />
+                  <Input
+                    size="lg"
+                    autoComplete="username"
+                    autoCapitalize="off"
+                    spellcheck={false}
+                    value={username}
+                    onInput={(e) => setUsername(e.currentTarget.value)}
+                    autoFocus
+                  />
                 </Field>
                 <Field label="Password" error={err('password')}>
                   <Input
@@ -221,13 +243,29 @@ export default function LoginRoute() {
                     trailing={<ShowToggle show={show} onToggle={() => setShow((s) => !s)} />}
                   />
                 </Field>
-                <StrengthMeter score={password ? strength.score : -1} label={password ? strength.label : ''} hint={password ? strength.hint : 'Long passphrases beat clever symbols.'} />
+                <StrengthMeter
+                  score={password ? strength.score : -1}
+                  label={password ? strength.label : ''}
+                  hint={password ? strength.hint : 'Long passphrases beat clever symbols.'}
+                />
                 <Field label="Confirm password" error={err('confirm')}>
-                  <Input size="lg" type={show ? 'text' : 'password'} autoComplete="new-password" value={confirm} onInput={(e) => setConfirm(e.currentTarget.value)} />
+                  <Input
+                    size="lg"
+                    type={show ? 'text' : 'password'}
+                    autoComplete="new-password"
+                    value={confirm}
+                    onInput={(e) => setConfirm(e.currentTarget.value)}
+                  />
                 </Field>
               </div>
               {formError && <FormError text={formError} />}
-              <Button type="submit" variant="primary" size="lg" class="login-submit" loading={busy === 'password'}>
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                class="login-submit"
+                loading={busy === 'password'}
+              >
                 Create account
               </Button>
               <p class="login-fine">You can add a passkey and two-step codes in Settings → Security.</p>
@@ -239,7 +277,11 @@ export default function LoginRoute() {
               </h1>
               <p class="login-lede">Enter the 6-digit code from your authenticator app.</p>
               <div class="login-fields">
-                <Field label="Code" hideLabel error={err('totp') ?? (error && !error.field && !locked ? error.text : undefined)}>
+                <Field
+                  label="Code"
+                  hideLabel
+                  error={err('totp') ?? (error && !error.field && !locked ? error.text : undefined)}
+                >
                   <Input
                     ref={totpRef}
                     size="lg"
@@ -256,7 +298,14 @@ export default function LoginRoute() {
                 </Field>
               </div>
               {locked > 0 && <FormError text={`Too many attempts. Try again in ${locked}s.`} />}
-              <Button type="submit" variant="primary" size="lg" class="login-submit" loading={busy === 'password'} disabled={totp.length !== 6 || locked > 0}>
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                class="login-submit"
+                loading={busy === 'password'}
+                disabled={totp.length !== 6 || locked > 0}
+              >
                 Verify
               </Button>
               <button
@@ -304,8 +353,19 @@ export default function LoginRoute() {
                 </Field>
                 <Checkbox checked={remember} onChange={setRemember} label="Keep me signed in for 30 days" />
               </div>
-              {(formError || locked > 0) && <FormError text={locked > 0 ? `Too many attempts. Try again in ${locked}s.` : (formError ?? '')} />}
-              <Button type="submit" variant="primary" size="lg" class="login-submit" loading={busy === 'password'} disabled={locked > 0}>
+              {(formError || locked > 0) && (
+                <FormError
+                  text={locked > 0 ? `Too many attempts. Try again in ${locked}s.` : (formError ?? '')}
+                />
+              )}
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                class="login-submit"
+                loading={busy === 'password'}
+                disabled={locked > 0}
+              >
                 {locked > 0 ? `Wait ${locked}s` : 'Sign in'}
               </Button>
               {passkeyOK && (
@@ -313,7 +373,16 @@ export default function LoginRoute() {
                   <div class="login-or" aria-hidden="true">
                     <span>or</span>
                   </div>
-                  <Button type="button" variant="secondary" size="lg" icon="key-round" class="login-submit" loading={busy === 'passkey'} disabled={locked > 0} onClick={() => void passkey()}>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="lg"
+                    icon="key-round"
+                    class="login-submit"
+                    loading={busy === 'passkey'}
+                    disabled={locked > 0}
+                    onClick={() => void passkey()}
+                  >
                     Sign in with a passkey
                   </Button>
                 </>
@@ -335,7 +404,13 @@ function hostLine(s: AuthState | null): string {
 
 function ShowToggle({ show, onToggle }: { show: boolean; onToggle: () => void }) {
   return (
-    <button type="button" class="login-eye" aria-label={show ? 'Hide password' : 'Show password'} aria-pressed={show} onClick={onToggle}>
+    <button
+      type="button"
+      class="login-eye"
+      aria-label={show ? 'Hide password' : 'Show password'}
+      aria-pressed={show}
+      onClick={onToggle}
+    >
       <Icon name={show ? 'eye-off' : 'eye'} size={16} />
     </button>
   )

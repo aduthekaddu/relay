@@ -14,7 +14,8 @@ export function safeNext(raw: string | null | undefined): string {
     return '/'
   }
   v = v.trim()
-  if (!v.startsWith('/') || v.startsWith('//') || v.startsWith('/\\') || /[\u0000-\u001f\\]/.test(v)) return '/'
+  if (!v.startsWith('/') || v.startsWith('//') || v.startsWith('/\\') || /[\u0000-\u001f\\]/.test(v))
+    return '/'
   try {
     const u = new URL(v, 'https://relay.invalid')
     if (u.origin !== 'https://relay.invalid') return '/'

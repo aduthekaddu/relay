@@ -46,7 +46,8 @@ export function setTheme(pref: ThemePref): void {
   save(KEY, pref)
   // Cross-fade the whole page when supported (skipped for reduced motion).
   const doc = document as Document & { startViewTransition?: (cb: () => void) => unknown }
-  if (doc.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches) doc.startViewTransition(apply)
+  if (doc.startViewTransition && !matchMedia('(prefers-reduced-motion: reduce)').matches)
+    doc.startViewTransition(apply)
   else apply()
 }
 

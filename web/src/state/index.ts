@@ -17,7 +17,16 @@ export {
   removeNotification,
   unreadCount,
 } from './notifications'
-export { loadTerminals, needsYou, removeTerminal, terminalList, terminals, terminalsLoaded, upsertTerminal, working } from './terminals'
+export {
+  loadTerminals,
+  needsYou,
+  removeTerminal,
+  terminalList,
+  terminals,
+  terminalsLoaded,
+  upsertTerminal,
+  working,
+} from './terminals'
 export { setTheme, type Theme, type ThemePref, theme, themePref, toggleTheme } from './theme'
 
 let started = false

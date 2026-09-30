@@ -53,7 +53,9 @@ export const ROUTES: RouteDef[] = [
 const compiled = ROUTES.map((r) => {
   const src = r.path
     .split('/')
-    .map((seg) => (seg === '*' ? '.*' : seg.startsWith(':') ? '[^/]+' : seg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+    .map((seg) =>
+      seg === '*' ? '.*' : seg.startsWith(':') ? '[^/]+' : seg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+    )
     .join('/')
   return { def: r, re: new RegExp(`^${src === '' ? '/' : src}/?$`) }
 })

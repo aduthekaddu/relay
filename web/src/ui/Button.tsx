@@ -8,7 +8,8 @@ import './controls.css'
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'icon'
 export type ButtonSize = 'sm' | 'md' | 'lg'
 
-export interface ButtonProps extends Omit<JSX.HTMLAttributes<HTMLButtonElement>, 'size' | 'icon' | 'loading'> {
+export interface ButtonProps
+  extends Omit<JSX.HTMLAttributes<HTMLButtonElement>, 'size' | 'icon' | 'loading'> {
   variant?: ButtonVariant
   /** sm 28 / md 34 (40 on touch) / lg 44 px. */
   size?: ButtonSize

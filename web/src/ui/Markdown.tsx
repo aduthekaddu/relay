@@ -48,5 +48,11 @@ export function Markdown({ source, compact, class: className }: MarkdownProps) {
   }, [html])
   if (html === null) return <Skeleton lines={3} class={className} />
   // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitised by DOMPurify in markdown-impl
-  return <div ref={ref} class={cx('md', compact && 'md--compact', className)} dangerouslySetInnerHTML={{ __html: html }} />
+  return (
+    <div
+      ref={ref}
+      class={cx('md', compact && 'md--compact', className)}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
 }

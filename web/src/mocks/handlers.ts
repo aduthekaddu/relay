@@ -14,7 +14,19 @@ import * as db from './data'
 import * as fs from './fs'
 import { emit } from './sockets'
 import { history, metricsAt, processes } from './system'
-import { accepted, before, fail, HOUR, type MockResponse, modes, newId, noContent, notFound, ok, setModes } from './util'
+import {
+  accepted,
+  before,
+  fail,
+  HOUR,
+  type MockResponse,
+  modes,
+  newId,
+  noContent,
+  notFound,
+  ok,
+  setModes,
+} from './util'
 
 export interface Req {
   method: string
@@ -90,7 +102,8 @@ route('POST', '/auth/setup', (r) => {
   const b = body<{ username?: string; password?: string }>(r)
   if (!db.auth.state.setupRequired) return fail(409, 'already_setup', 'An account already exists.')
   if (!b.username?.trim()) return fail(400, 'invalid', 'Choose a username.', { field: 'username' })
-  if ((b.password ?? '').length < 10) return fail(400, 'weak_password', 'Use at least 10 characters.', { field: 'password' })
+  if ((b.password ?? '').length < 10)
+    return fail(400, 'weak_password', 'Use at least 10 characters.', { field: 'password' })
   signedIn(b.username.trim())
   return ok({ ok: true, setupPasskey: true })
 })
@@ -112,7 +125,8 @@ route('POST', '/auth/login', (r) => {
   }
   if (db.auth.state.methods.totp) {
     if (!b.totp) return ok({ ok: false, needTotp: true })
-    if (b.totp !== '123456') return fail(401, 'bad_totp', 'That code didn’t work. Codes change every 30 seconds.', { field: 'totp' })
+    if (b.totp !== '123456')
+      return fail(401, 'bad_totp', 'That code didn’t work. Codes change every 30 seconds.', { field: 'totp' })
   }
   db.auth.failures = 0
   signedIn(b.username || 'dev')
@@ -124,7 +138,13 @@ route('POST', '/auth/logout', () => {
   return noContent()
 })
 route('POST', '/auth/passkey/begin', () =>
-  ok({ challenge: 'bW9jay1jaGFsbGVuZ2UtZm9yLWRldmVsb3BtZW50', rpId: location.hostname, timeout: 60000, userVerification: 'preferred', allowCredentials: [] }),
+  ok({
+    challenge: 'bW9jay1jaGFsbGVuZ2UtZm9yLWRldmVsb3BtZW50',
+    rpId: location.hostname,
+    timeout: 60000,
+    userVerification: 'preferred',
+    allowCredentials: [],
+  }),
 )
 route('POST', '/auth/passkey/finish', () => {
   signedIn('dev')
@@ -159,15 +179,23 @@ route('DELETE', '/auth/passkeys/{id}', (r) => {
 })
 route('POST', '/auth/password', (r) => {
   const b = body<{ current?: string; next?: string }>(r)
-  if (b.current === 'wrong') return fail(401, 'bad_credentials', 'Your current password is incorrect.', { field: 'current' })
-  if ((b.next ?? '').length < 10) return fail(400, 'weak_password', 'Use at least 10 characters.', { field: 'next' })
+  if (b.current === 'wrong')
+    return fail(401, 'bad_credentials', 'Your current password is incorrect.', { field: 'current' })
+  if ((b.next ?? '').length < 10)
+    return fail(400, 'weak_password', 'Use at least 10 characters.', { field: 'next' })
   return noContent()
 })
 let totpEnabled = db.auth.state.methods.totp
 route('GET', '/auth/totp', () => ok({ enabled: totpEnabled }))
-route('POST', '/auth/totp/setup', () => ok({ secret: 'JBSWY3DPEHPK3PXP', otpauthUrl: 'otpauth://totp/Relay:dev?secret=JBSWY3DPEHPK3PXP&issuer=Relay' }))
+route('POST', '/auth/totp/setup', () =>
+  ok({
+    secret: 'JBSWY3DPEHPK3PXP',
+    otpauthUrl: 'otpauth://totp/Relay:dev?secret=JBSWY3DPEHPK3PXP&issuer=Relay',
+  }),
+)
 route('POST', '/auth/totp/enable', (r) => {
-  if (body<{ code?: string }>(r).code !== '123456') return fail(400, 'bad_totp', 'That code didn’t work.', { field: 'code' })
+  if (body<{ code?: string }>(r).code !== '123456')
+    return fail(400, 'bad_totp', 'That code didn’t work.', { field: 'code' })
   totpEnabled = true
   return noContent()
 })
@@ -188,7 +216,12 @@ route('POST', '/auth/sessions/revoke-others', () => {
 })
 route('GET', '/auth/tokens', () => ok(db.tokens))
 route('POST', '/auth/tokens', (r) => {
-  const tk = { id: newId('tk'), name: body<{ name?: string }>(r).name || 'Untitled token', prefix: 'rly_9z1x', createdAt: now() }
+  const tk = {
+    id: newId('tk'),
+    name: body<{ name?: string }>(r).name || 'Untitled token',
+    prefix: 'rly_9z1x',
+    createdAt: now(),
+  }
   db.tokens.push(tk)
   return ok({ ...tk, token: 'rly_9z1x_mock_token_value_shown_once_0000000000' })
 })
@@ -255,7 +288,11 @@ route('POST', '/terminals/{id}/resize', (r) => (termById(r.params.id) ? noConten
 route('GET', '/terminals/{id}/snapshot', (r) => {
   const t = termById(r.params.id)
   if (!t) return notFound()
-  return ok({ text: `dev@atlas ${t.cwd.replace(db.HOME, '~')} % ${t.command.join(' ')}\n${t.preview ?? ''}\n`, cols: t.cols, rows: t.rows })
+  return ok({
+    text: `dev@atlas ${t.cwd.replace(db.HOME, '~')} % ${t.command.join(' ')}\n${t.preview ?? ''}\n`,
+    cols: t.cols,
+    rows: t.rows,
+  })
 })
 route('POST', '/terminals/{id}/attention/ack', (r) => {
   const t = termById(r.params.id)
@@ -268,8 +305,15 @@ route('POST', '/terminals/{id}/attention/ack', (r) => {
 route('GET', '/terminals/{id}/recording', (r) => {
   const t = termById(r.params.id)
   if (!t) return notFound()
-  const header = JSON.stringify({ version: 2, width: t.cols, height: t.rows, timestamp: Math.floor(Date.parse(t.createdAt) / 1000) })
-  const lines = ['$ ', 'g', 'o', ' ', 't', 'e', 's', 't', '\r\n', 'ok  \trelay-demo\t0.4s\r\n'].map((s, i) => JSON.stringify([i * 0.12, 'o', s]))
+  const header = JSON.stringify({
+    version: 2,
+    width: t.cols,
+    height: t.rows,
+    timestamp: Math.floor(Date.parse(t.createdAt) / 1000),
+  })
+  const lines = ['$ ', 'g', 'o', ' ', 't', 'e', 's', 't', '\r\n', 'ok  \trelay-demo\t0.4s\r\n'].map((s, i) =>
+    JSON.stringify([i * 0.12, 'o', s]),
+  )
   return { text: [header, ...lines].join('\n'), headers: { 'Content-Type': 'application/x-asciicast' } }
 })
 
@@ -321,11 +365,18 @@ route('GET', '/agents/sessions', (r) => {
       (!pinned || s.pinned) &&
       (!text || s.title.toLowerCase().includes(text) || s.cwd.toLowerCase().includes(text)),
   )
-  list = list.sort((a, b) => Number(b.status === 'live') - Number(a.status === 'live') || b.updatedAt.localeCompare(a.updatedAt))
+  list = list.sort(
+    (a, b) =>
+      Number(b.status === 'live') - Number(a.status === 'live') || b.updatedAt.localeCompare(a.updatedAt),
+  )
   const limit = qn(r, 'limit', 30)
   const start = Number(q(r, 'cursor') ?? 0)
   const items = list.slice(start, start + limit)
-  return ok({ items, total: list.length, nextCursor: start + limit < list.length ? String(start + limit) : undefined })
+  return ok({
+    items,
+    total: list.length,
+    nextCursor: start + limit < list.length ? String(start + limit) : undefined,
+  })
 })
 route('GET', '/agents/sessions/{id}', (r) => {
   const s = sessionById(r.params.id)
@@ -377,15 +428,31 @@ route('POST', '/agents/sessions/{id}/resume', (r) => {
 })
 route('POST', '/agents/launch', (r) => {
   const b = body<LaunchAgentRequest>(r)
-  if (!db.agents.find((a) => a.id === b.agent)?.installed) return fail(400, 'not_installed', 'That agent isn’t installed.', { field: 'agent' })
-  return ok(agentTerminal(b.agent, fs.normalize(b.cwd), b.name || `${b.agent} · ${b.prompt?.slice(0, 32) || 'new session'}`))
+  if (!db.agents.find((a) => a.id === b.agent)?.installed)
+    return fail(400, 'not_installed', 'That agent isn’t installed.', { field: 'agent' })
+  return ok(
+    agentTerminal(
+      b.agent,
+      fs.normalize(b.cwd),
+      b.name || `${b.agent} · ${b.prompt?.slice(0, 32) || 'new session'}`,
+    ),
+  )
 })
 route('GET', '/agents/search', (r) => {
   const text = (q(r, 'q') ?? '').toLowerCase()
   const hits = db.agentSessions
     .filter((s) => !text || s.title.toLowerCase().includes(text))
     .slice(0, qn(r, 'limit', 20))
-    .map((s) => ({ sessionId: s.id, agent: s.agent, title: s.title, cwd: s.cwd, role: 'user', snippet: `…${s.title.toLowerCase()}. Keep the public API unchanged…`, at: s.updatedAt, messageId: 'm1' }))
+    .map((s) => ({
+      sessionId: s.id,
+      agent: s.agent,
+      title: s.title,
+      cwd: s.cwd,
+      role: 'user',
+      snippet: `…${s.title.toLowerCase()}. Keep the public API unchanged…`,
+      at: s.updatedAt,
+      messageId: 'm1',
+    }))
   return ok(hits)
 })
 route('GET', '/agents/usage', (r) => ok(db.usageFor((q(r, 'range') as UsageSummary['range']) ?? '7d')))
@@ -418,7 +485,15 @@ function gitStatus(path: string) {
           { path: 'internal/share/link_test.go', index: 'A', work: ' ', staged: true, added: 64, removed: 0 },
           { path: 'internal/share/sign.go', index: '?', work: '?', staged: false, added: 31, removed: 0 },
           { path: 'package.json', index: 'M', work: ' ', staged: true, added: 1, removed: 1 },
-          { path: 'docs/diagram.png', index: ' ', work: 'M', staged: false, added: 0, removed: 0, binary: true },
+          {
+            path: 'docs/diagram.png',
+            index: ' ',
+            work: 'M',
+            staged: false,
+            added: 0,
+            removed: 0,
+            binary: true,
+          },
         ].slice(0, Math.max(1, Math.min(5, w.git.dirty)))
       : []
   return {
@@ -463,26 +538,46 @@ route('POST', '/workspaces/pin', (r) => {
   return ok(w)
 })
 route('GET', '/workspaces/git/status', (r) => ok(gitStatus(fs.normalize(q(r, 'path')))))
-route('GET', '/workspaces/git/diff', (r) => ok({ path: fs.normalize(q(r, 'path')), file: q(r, 'file') ?? undefined, staged: q(r, 'staged') === '1', diff: DIFF }))
+route('GET', '/workspaces/git/diff', (r) =>
+  ok({
+    path: fs.normalize(q(r, 'path')),
+    file: q(r, 'file') ?? undefined,
+    staged: q(r, 'staged') === '1',
+    diff: DIFF,
+  }),
+)
 route('GET', '/workspaces/git/log', (r) =>
   ok(
     Array.from({ length: Math.min(30, qn(r, 'limit', 30)) }, (_, i) => ({
       hash: `${(0xabcdef12 + i * 7919).toString(16)}00`,
       short: (0xabcdef12 + i * 7919).toString(16).slice(0, 7),
-      subject: ['Share a read-only session link', 'Extract signing helpers', 'Add link expiry tests', 'Tidy imports', 'Bump deps'][i % 5],
+      subject: [
+        'Share a read-only session link',
+        'Extract signing helpers',
+        'Add link expiry tests',
+        'Tidy imports',
+        'Bump deps',
+      ][i % 5],
       author: 'Dev',
       at: before(i * 5 * HOUR + 40 * 60),
     })),
   ),
 )
 for (const action of ['stage', 'unstage', 'discard', 'commit']) {
-  route('POST', `/workspaces/git/${action}`, (r) => ok(gitStatus(fs.normalize(body<{ path: string }>(r).path))))
+  route('POST', `/workspaces/git/${action}`, (r) =>
+    ok(gitStatus(fs.normalize(body<{ path: string }>(r).path))),
+  )
 }
 route('POST', '/workspaces/git/push', () => accepted())
 route('POST', '/workspaces/git/pull', () => accepted())
 route('POST', '/workspaces/git/worktrees', (r) => {
   const b = body<{ path: string; branch: string }>(r)
-  return ok({ path: `${fs.normalize(b.path)}-${b.branch.replace(/\W+/g, '-')}`, branch: b.branch, head: 'e4f1a9c2b7', main: false })
+  return ok({
+    path: `${fs.normalize(b.path)}-${b.branch.replace(/\W+/g, '-')}`,
+    branch: b.branch,
+    head: 'e4f1a9c2b7',
+    main: false,
+  })
 })
 route('DELETE', '/workspaces/git/worktrees', () => noContent())
 
@@ -510,22 +605,39 @@ route('GET', '/files/raw', (r) => {
   const p = q(r, 'path') ?? ''
   const e = fs.stat(p)
   if (!e || e.type === 'dir') return notFound('No such file')
-  const headers: Record<string, string> = { 'Content-Security-Policy': 'sandbox', 'X-Content-Type-Options': 'nosniff' }
+  const headers: Record<string, string> = {
+    'Content-Security-Policy': 'sandbox',
+    'X-Content-Type-Options': 'nosniff',
+  }
   if (q(r, 'download') === '1') headers['Content-Disposition'] = `attachment; filename="${e.name}"`
-  if (e.mime?.startsWith('image/')) return { text: fs.placeholderImage(e.path, 1024), headers: { ...headers, 'Content-Type': 'image/svg+xml' } }
+  if (e.mime?.startsWith('image/'))
+    return {
+      text: fs.placeholderImage(e.path, 1024),
+      headers: { ...headers, 'Content-Type': 'image/svg+xml' },
+    }
   const t = fs.readText(p)
-  return { text: t?.text ?? `(binary file: ${e.name})`, headers: { ...headers, 'Content-Type': e.mime ?? 'application/octet-stream' } }
+  return {
+    text: t?.text ?? `(binary file: ${e.name})`,
+    headers: { ...headers, 'Content-Type': e.mime ?? 'application/octet-stream' },
+  }
 })
 route('GET', '/files/text', (r) => {
   const t = fs.readText(q(r, 'path') ?? '')
   return t ? ok(t) : fail(415, 'not_text', 'This file isn’t text.')
 })
 route('PUT', '/files/text', (r) => {
-  const res = fs.writeText(q(r, 'path') ?? '', body<{ text: string }>(r).text ?? '', q(r, 'mtime') ?? undefined)
+  const res = fs.writeText(
+    q(r, 'path') ?? '',
+    body<{ text: string }>(r).text ?? '',
+    q(r, 'mtime') ?? undefined,
+  )
   if (res === 'conflict') return fail(409, 'conflict', 'The file changed on disk since you opened it.')
   return res ? ok(res) : notFound()
 })
-route('GET', '/files/thumb', (r) => ({ text: fs.placeholderImage(q(r, 'path') ?? '', qn(r, 'size', 256)), headers: { 'Content-Type': 'image/svg+xml' } }))
+route('GET', '/files/thumb', (r) => ({
+  text: fs.placeholderImage(q(r, 'path') ?? '', qn(r, 'size', 256)),
+  headers: { 'Content-Type': 'image/svg+xml' },
+}))
 route('POST', '/files/mkdir', (r) => {
   const e = fs.mkdir(body<{ path: string }>(r).path, 'dir')
   return e ? ok(e) : fail(409, 'exists', 'Something with that name already exists.')
@@ -558,7 +670,10 @@ route('POST', '/files/trash/empty', () => {
   fs.emptyTrash()
   return noContent()
 })
-route('GET', '/files/zip', () => ({ body: new Blob(['PK\x05\x06'.padEnd(22, '\0')], { type: 'application/zip' }), headers: { 'Content-Type': 'application/zip', 'Content-Disposition': 'attachment; filename="files.zip"' } }))
+route('GET', '/files/zip', () => ({
+  body: new Blob(['PK\x05\x06'.padEnd(22, '\0')], { type: 'application/zip' }),
+  headers: { 'Content-Type': 'application/zip', 'Content-Disposition': 'attachment; filename="files.zip"' },
+}))
 route('GET', '/files/usage', (r) => ok(fs.usage(q(r, 'path') ?? '~')))
 route('GET', '/files/search', (r) => ({
   stream: fs.search(q(r, 'q') ?? '', q(r, 'path') ?? '~', q(r, 'content') === '1', qn(r, 'limit', 50)),
@@ -590,7 +705,13 @@ route('POST', '/system/services/{name}/{action}', (r) => {
   const s = db.services.find((x) => x.name === r.params.name)
   if (!s) return notFound('No such service')
   if (r.params.action === 'stop') Object.assign(s, { active: 'inactive', sub: 'dead', since: now() })
-  else Object.assign(s, { active: 'active', sub: 'running', since: now(), restarts: s.restarts + (r.params.action === 'restart' ? 1 : 0) })
+  else
+    Object.assign(s, {
+      active: 'active',
+      sub: 'running',
+      since: now(),
+      restarts: s.restarts + (r.params.action === 'restart' ? 1 : 0),
+    })
   return ok(s)
 })
 
@@ -666,8 +787,25 @@ route('DELETE', '/notifications/{id}', (r) => {
   return noContent()
 })
 route('POST', '/notify', (r) => {
-  const b = body<{ title: string; body?: string; kind?: string; link?: string; agent?: string; severity?: string }>(r)
-  const n = { id: newId('n'), kind: (b.kind ?? 'custom') as Notification['kind'], title: b.title, body: b.body, at: now(), read: false, link: b.link, agent: b.agent, severity: b.severity as Notification['severity'] }
+  const b = body<{
+    title: string
+    body?: string
+    kind?: string
+    link?: string
+    agent?: string
+    severity?: string
+  }>(r)
+  const n = {
+    id: newId('n'),
+    kind: (b.kind ?? 'custom') as Notification['kind'],
+    title: b.title,
+    body: b.body,
+    at: now(),
+    read: false,
+    link: b.link,
+    agent: b.agent,
+    severity: b.severity as Notification['severity'],
+  }
   db.notifications.unshift(n)
   emit('notification', n)
   return ok(n)
@@ -681,7 +819,15 @@ route('POST', '/push/subscribe', () => {
 })
 route('POST', '/push/unsubscribe', () => noContent())
 route('POST', '/push/test', () => {
-  const n = { id: newId('n'), kind: 'system' as const, title: 'Test notification', body: 'If you can read this, push works.', at: now(), read: false, severity: 'info' as const }
+  const n = {
+    id: newId('n'),
+    kind: 'system' as const,
+    title: 'Test notification',
+    body: 'If you can read this, push works.',
+    at: now(),
+    read: false,
+    severity: 'info' as const,
+  }
   db.notifications.unshift(n)
   emit('notification', n)
   return noContent()
@@ -692,7 +838,13 @@ route('POST', '/push/test', () => {
 route('GET', '/clip', (r) => ok(db.clips.slice(0, qn(r, 'limit', 50))))
 route('POST', '/clip', (r) => {
   const b = body<{ text: string; source?: string }>(r)
-  const c = { id: newId('c'), text: b.text, source: (b.source ?? 'web') as 'web', at: now(), size: b.text.length }
+  const c = {
+    id: newId('c'),
+    text: b.text,
+    source: (b.source ?? 'web') as 'web',
+    at: now(),
+    size: b.text.length,
+  }
   db.clips.unshift(c)
   emit('clip', c)
   return ok(c)
@@ -708,7 +860,15 @@ route('DELETE', '/clip', () => {
 })
 route('GET', '/snippets', () => ok(db.snippets))
 route('POST', '/snippets', (r) => {
-  const s = { id: newId('sn'), name: 'Untitled', body: '', kind: 'prompt' as const, uses: 0, ...body<object>(r), updatedAt: now() }
+  const s = {
+    id: newId('sn'),
+    name: 'Untitled',
+    body: '',
+    kind: 'prompt' as const,
+    uses: 0,
+    ...body<object>(r),
+    updatedAt: now(),
+  }
   db.snippets.unshift(s)
   return ok(s)
 })
@@ -751,7 +911,17 @@ route('DELETE', '/notes/{id}', (r) => {
 
 route('GET', '/schedules', () => ok(db.schedules))
 route('POST', '/schedules', (r) => {
-  const s = { id: newId('sc'), name: 'New schedule', cron: '0 2 * * *', cwd: db.HOME, mode: 'headless' as const, enabled: true, notify: true, ...body<object>(r), createdAt: now() }
+  const s = {
+    id: newId('sc'),
+    name: 'New schedule',
+    cron: '0 2 * * *',
+    cwd: db.HOME,
+    mode: 'headless' as const,
+    enabled: true,
+    notify: true,
+    ...body<object>(r),
+    createdAt: now(),
+  }
   db.schedules.push(s)
   return ok(s)
 })
@@ -773,7 +943,9 @@ route('POST', '/schedules/{id}/run', (r) => {
   emit('schedule.run', run)
   return ok(run)
 })
-route('GET', '/schedules/{id}/runs', (r) => ok(db.scheduleRuns.filter((x) => x.scheduleId === r.params.id).slice(0, qn(r, 'limit', 20))))
+route('GET', '/schedules/{id}/runs', (r) =>
+  ok(db.scheduleRuns.filter((x) => x.scheduleId === r.params.id).slice(0, qn(r, 'limit', 20))),
+)
 
 // ---------------------------------------------------------------- command center
 
@@ -790,40 +962,123 @@ export function searchAll(query: string, scopes: SearchScope[] | null, limit: nu
   const want = (s: SearchScope) => !scopes || scopes.includes(s)
   const out: SearchResult[] = []
   const push = (scope: SearchScope, list: SearchResult[]) => {
-    if (want(scope)) out.push(...list.filter((x) => x.score > 0).sort((a, b) => b.score - a.score).slice(0, limit))
+    if (want(scope))
+      out.push(
+        ...list
+          .filter((x) => x.score > 0)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, limit),
+      )
   }
   push(
     'terminals',
     db.terminals
       .filter((t) => t.meta?.importable !== '1')
-      .map((t) => ({ scope: 'terminals', id: t.id, title: t.name, subtitle: t.preview, link: `/terminal/${t.id}`, score: score(`${t.name} ${t.command.join(' ')}`, needle), at: t.lastOutputAt, meta: { activity: t.attention ? 'waiting' : t.activity, ...(t.agent ? { agent: t.agent } : {}) } })),
+      .map((t) => ({
+        scope: 'terminals',
+        id: t.id,
+        title: t.name,
+        subtitle: t.preview,
+        link: `/terminal/${t.id}`,
+        score: score(`${t.name} ${t.command.join(' ')}`, needle),
+        at: t.lastOutputAt,
+        meta: { activity: t.attention ? 'waiting' : t.activity, ...(t.agent ? { agent: t.agent } : {}) },
+      })),
   )
   push(
     'agents',
-    db.agentSessions.map((s) => ({ scope: 'agents', id: s.id, title: s.title, subtitle: `${s.agent} · ${s.cwd.replace(db.HOME, '~')}`, link: `/agents/s/${encodeURIComponent(s.id)}`, score: score(s.title, needle), at: s.updatedAt, meta: { agent: s.agent, ...(s.activity ? { activity: s.activity } : {}) } })),
+    db.agentSessions.map((s) => ({
+      scope: 'agents',
+      id: s.id,
+      title: s.title,
+      subtitle: `${s.agent} · ${s.cwd.replace(db.HOME, '~')}`,
+      link: `/agents/s/${encodeURIComponent(s.id)}`,
+      score: score(s.title, needle),
+      at: s.updatedAt,
+      meta: { agent: s.agent, ...(s.activity ? { activity: s.activity } : {}) },
+    })),
   )
   push(
     'workspaces',
-    db.workspaces.map((w) => ({ scope: 'workspaces', id: w.path, title: w.name, subtitle: w.path.replace(db.HOME, '~'), link: `/workspace?path=${encodeURIComponent(w.path)}`, score: score(w.name, needle), meta: { path: w.path } })),
+    db.workspaces.map((w) => ({
+      scope: 'workspaces',
+      id: w.path,
+      title: w.name,
+      subtitle: w.path.replace(db.HOME, '~'),
+      link: `/workspace?path=${encodeURIComponent(w.path)}`,
+      score: score(w.name, needle),
+      meta: { path: w.path },
+    })),
   )
   push(
     'files',
-    fs.allPaths().map((p) => ({ scope: 'files', id: p, title: p.slice(p.lastIndexOf('/') + 1), subtitle: p.replace(db.HOME, '~'), link: `/files${p.replace(db.HOME, '')}`, score: score(p.slice(p.lastIndexOf('/') + 1), needle) * 0.9, meta: { path: p } })),
+    fs
+      .allPaths()
+      .map((p) => ({
+        scope: 'files',
+        id: p,
+        title: p.slice(p.lastIndexOf('/') + 1),
+        subtitle: p.replace(db.HOME, '~'),
+        link: `/files${p.replace(db.HOME, '')}`,
+        score: score(p.slice(p.lastIndexOf('/') + 1), needle) * 0.9,
+        meta: { path: p },
+      })),
   )
   push(
     'previews',
-    db.previews.filter((p) => !p.hidden).map((p) => ({ scope: 'previews', id: String(p.port), title: p.label ?? p.title ?? `:${p.port}`, subtitle: `:${p.port} · ${p.process ?? ''}`, link: '/previews', score: score(`${p.label ?? ''} ${p.title ?? ''} ${p.port} ${p.process ?? ''}`, needle) })),
+    db.previews
+      .filter((p) => !p.hidden)
+      .map((p) => ({
+        scope: 'previews',
+        id: String(p.port),
+        title: p.label ?? p.title ?? `:${p.port}`,
+        subtitle: `:${p.port} · ${p.process ?? ''}`,
+        link: '/previews',
+        score: score(`${p.label ?? ''} ${p.title ?? ''} ${p.port} ${p.process ?? ''}`, needle),
+      })),
   )
   push(
     'processes',
-    processes.map((p) => ({ scope: 'processes', id: String(p.pid), title: p.name, subtitle: `pid ${p.pid} · ${p.cmd}`, link: `/system/processes?pid=${p.pid}`, score: score(p.name, needle) * 0.7 })),
+    processes.map((p) => ({
+      scope: 'processes',
+      id: String(p.pid),
+      title: p.name,
+      subtitle: `pid ${p.pid} · ${p.cmd}`,
+      link: `/system/processes?pid=${p.pid}`,
+      score: score(p.name, needle) * 0.7,
+    })),
   )
   push(
     'snippets',
-    db.snippets.map((s) => ({ scope: 'snippets', id: s.id, title: s.name, subtitle: s.body, score: score(`${s.name} ${s.body}`, needle) * 0.85 })),
+    db.snippets.map((s) => ({
+      scope: 'snippets',
+      id: s.id,
+      title: s.name,
+      subtitle: s.body,
+      score: score(`${s.name} ${s.body}`, needle) * 0.85,
+    })),
   )
-  push('notes', db.notes.map((n) => ({ scope: 'notes', id: n.id, title: n.title, subtitle: n.text.split('\n')[0], score: score(`${n.title} ${n.text}`, needle) * 0.8 })))
-  push('scripts', db.scripts.map((s) => ({ scope: 'scripts', id: s.id, title: s.title, subtitle: s.description, icon: s.icon, score: score(s.title, needle) })))
+  push(
+    'notes',
+    db.notes.map((n) => ({
+      scope: 'notes',
+      id: n.id,
+      title: n.title,
+      subtitle: n.text.split('\n')[0],
+      score: score(`${n.title} ${n.text}`, needle) * 0.8,
+    })),
+  )
+  push(
+    'scripts',
+    db.scripts.map((s) => ({
+      scope: 'scripts',
+      id: s.id,
+      title: s.title,
+      subtitle: s.description,
+      icon: s.icon,
+      score: score(s.title, needle),
+    })),
+  )
   return out
 }
 
@@ -859,7 +1114,21 @@ route('GET', '/toolbox', () => ok(db.tools))
 route('POST', '/toolbox/{id}/install', (r) => {
   const tool = db.tools.find((x) => x.id === r.params.id)
   if (!tool) return notFound('Unknown tool')
-  const t: TerminalSession = { id: newId('t'), name: `install ${tool.name}`, kind: 'toolbox', command: ['sh', '-c', `install ${tool.id}`], cwd: db.HOME, cols: 120, rows: 34, clients: 0, activity: 'working', recording: false, pinned: false, createdAt: now(), lastOutputAt: now() }
+  const t: TerminalSession = {
+    id: newId('t'),
+    name: `install ${tool.name}`,
+    kind: 'toolbox',
+    command: ['sh', '-c', `install ${tool.id}`],
+    cwd: db.HOME,
+    cols: 120,
+    rows: 34,
+    clients: 0,
+    activity: 'working',
+    recording: false,
+    pinned: false,
+    createdAt: now(),
+    lastOutputAt: now(),
+  }
   db.terminals.unshift(t)
   emit('terminal.created', t)
   setTimeout(() => {
@@ -880,7 +1149,14 @@ route('POST', '/toolbox/mcp/apply', (r) => {
 })
 
 /** Paths that answer without a session (mirrors the server's public list). */
-const PUBLIC = new Set(['/api/v1/health', '/api/v1/auth/state', '/api/v1/auth/setup', '/api/v1/auth/login', '/api/v1/auth/passkey/begin', '/api/v1/auth/passkey/finish'])
+const PUBLIC = new Set([
+  '/api/v1/health',
+  '/api/v1/auth/state',
+  '/api/v1/auth/setup',
+  '/api/v1/auth/login',
+  '/api/v1/auth/passkey/begin',
+  '/api/v1/auth/passkey/finish',
+])
 
 /** Dispatch one request. */
 export async function handle(method: string, url: URL, reqBody: unknown): Promise<MockResponse> {

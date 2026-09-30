@@ -104,7 +104,7 @@
 }
 
 .list--dividers .list__item + .list__item::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: var(--s-4);
@@ -142,7 +142,7 @@
 }
 
 .row-item:disabled,
-.row-item[aria-disabled='true'] {
+.row-item[aria-disabled="true"] {
   opacity: 0.5;
   cursor: default;
 }
@@ -439,7 +439,8 @@
 .skeleton {
   display: block;
   border-radius: 6px;
-  background: linear-gradient(
+  background:
+    linear-gradient(
       90deg,
       transparent 0,
       color-mix(in oklab, var(--text) 6%, transparent) 50%,
@@ -458,10 +459,14 @@
 
 @keyframes scan {
   from {
-    background-position: -220px 0, 0 0;
+    background-position:
+      -220px 0,
+      0 0;
   }
   to {
-    background-position: calc(100% + 220px) 0, 0 0;
+    background-position:
+      calc(100% + 220px) 0,
+      0 0;
   }
 }
 
@@ -583,7 +588,7 @@
 }
 
 .tabs__tab.is-on::after {
-  content: '';
+  content: "";
   position: absolute;
   left: var(--s-3);
   right: var(--s-3);

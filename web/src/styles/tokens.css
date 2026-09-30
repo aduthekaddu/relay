@@ -9,8 +9,8 @@
 
 :root {
   /* ---- type ---- */
-  --font-sans: 'Mona Sans Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono Variable', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --font-sans: "Mona Sans Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
   --fs-display: 40px;
   --lh-display: 44px;
@@ -83,7 +83,7 @@
 
 /* Carbon — dark, the default. */
 :root,
-[data-theme='carbon'] {
+[data-theme="carbon"] {
   color-scheme: dark;
   --bg: #0b0b0c;
   --bg-sunken: #070708;
@@ -128,7 +128,7 @@
 }
 
 /* Paper — light. */
-[data-theme='paper'] {
+[data-theme="paper"] {
   color-scheme: light;
   --bg: #f3f0e8;
   --bg-sunken: #ebe7dd;

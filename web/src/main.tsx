@@ -21,7 +21,9 @@ async function boot() {
 
   if (import.meta.env.PROD && 'serviceWorker' in navigator && window.isSecureContext) {
     const register = () =>
-      navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((err) => console.warn('[relay] service worker', err))
+      navigator.serviceWorker
+        .register('/sw.js', { scope: '/' })
+        .catch((err) => console.warn('[relay] service worker', err))
     if (document.readyState === 'complete') void register()
     else window.addEventListener('load', () => void register(), { once: true })
   }

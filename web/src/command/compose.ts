@@ -1,6 +1,6 @@
 // Compose the palette's root list from commands, provider results and
 // recents. Pure (no DOM, no signals) so it is unit-tested.
-import { groupRanked, rankItems, type Ranked, type Section } from './rank'
+import { groupRanked, type Ranked, rankItems, type Section } from './rank'
 import type { PaletteItem, PaletteProvider } from './registry'
 import type { RecentEntry } from './state'
 
@@ -34,7 +34,15 @@ export function resolveRecent(e: RecentEntry, commands: Map<string, PaletteItem>
   const cmd = commands.get(e.id)
   if (cmd) return { ...cmd, section: 'Recent' }
   if (e.id.startsWith('cmd:') || !e.link) return null
-  return { id: e.id, title: e.title, subtitle: e.subtitle, icon: e.icon, link: e.link, section: 'Recent', runLabel: 'Open' }
+  return {
+    id: e.id,
+    title: e.title,
+    subtitle: e.subtitle,
+    icon: e.icon,
+    link: e.link,
+    section: 'Recent',
+    runLabel: 'Open',
+  }
 }
 
 /** Build the root view's sections. */
@@ -71,7 +79,9 @@ export function composeRoot(input: ComposeInput): Composed {
   }
 
   const fuzzyPool = [...input.commands, ...rest.filter((p) => p.fuzzy).flatMap(provItems)]
-  const ranked = rankItems(q, fuzzyPool, { recent: input.recents.map((r) => r.id) }).filter((r) => !seen.has(r.item.id))
+  const ranked = rankItems(q, fuzzyPool, { recent: input.recents.map((r) => r.id) }).filter(
+    (r) => !seen.has(r.item.id),
+  )
   for (const r of ranked) seen.add(r.item.id)
   sections.push(...groupRanked(ranked, { topHit: true, fallback: 'Commands' }))
 
@@ -88,7 +98,23 @@ export function noResultItems(query: string): PaletteItem[] {
   const q = query.trim()
   const enc = encodeURIComponent(q)
   return [
-    { id: 'try:files', title: `Search files for “${q}”`, icon: 'glyph:files', link: `/files?q=${enc}`, section: 'Try', remember: false, runLabel: 'Search' },
-    { id: 'try:agents', title: `Search agent sessions for “${q}”`, icon: 'glyph:agents', link: `/agents?q=${enc}`, section: 'Try', remember: false, runLabel: 'Search' },
+    {
+      id: 'try:files',
+      title: `Search files for “${q}”`,
+      icon: 'glyph:files',
+      link: `/files?q=${enc}`,
+      section: 'Try',
+      remember: false,
+      runLabel: 'Search',
+    },
+    {
+      id: 'try:agents',
+      title: `Search agent sessions for “${q}”`,
+      icon: 'glyph:agents',
+      link: `/agents?q=${enc}`,
+      section: 'Try',
+      remember: false,
+      runLabel: 'Search',
+    },
   ]
 }

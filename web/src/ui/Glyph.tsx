@@ -21,7 +21,15 @@ export interface GlyphProps {
 }
 
 /** A 7×7 dot-matrix glyph (area identity and a few utility marks). */
-export function Glyph({ name, size = 20, state = 'idle', color, label, class: className, style }: GlyphProps) {
+export function Glyph({
+  name,
+  size = 20,
+  state = 'idle',
+  color,
+  label,
+  class: className,
+  style,
+}: GlyphProps) {
   const { on, off } = glyphDots(name)
   return (
     <svg

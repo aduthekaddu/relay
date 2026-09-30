@@ -66,7 +66,12 @@ export function groupRanked(ranked: Ranked[], opts: { topHit?: boolean; fallback
   const fallback = opts.fallback ?? 'Results'
   const sections: Section[] = []
   let rest = ranked
-  if (opts.topHit && ranked.length > 1 && ranked[0].score >= 0.75 && ranked[0].score - ranked[1].score > 0.04) {
+  if (
+    opts.topHit &&
+    ranked.length > 1 &&
+    ranked[0].score >= 0.75 &&
+    ranked[0].score - ranked[1].score > 0.04
+  ) {
     sections.push({ title: 'Top hit', items: [ranked[0]] })
     rest = ranked.slice(1)
   }
@@ -85,7 +90,10 @@ export function groupRanked(ranked: Ranked[], opts: { topHit?: boolean; fallback
 }
 
 /** Split a title into plain/highlighted runs for the given indexes. */
-export function highlightRuns(text: string, indexes?: readonly number[]): Array<{ text: string; hit: boolean }> {
+export function highlightRuns(
+  text: string,
+  indexes?: readonly number[],
+): Array<{ text: string; hit: boolean }> {
   if (!indexes?.length) return [{ text, hit: false }]
   const set = new Set(indexes)
   const runs: Array<{ text: string; hit: boolean }> = []

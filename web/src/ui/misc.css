@@ -112,7 +112,7 @@
 }
 
 .splitter__handle::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0 -5px;
 }

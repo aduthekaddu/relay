@@ -88,7 +88,14 @@ export function ConfirmButton({
   return (
     <button
       type="button"
-      class={cx('btn btn--danger', `btn--${size}`, 'confirm-btn', armed && 'is-armed', holding && 'is-holding', className)}
+      class={cx(
+        'btn btn--danger',
+        `btn--${size}`,
+        'confirm-btn',
+        armed && 'is-armed',
+        holding && 'is-holding',
+        className,
+      )}
       style={{ '--hold': `${holdMs}ms` }}
       disabled={disabled || busy}
       aria-live="polite"

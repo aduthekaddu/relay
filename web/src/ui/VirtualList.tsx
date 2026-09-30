@@ -28,7 +28,13 @@ export interface VirtualListHandle {
 }
 
 /** Visible index window for a scroll position (exported for tests). */
-export function visibleRange(scrollTop: number, viewport: number, itemHeight: number, count: number, overscan: number): [number, number] {
+export function visibleRange(
+  scrollTop: number,
+  viewport: number,
+  itemHeight: number,
+  count: number,
+  overscan: number,
+): [number, number] {
   if (count === 0 || itemHeight <= 0) return [0, 0]
   const first = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan)
   const last = Math.min(count, Math.ceil((scrollTop + viewport) / itemHeight) + overscan)
@@ -40,7 +46,17 @@ export function visibleRange(scrollTop: number, viewport: number, itemHeight: nu
  * container fills its parent's height; give the parent a height.
  */
 function VirtualListInner<T>(
-  { items, itemHeight, render, itemKey, overscan = 6, onEndReached, endThreshold = 400, label, class: className }: VirtualListProps<T>,
+  {
+    items,
+    itemHeight,
+    render,
+    itemKey,
+    overscan = 6,
+    onEndReached,
+    endThreshold = 400,
+    label,
+    class: className,
+  }: VirtualListProps<T>,
   ref: Ref<VirtualListHandle>,
 ) {
   const el = useRef<HTMLDivElement>(null)
@@ -72,7 +88,8 @@ function VirtualListInner<T>(
         if (align === 'start') node.scrollTop = y
         else if (align === 'center') node.scrollTop = y - node.clientHeight / 2 + itemHeight / 2
         else if (y < node.scrollTop) node.scrollTop = y
-        else if (y + itemHeight > node.scrollTop + node.clientHeight) node.scrollTop = y + itemHeight - node.clientHeight
+        else if (y + itemHeight > node.scrollTop + node.clientHeight)
+          node.scrollTop = y + itemHeight - node.clientHeight
       },
     }),
     [itemHeight],
@@ -82,7 +99,11 @@ function VirtualListInner<T>(
     const node = el.current
     if (!node) return
     setTop(node.scrollTop)
-    if (onEndReached && !endFired.current && node.scrollHeight - node.scrollTop - node.clientHeight < endThreshold) {
+    if (
+      onEndReached &&
+      !endFired.current &&
+      node.scrollHeight - node.scrollTop - node.clientHeight < endThreshold
+    ) {
       endFired.current = true
       onEndReached()
     }
@@ -105,7 +126,14 @@ function VirtualListInner<T>(
     )
   }
   return (
-    <div ref={el} class={cx('vlist', className)} onScroll={onScroll} role="list" aria-label={label} tabIndex={0}>
+    <div
+      ref={el}
+      class={cx('vlist', className)}
+      onScroll={onScroll}
+      role="list"
+      aria-label={label}
+      tabIndex={0}
+    >
       <div class="vlist__spacer" style={{ height: items.length * itemHeight }}>
         {rows}
       </div>

@@ -48,7 +48,13 @@ async function request<T>(method: string, path: string, body?: unknown, init?: R
   if (!res.ok) {
     if (ct.includes('application/json')) {
       const e = (await res.json()) as ErrorBody
-      throw new ApiError(res.status, e.error?.code ?? 'error', e.error?.message ?? res.statusText, e.error?.field, e.error?.retryIn)
+      throw new ApiError(
+        res.status,
+        e.error?.code ?? 'error',
+        e.error?.message ?? res.statusText,
+        e.error?.field,
+        e.error?.retryIn,
+      )
     }
     throw new ApiError(res.status, 'error', (await res.text()) || res.statusText)
   }

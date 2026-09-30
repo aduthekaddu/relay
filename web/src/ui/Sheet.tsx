@@ -33,7 +33,18 @@ export interface SheetProps {
  * dragged down by its handle to dismiss; on desktop it slides in from the
  * right. Always has a visible close button.
  */
-export function Sheet({ open, onClose, title, label, side = 'auto', width = 420, footer, bare, class: className, children }: SheetProps) {
+export function Sheet({
+  open,
+  onClose,
+  title,
+  label,
+  side = 'auto',
+  width = 420,
+  footer,
+  bare,
+  class: className,
+  children,
+}: SheetProps) {
   const narrow = useMedia('(max-width: 767px)')
   const form: 'bottom' | 'right' = side === 'auto' ? (narrow ? 'bottom' : 'right') : side
   const [mounted, setMounted] = useState(open)
@@ -103,7 +114,7 @@ export function Sheet({ open, onClose, title, label, side = 'auto', width = 420,
     apply(next < 0 ? next / 4 : next)
     // Velocity in px/s from the last move (smoothed).
     const dt = Math.max(1, now - d.t)
-    d.vy = d.vy * 0.4 + (((offset.current - prev) / dt) * 1000) * 0.6
+    d.vy = d.vy * 0.4 + ((offset.current - prev) / dt) * 1000 * 0.6
     d.t = now
   }
   const onPointerUp = () => {

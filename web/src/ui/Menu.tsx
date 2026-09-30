@@ -44,12 +44,22 @@ export interface MenuProps {
  * Esc closes, typing jumps to the first matching item. On touch it becomes
  * a bottom sheet with 48 px rows.
  */
-export function Menu({ open, onClose, anchor, items, label, placement = 'bottom-start', sheetOnTouch = true }: MenuProps) {
+export function Menu({
+  open,
+  onClose,
+  anchor,
+  items,
+  label,
+  placement = 'bottom-start',
+  sheetOnTouch = true,
+}: MenuProps) {
   const touch = useMedia('(pointer: coarse)')
   const ref = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState(-1)
   const pos = useAnchoredPosition(ref, anchor, open && !(touch && sheetOnTouch), placement)
-  useDismiss(ref, open && !(touch && sheetOnTouch), onClose, { ignore: anchor instanceof HTMLElement ? anchor : null })
+  useDismiss(ref, open && !(touch && sheetOnTouch), onClose, {
+    ignore: anchor instanceof HTMLElement ? anchor : null,
+  })
 
   const enabled = items.map((it, i) => (!isSep(it) && !it.disabled ? i : -1)).filter((i) => i >= 0)
   useEffect(() => {
@@ -138,7 +148,12 @@ export function Menu({ open, onClose, anchor, items, label, placement = 'bottom-
               role={it.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
               aria-checked={it.checked}
               aria-disabled={it.disabled || undefined}
-              class={cx('menu__item', i === active && 'is-active', it.danger && 'is-danger', it.disabled && 'is-disabled')}
+              class={cx(
+                'menu__item',
+                i === active && 'is-active',
+                it.danger && 'is-danger',
+                it.disabled && 'is-disabled',
+              )}
               onPointerMove={() => !it.disabled && setActive(i)}
               onClick={() => select(it)}
             >
@@ -155,7 +170,9 @@ function MenuItemBody({ it }: { it: MenuItem }) {
   return (
     <>
       <span class="menu__icon">
-        {it.checked !== undefined ? it.checked && <Icon name="check" size={15} /> : it.icon && <Icon name={it.icon} size={15} />}
+        {it.checked !== undefined
+          ? it.checked && <Icon name="check" size={15} />
+          : it.icon && <Icon name={it.icon} size={15} />}
       </span>
       <span class="menu__label">{it.label}</span>
       {it.hint && <span class="menu__hint">{it.hint}</span>}
@@ -173,7 +190,13 @@ export interface MenuButtonProps extends Omit<ButtonProps, 'onClick'> {
 }
 
 /** A button that opens a Menu. */
-export function MenuButton({ items, menuLabel, placement = 'bottom-end', children, ...btn }: MenuButtonProps) {
+export function MenuButton({
+  items,
+  menuLabel,
+  placement = 'bottom-end',
+  children,
+  ...btn
+}: MenuButtonProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLButtonElement>(null)
   const close = useCallback(() => setOpen(false), [])
@@ -189,7 +212,14 @@ export function MenuButton({ items, menuLabel, placement = 'bottom-end', childre
       >
         {children}
       </Button>
-      <Menu open={open} onClose={close} anchor={ref.current} items={items} label={menuLabel} placement={placement} />
+      <Menu
+        open={open}
+        onClose={close}
+        anchor={ref.current}
+        items={items}
+        label={menuLabel}
+        placement={placement}
+      />
     </>
   )
 }
@@ -253,6 +283,8 @@ export function useContextMenu(items: MenuItem[] | (() => MenuItem[]), label = '
   const handlers = useLongPress((p) => setPoint(p))
   const close = useCallback(() => setPoint(null), [])
   const list = typeof items === 'function' ? (point ? items() : []) : items
-  const menu = <Menu open={!!point} onClose={close} anchor={point} items={list} label={label} placement="bottom-start" />
+  const menu = (
+    <Menu open={!!point} onClose={close} anchor={point} items={list} label={label} placement="bottom-start" />
+  )
   return { handlers, menu, open: !!point }
 }

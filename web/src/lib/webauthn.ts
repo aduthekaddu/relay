@@ -4,7 +4,10 @@
 
 /** Encode bytes as unpadded base64url. */
 export function toB64u(buf: ArrayBuffer | ArrayBufferView): string {
-  const bytes = buf instanceof ArrayBuffer ? new Uint8Array(buf) : new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength)
+  const bytes =
+    buf instanceof ArrayBuffer
+      ? new Uint8Array(buf)
+      : new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength)
   let bin = ''
   for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
   return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
@@ -53,10 +56,16 @@ const unwrap = <T>(o: T | { publicKey: T }): T =>
   o && typeof o === 'object' && 'publicKey' in (o as object) ? (o as { publicKey: T }).publicKey : (o as T)
 
 const descriptors = (list?: JsonDescriptor[]): PublicKeyCredentialDescriptor[] | undefined =>
-  list?.map((d) => ({ id: fromB64u(d.id), type: 'public-key', transports: d.transports as AuthenticatorTransport[] }))
+  list?.map((d) => ({
+    id: fromB64u(d.id),
+    type: 'public-key',
+    transports: d.transports as AuthenticatorTransport[],
+  }))
 
 /** Convert server request options to the browser shape. */
-export function parseRequestOptions(json: RequestOptionsJSON | { publicKey: RequestOptionsJSON }): PublicKeyCredentialRequestOptions {
+export function parseRequestOptions(
+  json: RequestOptionsJSON | { publicKey: RequestOptionsJSON },
+): PublicKeyCredentialRequestOptions {
   const o = unwrap(json)
   return {
     challenge: fromB64u(o.challenge),
@@ -123,7 +132,11 @@ export function attestationToJSON(cred: PublicKeyCredential): Record<string, unk
 
 /** True when this browser can use passkeys at all. */
 export function passkeysSupported(): boolean {
-  return typeof window !== 'undefined' && typeof window.PublicKeyCredential === 'function' && !!navigator.credentials
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.PublicKeyCredential === 'function' &&
+    !!navigator.credentials
+  )
 }
 
 /** True when the browser supports conditional mediation (passkey autofill). */

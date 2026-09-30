@@ -21,7 +21,14 @@ export interface DotTextProps {
  * Departure-board lettering: a 5×7 dot font rendered as one SVG. The text
  * is exposed to assistive tech as the element's label.
  */
-export function DotText({ text, pitch = 6, color, grid = true, reveal = false, class: className }: DotTextProps) {
+export function DotText({
+  text,
+  pitch = 6,
+  color,
+  grid = true,
+  reveal = false,
+  class: className,
+}: DotTextProps) {
   const layout = useMemo(() => dotLayout(text), [text])
   const w = layout.cols
   // Deterministic pseudo-random delays so the reveal looks scrambled but
@@ -38,7 +45,9 @@ export function DotText({ text, pitch = 6, color, grid = true, reveal = false, c
       style={color ? { color } : undefined}
     >
       {grid &&
-        layout.off.map(([x, y]) => <circle key={`o${x}.${y}`} class="glyph__off" cx={x + 0.5} cy={y + 0.5} r={0.36} />)}
+        layout.off.map(([x, y]) => (
+          <circle key={`o${x}.${y}`} class="glyph__off" cx={x + 0.5} cy={y + 0.5} r={0.36} />
+        ))}
       {layout.on.map(([x, y]) => (
         <circle
           key={`n${x}.${y}`}

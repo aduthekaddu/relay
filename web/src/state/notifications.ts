@@ -34,7 +34,9 @@ export async function loadNotifications(): Promise<void> {
 }
 
 function applyRead(ids: string[] | 'all'): void {
-  notifications.value = notifications.value.map((n) => (ids === 'all' || ids.includes(n.id) ? { ...n, read: true } : n))
+  notifications.value = notifications.value.map((n) =>
+    ids === 'all' || ids.includes(n.id) ? { ...n, read: true } : n,
+  )
 }
 
 /** Mark some notifications read (optimistic; reverts on failure). */
@@ -89,7 +91,16 @@ export function trackNotifications(): void {
     if (n.link && location.pathname + location.search === n.link) return
     toast(n.title, {
       id: `n:${n.id}`,
-      kind: n.kind === 'attention' ? 'attention' : n.severity === 'danger' ? 'danger' : n.severity === 'warning' ? 'warning' : n.kind === 'done' ? 'success' : 'info',
+      kind:
+        n.kind === 'attention'
+          ? 'attention'
+          : n.severity === 'danger'
+            ? 'danger'
+            : n.severity === 'warning'
+              ? 'warning'
+              : n.kind === 'done'
+                ? 'success'
+                : 'info',
       body: n.body,
       action: n.link
         ? {

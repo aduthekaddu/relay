@@ -1,6 +1,38 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
-  "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 110 },
-  "javascript": { "formatter": { "quoteStyle": "single", "semicolons": "asNeeded", "trailingCommas": "all" } },
-  "linter": { "enabled": true, "rules": { "recommended": true, "a11y": { "recommended": true }, "style": { "noNonNullAssertion": "off" } } }
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 110
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "asNeeded",
+      "trailingCommas": "all"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "a11y": {
+        "recommended": true
+      },
+      "style": {
+        "noNonNullAssertion": "off"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "src/api/types.ts"
+      ],
+      "formatter": {
+        "enabled": false
+      }
+    }
+  ]
 }

@@ -45,17 +45,30 @@ function valid(v: unknown): v is RecentEntry[] {
 }
 
 /** Recently run items, newest first. */
-export const recents = signal<RecentEntry[]>((() => {
-  const v = load<unknown>(KEY, [])
-  return valid(v) ? v.slice(0, MAX) : []
-})())
+export const recents = signal<RecentEntry[]>(
+  (() => {
+    const v = load<unknown>(KEY, [])
+    return valid(v) ? v.slice(0, MAX) : []
+  })(),
+)
 
 /** Remember an item after it ran (skips items with remember: false). */
 export function rememberItem(item: PaletteItem): void {
   if (item.remember === false) return
   if (!item.id.startsWith('cmd:') && !item.link) return
-  const entry: RecentEntry = { id: item.id, title: item.title, subtitle: item.subtitle, icon: item.icon, link: item.link, at: Date.now() }
-  const order = pushRecent(recents.value.map((r) => r.id), item.id, MAX)
+  const entry: RecentEntry = {
+    id: item.id,
+    title: item.title,
+    subtitle: item.subtitle,
+    icon: item.icon,
+    link: item.link,
+    at: Date.now(),
+  }
+  const order = pushRecent(
+    recents.value.map((r) => r.id),
+    item.id,
+    MAX,
+  )
   const byId = new Map(recents.value.map((r) => [r.id, r]))
   byId.set(item.id, entry)
   recents.value = order.map((id) => byId.get(id)!).filter(Boolean)

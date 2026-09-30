@@ -50,7 +50,11 @@ export function shouldTransition(from: string, to: string): boolean {
 
 function canAnimate(): boolean {
   const doc = document as unknown as VTDocument
-  return typeof doc.startViewTransition === 'function' && !prefersReducedMotion() && document.visibilityState === 'visible'
+  return (
+    typeof doc.startViewTransition === 'function' &&
+    !prefersReducedMotion() &&
+    document.visibilityState === 'visible'
+  )
 }
 
 /**
@@ -115,7 +119,9 @@ export function navigate(url: string, opts: { replace?: boolean } = {}): void {
 export function interceptLinks(): () => void {
   const onClick = (e: MouseEvent) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
-    const a = (e.composedPath() as Element[]).find((el) => el instanceof HTMLAnchorElement) as HTMLAnchorElement | undefined
+    const a = (e.composedPath() as Element[]).find((el) => el instanceof HTMLAnchorElement) as
+      | HTMLAnchorElement
+      | undefined
     if (!a?.href || a.origin !== location.origin || a.download || (a.target && a.target !== '_self')) return
     const href = a.getAttribute('href') || ''
     if (href.startsWith('#') || a.dataset.native !== undefined) return

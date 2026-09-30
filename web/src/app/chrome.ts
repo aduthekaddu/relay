@@ -6,8 +6,9 @@
 // need to go full-bleed at runtime (e.g. a file editor) call
 // useImmersive(true); routes marked `immersive` in routes.ts are immersive
 // automatically.
-import type { ComponentChildren } from 'preact'
+
 import { signal } from '@preact/signals'
+import type { ComponentChildren } from 'preact'
 import { useLayoutEffect } from 'preact/hooks'
 
 export interface PageChrome {

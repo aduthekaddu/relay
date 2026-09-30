@@ -2,8 +2,8 @@
 // variants, rendered in Carbon and Paper side by side (or one theme), and a
 // 390 × 844 phone frame that loads any route. Used for visual QA.
 import { useEffect, useMemo, useState } from 'preact/hooks'
-import { usePageChrome } from '../../app/chrome'
 import { AREAS } from '../../app/areas'
+import { usePageChrome } from '../../app/chrome'
 import { openPalette } from '../../command/state'
 import { AGENTS } from '../../lib/agents'
 import {
@@ -20,8 +20,8 @@ import {
   DotText,
   EmptyState,
   Field,
-  Glyph,
   GLYPHS,
+  Glyph,
   type GlyphName,
   Input,
   Kbd,
@@ -82,13 +82,25 @@ func (l Link) Valid(t time.Time) bool {
 function useWave(n = 40): number[] {
   const [v, setV] = useState(() => Array.from({ length: n }, (_, i) => 40 + Math.sin(i / 3) * 25))
   useEffect(() => {
-    const t = window.setInterval(() => setV((a) => [...a.slice(1), Math.max(2, Math.min(98, a[a.length - 1] + (Math.random() - 0.5) * 22))]), 1000)
+    const t = window.setInterval(
+      () =>
+        setV((a) => [...a.slice(1), Math.max(2, Math.min(98, a[a.length - 1] + (Math.random() - 0.5) * 22))]),
+      1000,
+    )
     return () => window.clearInterval(t)
   }, [])
   return v
 }
 
-function Story({ title, note, children }: { title: string; note?: string; children: preact.ComponentChildren }) {
+function Story({
+  title,
+  note,
+  children,
+}: {
+  title: string
+  note?: string
+  children: preact.ComponentChildren
+}) {
   return (
     <section class="story">
       <header class="story__head">
@@ -110,7 +122,10 @@ function Kit() {
   const [tab, setTab] = useState<'live' | 'history' | 'usage'>('live')
   const [dialog, setDialog] = useState(false)
   const [sheet, setSheet] = useState(false)
-  const rows = useMemo(() => Array.from({ length: 2000 }, (_, i) => ({ id: i, name: `session-${String(i).padStart(4, '0')}` })), [])
+  const rows = useMemo(
+    () => Array.from({ length: 2000 }, (_, i) => ({ id: i, name: `session-${String(i).padStart(4, '0')}` })),
+    [],
+  )
   const ctx = useContextMenu([
     { id: 'open', label: 'Open', icon: 'external-link' },
     { id: 'copy', label: 'Copy path', icon: 'copy', shortcut: ['mod', 'C'] },
@@ -135,7 +150,23 @@ function Kit() {
 
       <Story title="Colour" note="Signal orange means act now. Area hues identify, they never decorate.">
         <div class="swatches">
-          {['bg', 'bg-sunken', 'surface-1', 'surface-2', 'surface-3', 'surface-4', 'text', 'text-2', 'text-3', 'text-4', 'signal', 'ok', 'warn', 'danger', 'info'].map((t) => (
+          {[
+            'bg',
+            'bg-sunken',
+            'surface-1',
+            'surface-2',
+            'surface-3',
+            'surface-4',
+            'text',
+            'text-2',
+            'text-3',
+            'text-4',
+            'signal',
+            'ok',
+            'warn',
+            'danger',
+            'info',
+          ].map((t) => (
             <div class="swatch" key={t}>
               <span class="swatch__chip" style={{ background: `var(--${t})` }} />
               <code>--{t}</code>
@@ -226,7 +257,18 @@ function Kit() {
           <ConfirmButton onConfirm={() => void toast('Killed', { kind: 'danger' })} icon="x">
             Kill session
           </ConfirmButton>
-          <MenuButton icon="ellipsis" variant="icon" label="More" menuLabel="Session" items={[{ id: 'r', label: 'Rename', icon: 'file' }, { id: 'p', label: 'Pin', checked: true }, SEPARATOR, { id: 'k', label: 'Kill', danger: true, icon: 'x' }]} />
+          <MenuButton
+            icon="ellipsis"
+            variant="icon"
+            label="More"
+            menuLabel="Session"
+            items={[
+              { id: 'r', label: 'Rename', icon: 'file' },
+              { id: 'p', label: 'Pin', checked: true },
+              SEPARATOR,
+              { id: 'k', label: 'Kill', danger: true, icon: 'x' },
+            ]}
+          />
         </div>
       </Story>
 
@@ -242,7 +284,11 @@ function Kit() {
             <Input value="feat/share" mono />
           </Field>
           <Field label="Agent">
-            <Select value={sel} onChange={setSel} options={AGENTS.slice(0, 6).map((a) => ({ value: a.id, label: a.name }))} />
+            <Select
+              value={sel}
+              onChange={setSel}
+              options={AGENTS.slice(0, 6).map((a) => ({ value: a.id, label: a.name }))}
+            />
           </Field>
           <Field label="Prompt">
             <TextArea autoGrow placeholder="Describe the task…" />
@@ -251,7 +297,16 @@ function Kit() {
             <Switch checked={sw} onChange={setSw} label="Record agent sessions" />
             <Checkbox checked={chk} onChange={setChk} label="Keep me signed in" />
             <Checkbox checked={false} indeterminate onChange={() => {}} label="Some files selected" />
-            <Segmented label="View" value={seg} onChange={setSeg} options={[{ value: 'list', label: 'List' }, { value: 'grid', label: 'Grid' }, { value: 'tree', label: 'Tree' }]} />
+            <Segmented
+              label="View"
+              value={seg}
+              onChange={setSeg}
+              options={[
+                { value: 'list', label: 'List' },
+                { value: 'grid', label: 'Grid' },
+                { value: 'tree', label: 'Tree' },
+              ]}
+            />
             <Slider label="Font size" value={sl} onChange={setSl} min={9} max={60} format={(v) => `${v}px`} />
           </div>
         </div>
@@ -276,12 +331,41 @@ function Kit() {
             <p class="muted">Whole card is the target.</p>
           </Card>
         </div>
-        <Panel title="Running now" meta="3 sessions" actions={<Button size="sm" variant="ghost" icon="plus">New</Button>}>
+        <Panel
+          title="Running now"
+          meta="3 sessions"
+          actions={
+            <Button size="sm" variant="ghost" icon="plus">
+              New
+            </Button>
+          }
+        >
           <List label="Sessions">
-            <ListRow leading={<AgentMark agent="claude" />} title="Refactor share links" subtitle="Allow running go test?" meta="2m" trailing={<StatusDot status="needs-you" label />} href="/dev/ui" />
-            <ListRow leading={<AgentMark agent="codex" />} title="Sliding-window rate limiter" subtitle="Editing app/limits.py" meta="now" trailing={<StatusDot status="working" label />} onClick={() => {}} />
+            <ListRow
+              leading={<AgentMark agent="claude" />}
+              title="Refactor share links"
+              subtitle="Allow running go test?"
+              meta="2m"
+              trailing={<StatusDot status="needs-you" label />}
+              href="/dev/ui"
+            />
+            <ListRow
+              leading={<AgentMark agent="codex" />}
+              title="Sliding-window rate limiter"
+              subtitle="Editing app/limits.py"
+              meta="now"
+              trailing={<StatusDot status="working" label />}
+              onClick={() => {}}
+            />
             <div {...ctx.handlers}>
-              <ListRow leading="terminal" title="dev server" subtitle="Right-click or long-press for the menu" meta="3h" trailing={<StatusDot status="idle" label />} selected />
+              <ListRow
+                leading="terminal"
+                title="dev server"
+                subtitle="Right-click or long-press for the menu"
+                meta="3h"
+                trailing={<StatusDot status="idle" label />}
+                selected
+              />
             </div>
           </List>
         </Panel>
@@ -327,17 +411,40 @@ function Kit() {
       </Story>
 
       <Story title="Tabs · PathBar">
-        <Tabs label="Agents" value={tab} onChange={setTab} items={[{ id: 'live', label: 'Live', count: 3 }, { id: 'history', label: 'History', count: 128 }, { id: 'usage', label: 'Usage' }]} />
-        <PathBar value="/home/dev/code/relay-demo/internal/share" home="/home/dev" hrefFor={() => '/dev/ui'} />
+        <Tabs
+          label="Agents"
+          value={tab}
+          onChange={setTab}
+          items={[
+            { id: 'live', label: 'Live', count: 3 },
+            { id: 'history', label: 'History', count: 128 },
+            { id: 'usage', label: 'Usage' },
+          ]}
+        />
+        <PathBar
+          value="/home/dev/code/relay-demo/internal/share"
+          home="/home/dev"
+          hrefFor={() => '/dev/ui'}
+        />
       </Story>
 
       <Story title="Meters" note="DotMeter for CPU/mem, Sparkline for history, Progress for tasks.">
         <div class="meters">
-          <DotMeter label="CPU" value={wave[wave.length - 1]} valueText={`${Math.round(wave[wave.length - 1])}%`} />
+          <DotMeter
+            label="CPU"
+            value={wave[wave.length - 1]}
+            valueText={`${Math.round(wave[wave.length - 1])}%`}
+          />
           <DotMeter label="Memory" value={78} valueText="25.1 / 32 GB" warn={70} />
           <DotMeter label="Disk" value={93} valueText="93%" danger={90} size="sm" />
           <Sparkline values={wave} width={220} height={44} fill dot label="CPU, last 40 s" />
-          <Sparkline values={wave.map((v) => 100 - v)} width={220} height={44} color="var(--area-system)" label="Network" />
+          <Sparkline
+            values={wave.map((v) => 100 - v)}
+            width={220}
+            height={44}
+            color="var(--area-system)"
+            label="Network"
+          />
           <Progress label="Uploading photo.jpg" value={64} />
           <Progress label="Indexing" tone="signal" />
           <div class="row" style={{ '--gap': 'var(--s-4)' }}>
@@ -354,7 +461,18 @@ function Kit() {
       <Story title="EmptyState · Skeleton">
         <div class="cards">
           <Card>
-            <EmptyState glyph="terminal" hue="var(--area-terminal)" title="No terminals yet" body="Start a shell or an agent; it keeps running when you close the tab." action={<Button variant="primary" icon="plus">New terminal</Button>} size="sm" />
+            <EmptyState
+              glyph="terminal"
+              hue="var(--area-terminal)"
+              title="No terminals yet"
+              body="Start a shell or an agent; it keeps running when you close the tab."
+              action={
+                <Button variant="primary" icon="plus">
+                  New terminal
+                </Button>
+              }
+              size="sm"
+            />
           </Card>
           <Card>
             <div class="stack">
@@ -366,7 +484,10 @@ function Kit() {
         </div>
       </Story>
 
-      <Story title="Overlays" note="Dialog, Sheet (bottom on phones, side on desktop), Menu, Tooltip, Toast, command center.">
+      <Story
+        title="Overlays"
+        note="Dialog, Sheet (bottom on phones, side on desktop), Menu, Tooltip, Toast, command center."
+      >
         <div class="row wrap">
           <Button onClick={() => setDialog(true)}>Dialog</Button>
           <Button onClick={() => setSheet(true)}>Sheet</Button>
@@ -374,8 +495,20 @@ function Kit() {
             <Button icon="copy">Tooltip</Button>
           </Tooltip>
           <Button onClick={() => toast('Saved', { kind: 'success' })}>Toast</Button>
-          <Button onClick={() => toast('Claude Code needs you', { kind: 'attention', body: 'Allow running go test?', action: { label: 'Open', onClick: () => {} } })}>Attention toast</Button>
-          <Button onClick={() => toast('Couldn’t reach the machine. Retrying…', { kind: 'warning' })}>Warning toast</Button>
+          <Button
+            onClick={() =>
+              toast('Claude Code needs you', {
+                kind: 'attention',
+                body: 'Allow running go test?',
+                action: { label: 'Open', onClick: () => {} },
+              })
+            }
+          >
+            Attention toast
+          </Button>
+          <Button onClick={() => toast('Couldn’t reach the machine. Retrying…', { kind: 'warning' })}>
+            Warning toast
+          </Button>
           <Button variant="primary" icon="command" onClick={() => openPalette()}>
             Command center
           </Button>
@@ -397,7 +530,12 @@ function Kit() {
             </>
           }
         />
-        <Sheet open={sheet} onClose={() => setSheet(false)} title="Session info" footer={<Button onClick={() => setSheet(false)}>Done</Button>}>
+        <Sheet
+          open={sheet}
+          onClose={() => setSheet(false)}
+          title="Session info"
+          footer={<Button onClick={() => setSheet(false)}>Done</Button>}
+        >
           <List label="Info">
             <ListRow title="Command" meta="claude" />
             <ListRow title="Directory" meta="~/code/relay-demo" />
@@ -408,7 +546,13 @@ function Kit() {
 
       <Story title="CompactBar" note="Immersive screens on phones.">
         <div class="phone-strip">
-          <CompactBar back="/dev/ui" title="claude · share links" subtitle="~/code/relay-demo" status={<StatusDot status="needs-you" />} actions={<Button variant="icon" icon="ellipsis" label="Menu" size="sm" />} />
+          <CompactBar
+            back="/dev/ui"
+            title="claude · share links"
+            subtitle="~/code/relay-demo"
+            status={<StatusDot status="needs-you" />}
+            actions={<Button variant="icon" icon="ellipsis" label="Menu" size="sm" />}
+          />
         </div>
       </Story>
 
@@ -427,10 +571,20 @@ function Kit() {
             <QR value="https://5173.atlas.example.test/" label="Open the preview on your phone" />
           </Card>
           <div class="split-demo">
-            <Splitter label="Resize panes" first={<div class="pane">Left</div>} second={<div class="pane">Right</div>} />
+            <Splitter
+              label="Resize panes"
+              first={<div class="pane">Left</div>}
+              second={<div class="pane">Right</div>}
+            />
           </div>
           <div class="vlist-demo">
-            <VirtualList label="2,000 sessions" items={rows} itemHeight={36} itemKey={(r) => r.id} render={(r) => <div class="vrow t-mono">{r.name}</div>} />
+            <VirtualList
+              label="2,000 sessions"
+              items={rows}
+              itemHeight={36}
+              itemKey={(r) => r.id}
+              render={(r) => <div class="vrow t-mono">{r.name}</div>}
+            />
           </div>
         </div>
       </Story>
@@ -440,7 +594,9 @@ function Kit() {
 
 /** Kitchen sink route. ?frame=carbon|paper|both, ?phone=<path> shows a phone preview. */
 export default function DevUIRoute() {
-  const [frame, setFrame] = useState<Frame>(() => (new URLSearchParams(location.search).get('frame') as Frame) || 'both')
+  const [frame, setFrame] = useState<Frame>(
+    () => (new URLSearchParams(location.search).get('frame') as Frame) || 'both',
+  )
   const [phone, setPhone] = useState(() => new URLSearchParams(location.search).get('phone') ?? '')
   usePageChrome({ title: 'UI kit', subtitle: '/dev/ui' }, [])
   const embedded = new URLSearchParams(location.search).has('embed')
@@ -461,7 +617,11 @@ export default function DevUIRoute() {
         <Select
           value={phone}
           onChange={setPhone}
-          options={[{ value: '', label: 'No phone preview' }, ...AREAS.map((a) => ({ value: a.path, label: `Phone: ${a.label}` })), { value: '/login', label: 'Phone: Sign in' }]}
+          options={[
+            { value: '', label: 'No phone preview' },
+            ...AREAS.map((a) => ({ value: a.path, label: `Phone: ${a.label}` })),
+            { value: '/login', label: 'Phone: Sign in' },
+          ]}
           size="sm"
         />
       </div>

@@ -5,6 +5,14 @@ import { useRef } from 'preact/hooks'
 import type { Notification, NotificationKind } from '../api/types'
 import { ago } from '../lib/format'
 import { cx } from '../lib/util'
+import {
+  markAllRead,
+  markRead,
+  notifications,
+  notificationsLoaded,
+  removeNotification,
+  unreadCount,
+} from '../state/notifications'
 import { AgentMark } from '../ui/AgentMark'
 import { Button } from '../ui/Button'
 import { Icon } from '../ui/Icon'
@@ -13,7 +21,6 @@ import { useMedia } from '../ui/overlay'
 import { Popover } from '../ui/Popover'
 import { Sheet } from '../ui/Sheet'
 import { StatusDot } from '../ui/StatusDot'
-import { markAllRead, markRead, notifications, notificationsLoaded, removeNotification, unreadCount } from '../state/notifications'
 import { navigate } from './nav'
 
 /** Inbox visibility (the bell toggles it; `notifications` command opens it). */
@@ -43,7 +50,14 @@ const KIND_LABEL: Record<NotificationKind, string> = {
 
 function KindMark({ n }: { n: Notification }) {
   if (n.kind === 'attention') return <StatusDot status="needs-you" />
-  const tone = n.severity === 'danger' ? 'danger' : n.severity === 'warning' ? 'warn' : n.kind === 'done' || n.severity === 'success' ? 'ok' : 'neutral'
+  const tone =
+    n.severity === 'danger'
+      ? 'danger'
+      : n.severity === 'warning'
+        ? 'warn'
+        : n.kind === 'done' || n.severity === 'success'
+          ? 'ok'
+          : 'neutral'
   return (
     <span class={cx('inbox-kind', `inbox-kind--${tone}`)}>
       <Icon name={KIND_ICON[n.kind] || 'bell'} size={14} />
@@ -72,7 +86,12 @@ export function BellButton({ size = 'md' }: { size?: 'md' | 'lg' }) {
         {n > 0 && <span class="bell__count tnum">{n > 99 ? '99+' : n}</span>}
       </button>
       {narrow ? (
-        <Sheet open={inboxOpen.value} onClose={() => (inboxOpen.value = false)} title="Notifications" side="bottom">
+        <Sheet
+          open={inboxOpen.value}
+          onClose={() => (inboxOpen.value = false)}
+          title="Notifications"
+          side="bottom"
+        >
           <Inbox />
         </Sheet>
       ) : (
@@ -118,11 +137,23 @@ export function Inbox({ header = false }: { header?: boolean }) {
           <span class="skeleton" style={{ height: 14, width: '52%' }} />
         </div>
       ) : list.length === 0 ? (
-        <EmptyState size="sm" glyph="bell" title="All clear" body="When an agent needs you or a task finishes, it shows up here." />
+        <EmptyState
+          size="sm"
+          glyph="bell"
+          title="All clear"
+          body="When an agent needs you or a task finishes, it shows up here."
+        />
       ) : (
         <ul class="inbox__list">
           {list.map((n) => (
-            <li key={n.id} class={cx('inbox-item', !n.read && 'is-unread', n.kind === 'attention' && !n.read && 'is-attention')}>
+            <li
+              key={n.id}
+              class={cx(
+                'inbox-item',
+                !n.read && 'is-unread',
+                n.kind === 'attention' && !n.read && 'is-attention',
+              )}
+            >
               <button type="button" class="inbox-item__main" onClick={() => open(n)}>
                 <span class="inbox-item__mark">
                   <KindMark n={n} />
@@ -139,7 +170,12 @@ export function Inbox({ header = false }: { header?: boolean }) {
                 </span>
                 {!n.read && <span class="inbox-item__dot" aria-label="Unread" />}
               </button>
-              <button type="button" class="inbox-item__remove" aria-label={`Dismiss “${n.title}”`} onClick={() => void removeNotification(n.id)}>
+              <button
+                type="button"
+                class="inbox-item__remove"
+                aria-label={`Dismiss “${n.title}”`}
+                onClick={() => void removeNotification(n.id)}
+              >
                 <Icon name="x" size={14} />
               </button>
             </li>

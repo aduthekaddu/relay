@@ -17,15 +17,15 @@ import { Icon } from '../ui/Icon'
 import { Kbd } from '../ui/layout'
 import { useMedia } from '../ui/overlay'
 import { Toaster } from '../ui/Toast'
-import { type Area, AREAS, type AreaId, areaById } from './areas'
+import { AREAS, type Area, type AreaId, areaById } from './areas'
 import { immersiveOverride, pageChrome } from './chrome'
 import { ErrorBoundary } from './ErrorScreen'
-import { interceptLinks, navigate, setRouter } from './nav'
 import { BellButton } from './Notifications'
+import { interceptLinks, navigate, setRouter } from './nav'
 import type { RouteDef } from './routes'
-import { installShortcuts } from './shortcuts'
 import { SignalLine } from './SignalLine'
 import { ConnectionPill, DeviceDot, MoreSheet, moreOpen, ShortcutSheet, ThemeButton } from './Surfaces'
+import { installShortcuts } from './shortcuts'
 import './shell.css'
 
 const Palette = lazy(() => import('../command/Palette'))
@@ -54,7 +54,12 @@ function RailItem({ area, active, badge }: { area: Area; active: boolean; badge?
       aria-current={active ? 'page' : undefined}
       title={`${area.label} · G ${area.goKey.toUpperCase()}`}
     >
-      <Glyph name={area.id} size={20} state={active ? 'active' : 'idle'} color={active ? 'var(--hue)' : undefined} />
+      <Glyph
+        name={area.id}
+        size={20}
+        state={active ? 'active' : 'idle'}
+        color={active ? 'var(--hue)' : undefined}
+      />
       <span class="rail-item__label">{area.label}</span>
       {badge ? (
         <span class="rail-item__badge" role="img" aria-label={`${badge} need you`}>
@@ -70,7 +75,11 @@ function Rail({ area, immersive }: { area: AreaId; immersive: boolean }) {
   const main = AREAS.filter((a) => a.id !== 'settings')
   return (
     <nav class="rail" aria-label="Areas">
-      <a href="/" class="rail-logo" aria-label={counts.total ? `Relay home, ${counts.total} need you` : 'Relay home'}>
+      <a
+        href="/"
+        class="rail-logo"
+        aria-label={counts.total ? `Relay home, ${counts.total} need you` : 'Relay home'}
+      >
         <RelayMark size={26} beacon={counts.total > 0} />
       </a>
       <div class="rail-items">
@@ -101,7 +110,13 @@ function SearchTrigger({ compact }: { compact: boolean }) {
       </button>
     )
   return (
-    <button type="button" class="search-trigger" onClick={() => openPalette()} aria-label="Search and commands" aria-keyshortcuts={isMac ? 'Meta+K' : 'Control+K'}>
+    <button
+      type="button"
+      class="search-trigger"
+      onClick={() => openPalette()}
+      aria-label="Search and commands"
+      aria-keyshortcuts={isMac ? 'Meta+K' : 'Control+K'}
+    >
       <Icon name="search" size={15} />
       <span class="search-trigger__text">Search or run a command</span>
       <Kbd keys={['mod', 'K']} />
@@ -145,9 +160,20 @@ function TabBar({ area }: { area: AreaId }) {
         const badge = a.id === 'agents' ? counts.agents : a.id === 'terminal' ? counts.terms : 0
         const active = a.id === area
         return (
-          <a key={a.id} href={a.path} class={cx('tab', active && 'is-active')} style={{ '--hue': a.hue }} aria-current={active ? 'page' : undefined}>
+          <a
+            key={a.id}
+            href={a.path}
+            class={cx('tab', active && 'is-active')}
+            style={{ '--hue': a.hue }}
+            aria-current={active ? 'page' : undefined}
+          >
             <span class="tab__glyph">
-              <Glyph name={a.id} size={22} state={active ? 'active' : 'idle'} color={active ? 'var(--hue)' : undefined} />
+              <Glyph
+                name={a.id}
+                size={22}
+                state={active ? 'active' : 'idle'}
+                color={active ? 'var(--hue)' : undefined}
+              />
               {badge > 0 && <span class="tab__badge" aria-label={`${badge} need you`} />}
             </span>
             <span class="tab__label">{a.label}</span>

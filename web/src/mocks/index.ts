@@ -16,7 +16,9 @@ import { has, latency, type MockMode, modes, setModes, sleep, toResponse } from 
 let installed = false
 
 async function readBody(init: RequestInit | undefined, req: Request | null): Promise<unknown> {
-  const b = init?.body ?? (req && req.method !== 'GET' && req.method !== 'HEAD' ? await req.clone().blob() : undefined)
+  const b =
+    init?.body ??
+    (req && req.method !== 'GET' && req.method !== 'HEAD' ? await req.clone().blob() : undefined)
   if (b === undefined || b === null) return undefined
   if (typeof b === 'string') {
     try {
@@ -77,5 +79,7 @@ export function installMocks(): void {
     emit,
   }
   ;(window as unknown as { __relayMock: typeof api }).__relayMock = api
-  console.info(`[relay] mock backend on${modes.size ? ` (${[...modes].join(', ')})` : ''} — window.__relayMock for helpers`)
+  console.info(
+    `[relay] mock backend on${modes.size ? ` (${[...modes].join(', ')})` : ''} — window.__relayMock for helpers`,
+  )
 }

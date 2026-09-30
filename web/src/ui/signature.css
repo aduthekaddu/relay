@@ -122,7 +122,7 @@
 }
 
 .status--working .status__dot::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
   border-radius: 50%;

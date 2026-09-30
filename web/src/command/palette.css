@@ -118,7 +118,9 @@
   font: inherit;
   font-size: var(--fs-small);
   outline: 0;
-  transition: border-color var(--d-1) var(--ease-out), box-shadow var(--d-1) var(--ease-out);
+  transition:
+    border-color var(--d-1) var(--ease-out),
+    box-shadow var(--d-1) var(--ease-out);
 }
 
 .pal-arg::placeholder {
@@ -204,7 +206,7 @@
 }
 
 .pal-row.is-active::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 10px;

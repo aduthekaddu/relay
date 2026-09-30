@@ -3,9 +3,9 @@
 import { signal } from '@preact/signals'
 import { useEffect, useRef, useState } from 'preact/hooks'
 import { cx, isMac } from '../lib/util'
+import { signOut } from '../state/auth'
 import { connection, retryConnection } from '../state/connection'
 import { info } from '../state/info'
-import { signOut } from '../state/auth'
 import { setTheme, type ThemePref, themePref } from '../state/theme'
 import { Button } from '../ui/Button'
 import { Dialog } from '../ui/Dialog'
@@ -98,7 +98,15 @@ export function ConnectionPill() {
   return (
     <div class={cx('conn-pill', offline && 'conn-pill--offline')} role="status">
       <Icon name={offline ? 'wifi-off' : 'refresh-cw'} size={14} class={cx(!offline && 'conn-pill__spin')} />
-      <span>{offline ? 'Offline' : c.state === 'connecting' ? 'Connecting…' : secs > 1 ? `Reconnecting in ${secs}s` : 'Reconnecting…'}</span>
+      <span>
+        {offline
+          ? 'Offline'
+          : c.state === 'connecting'
+            ? 'Connecting…'
+            : secs > 1
+              ? `Reconnecting in ${secs}s`
+              : 'Reconnecting…'}
+      </span>
       {!offline && c.state !== 'connecting' && (
         <button type="button" class="conn-pill__retry" onClick={retryConnection}>
           Retry
@@ -112,7 +120,8 @@ export function ConnectionPill() {
 export function DeviceDot() {
   const c = connection.value.state
   const host = info.value?.hostname ?? 'this machine'
-  const label = c === 'online' ? `Connected to ${host}` : c === 'offline' ? 'Offline' : `Reconnecting to ${host}`
+  const label =
+    c === 'online' ? `Connected to ${host}` : c === 'offline' ? 'Offline' : `Reconnecting to ${host}`
   return (
     <span class={cx('device-dot', `device-dot--${c}`)} title={label} role="img" aria-label={label}>
       <span />
@@ -170,7 +179,12 @@ export function MoreSheet() {
 export function ShortcutSheet() {
   const groups = ['General', 'Go to', 'Command center'] as const
   return (
-    <Dialog open={shortcutsOpen.value} onClose={() => (shortcutsOpen.value = false)} title="Keyboard shortcuts" size="md">
+    <Dialog
+      open={shortcutsOpen.value}
+      onClose={() => (shortcutsOpen.value = false)}
+      title="Keyboard shortcuts"
+      size="md"
+    >
       <div class="shortcuts">
         {groups.map((g) => (
           <section key={g} class="shortcuts__group">
@@ -194,7 +208,8 @@ export function ShortcutSheet() {
         ))}
       </div>
       <p class="shortcuts__note">
-        {isMac ? '⌘' : 'Ctrl'} shortcuts inside a terminal go to the terminal first. Terminal keys are listed in the terminal menu.
+        {isMac ? '⌘' : 'Ctrl'} shortcuts inside a terminal go to the terminal first. Terminal keys are listed
+        in the terminal menu.
       </p>
     </Dialog>
   )

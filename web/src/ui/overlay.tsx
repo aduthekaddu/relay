@@ -61,7 +61,9 @@ const FOCUSABLE =
 
 /** Focusable descendants in DOM order. */
 export function focusables(root: HTMLElement): HTMLElement[] {
-  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((el) => el.offsetParent !== null || el === document.activeElement)
+  return [...root.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
+    (el) => el.offsetParent !== null || el === document.activeElement,
+  )
 }
 
 /**
@@ -120,7 +122,8 @@ export function useDismiss(
     const onDown = (e: PointerEvent) => {
       const t = e.target as Node
       if (ref.current?.contains(t)) return
-      const ig = opts.ignore && 'current' in opts.ignore ? opts.ignore.current : (opts.ignore as HTMLElement | null)
+      const ig =
+        opts.ignore && 'current' in opts.ignore ? opts.ignore.current : (opts.ignore as HTMLElement | null)
       if (ig?.contains(t)) return
       onClose()
     }
@@ -135,7 +138,15 @@ export function useDismiss(
 
 // ---------------------------------------------------------------- positioning
 
-export type Placement = 'bottom-start' | 'bottom-end' | 'bottom' | 'top-start' | 'top-end' | 'top' | 'right-start' | 'left-start'
+export type Placement =
+  | 'bottom-start'
+  | 'bottom-end'
+  | 'bottom'
+  | 'top-start'
+  | 'top-end'
+  | 'top'
+  | 'right-start'
+  | 'left-start'
 
 export interface Rect {
   left: number
@@ -149,7 +160,15 @@ export interface Rect {
  * other side when it does not fit and clamping inside the viewport with an
  * 8 px margin. Pure — exported for tests.
  */
-export function place(anchor: Rect, w: number, h: number, placement: Placement, vw: number, vh: number, gap = 6): { x: number; y: number; side: 'top' | 'bottom' | 'left' | 'right' } {
+export function place(
+  anchor: Rect,
+  w: number,
+  h: number,
+  placement: Placement,
+  vw: number,
+  vh: number,
+  gap = 6,
+): { x: number; y: number; side: 'top' | 'bottom' | 'left' | 'right' } {
   const m = 8
   const [side0, align = 'center'] = placement.split('-') as [string, string?]
   let side = side0 as 'top' | 'bottom' | 'left' | 'right'
@@ -163,7 +182,12 @@ export function place(anchor: Rect, w: number, h: number, placement: Placement, 
   else if (side === 'left' && anchor.left - gap - w < m) side = 'right'
   if (side === 'bottom' || side === 'top') {
     y = side === 'bottom' ? below : above
-    x = align === 'start' ? anchor.left : align === 'end' ? anchor.left + anchor.width - w : anchor.left + anchor.width / 2 - w / 2
+    x =
+      align === 'start'
+        ? anchor.left
+        : align === 'end'
+          ? anchor.left + anchor.width - w
+          : anchor.left + anchor.width / 2 - w / 2
   } else {
     x = side === 'right' ? anchor.left + anchor.width + gap : anchor.left - gap - w
     y = align === 'start' ? anchor.top : anchor.top + anchor.height / 2 - h / 2

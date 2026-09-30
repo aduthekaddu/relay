@@ -2,7 +2,7 @@
 // custom views and the action panel. Rendering + selection live here; the
 // palette's search field forwards ↑ ↓ Enter ⌘Enter → to the active list
 // through PaletteContext, so focus never leaves the input.
-import { createContext, type ComponentChildren } from 'preact'
+import { type ComponentChildren, createContext } from 'preact'
 import { useContext, useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks'
 import { cx } from '../lib/util'
 import { Icon } from '../ui/Icon'
@@ -52,7 +52,15 @@ export interface PaletteListProps {
 const optionId = (listId: string, i: number) => `${listId}-o${i}`
 
 /** Sectioned, keyboard-driven list of palette items. */
-export function PaletteList({ sections, loading, empty, slot = 'list', onRun, label = 'Results', resetKey }: PaletteListProps) {
+export function PaletteList({
+  sections,
+  loading,
+  empty,
+  slot = 'list',
+  onRun,
+  label = 'Results',
+  resetKey,
+}: PaletteListProps) {
   const api = useContext(PaletteContext)
   const flat: Ranked[] = []
   for (const s of sections) for (const r of s.items) flat.push(r)
@@ -64,7 +72,8 @@ export function PaletteList({ sections, loading, empty, slot = 'list', onRun, la
   const pointerMoved = useRef(false)
   const listId = slot === 'panel' ? `${api?.listId}-panel` : (api?.listId ?? 'palette-list')
 
-  const clamp = (i: number) => (flatRef.current.length ? Math.max(0, Math.min(flatRef.current.length - 1, i)) : 0)
+  const clamp = (i: number) =>
+    flatRef.current.length ? Math.max(0, Math.min(flatRef.current.length - 1, i)) : 0
   const select = (i: number) => {
     selRef.current = clamp(i)
     setSel(selRef.current)
@@ -110,7 +119,9 @@ export function PaletteList({ sections, loading, empty, slot = 'list', onRun, la
   }, [current?.id, sel, slot])
 
   useLayoutEffect(() => {
-    root.current?.querySelector(`#${CSS.escape(optionId(listId, clamp(selRef.current)))}`)?.scrollIntoView({ block: 'nearest' })
+    root.current
+      ?.querySelector(`#${CSS.escape(optionId(listId, clamp(selRef.current)))}`)
+      ?.scrollIntoView({ block: 'nearest' })
   }, [sel, flat.length])
 
   if (!flat.length && !loading) return <div class="pal-empty-wrap">{empty}</div>
@@ -195,7 +206,11 @@ function PaletteRow({ id, ranked, active, touch, onHover, onRun, onActions }: Ro
       role="option"
       aria-selected={active}
       tabIndex={-1}
-      class={cx('pal-row', active && 'is-active', item.actions?.some((a) => a.danger) && 'pal-row--has-danger')}
+      class={cx(
+        'pal-row',
+        active && 'is-active',
+        item.actions?.some((a) => a.danger) && 'pal-row--has-danger',
+      )}
       onPointerEnter={onHover}
       onClick={onRun}
       onKeyDown={(e) => {
@@ -203,7 +218,11 @@ function PaletteRow({ id, ranked, active, touch, onHover, onRun, onActions }: Ro
       }}
     >
       <span class="pal-row__icon">
-        {item.icon ? <Icon name={item.icon} size={item.icon.startsWith('glyph:') ? 16 : 16} /> : <Icon name="command" />}
+        {item.icon ? (
+          <Icon name={item.icon} size={item.icon.startsWith('glyph:') ? 16 : 16} />
+        ) : (
+          <Icon name="command" />
+        )}
         {item.status && <StatusDot status={item.status} size="sm" class="pal-row__status" />}
       </span>
       <span class="pal-row__main">

@@ -75,7 +75,11 @@ export function dotRows(ch: string): string[] {
 }
 
 /** Lit dot coordinates [col,row] for a string, with a 1-column gap between cells. */
-export function dotLayout(text: string): { cols: number; on: Array<[number, number]>; off: Array<[number, number]> } {
+export function dotLayout(text: string): {
+  cols: number
+  on: Array<[number, number]>
+  off: Array<[number, number]>
+} {
   const on: Array<[number, number]> = []
   const off: Array<[number, number]> = []
   const chars = [...text]

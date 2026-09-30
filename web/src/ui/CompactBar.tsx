@@ -23,7 +23,15 @@ export interface CompactBarProps {
  * on phones, where the app header and tab bar are hidden:
  * ‹ back · title · status · menu. Safe-area aware.
  */
-export function CompactBar({ back, title, subtitle, status, actions, onTitleClick, class: className }: CompactBarProps) {
+export function CompactBar({
+  back,
+  title,
+  subtitle,
+  status,
+  actions,
+  onTitleClick,
+  class: className,
+}: CompactBarProps) {
   const goBack = () => {
     if (back) return
     if (history.length > 1) history.back()
@@ -37,7 +45,13 @@ export function CompactBar({ back, title, subtitle, status, actions, onTitleClic
   )
   return (
     <header class={cx('compact-bar', className)}>
-      <Button variant="icon" icon="chevron-left" label="Back" href={back} onClick={back ? undefined : goBack} />
+      <Button
+        variant="icon"
+        icon="chevron-left"
+        label="Back"
+        href={back}
+        onClick={back ? undefined : goBack}
+      />
       {onTitleClick ? (
         <button type="button" class="compact-bar__main" onClick={onTitleClick}>
           {titleBody}

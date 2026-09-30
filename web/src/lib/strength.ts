@@ -12,9 +12,28 @@ export interface Strength {
 }
 
 const COMMON = [
-  'password', 'passw0rd', 'qwerty', 'letmein', 'welcome', 'admin', 'iloveyou', 'monkey', 'dragon',
-  'football', 'baseball', 'master', 'shadow', 'sunshine', 'princess', 'abc123', '123456', 'relay',
-  'trustno1', 'secret', 'login', 'changeme',
+  'password',
+  'passw0rd',
+  'qwerty',
+  'letmein',
+  'welcome',
+  'admin',
+  'iloveyou',
+  'monkey',
+  'dragon',
+  'football',
+  'baseball',
+  'master',
+  'shadow',
+  'sunshine',
+  'princess',
+  'abc123',
+  '123456',
+  'relay',
+  'trustno1',
+  'secret',
+  'login',
+  'changeme',
 ]
 const SEQUENCES = ['abcdefghijklmnopqrstuvwxyz', '0123456789', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm']
 
@@ -61,7 +80,8 @@ export function passwordStrength(pw: string, context: string[] = []): Strength {
   else if (bits < 68) score = 3
   else score = 4
   const labels = ['Too short', 'Weak', 'Fair', 'Good', 'Strong'] as const
-  if (!hint && score < 4) hint = pw.length < 14 ? 'Longer is stronger — try a short phrase.' : 'Mix in another word.'
+  if (!hint && score < 4)
+    hint = pw.length < 14 ? 'Longer is stronger — try a short phrase.' : 'Mix in another word.'
   if (score === 4) hint = ''
   return { score, label: labels[score], hint, bits }
 }

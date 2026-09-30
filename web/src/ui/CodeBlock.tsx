@@ -24,7 +24,16 @@ export interface CodeBlockProps {
  * Syntax-highlighted code. Renders plain text instantly (no layout shift)
  * and swaps in highlighting once highlight.js and the language load.
  */
-export function CodeBlock({ code, lang, filename, lineNumbers = false, wrap = false, maxHeight, copy = true, class: className }: CodeBlockProps) {
+export function CodeBlock({
+  code,
+  lang,
+  filename,
+  lineNumbers = false,
+  wrap = false,
+  maxHeight,
+  copy = true,
+  class: className,
+}: CodeBlockProps) {
   const [html, setHtml] = useState<string | null>(null)
   useEffect(() => {
     let live = true

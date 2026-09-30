@@ -12,7 +12,12 @@ function readModes(): Set<MockMode> {
     sessionStorage.setItem(KEY, q)
   }
   const raw = q ?? sessionStorage.getItem(KEY) ?? ''
-  return new Set(raw.split(',').map((s) => s.trim()).filter(Boolean) as MockMode[])
+  return new Set(
+    raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean) as MockMode[],
+  )
 }
 
 export const modes = readModes()
@@ -69,7 +74,12 @@ export interface MockResponse {
 export const ok = (json: unknown): MockResponse => ({ status: 200, json })
 export const noContent = (): MockResponse => ({ status: 204 })
 export const accepted = (json: unknown = { ok: true }): MockResponse => ({ status: 202, json })
-export const fail = (status: number, code: string, message: string, extra: Record<string, unknown> = {}): MockResponse => ({
+export const fail = (
+  status: number,
+  code: string,
+  message: string,
+  extra: Record<string, unknown> = {},
+): MockResponse => ({
   status,
   json: { error: { code, message, ...extra } },
 })
@@ -147,16 +157,19 @@ export class FakeSocket extends EventTarget {
   constructor(url: string, opts: { fail?: boolean } = {}) {
     super()
     this.url = url
-    window.setTimeout(() => {
-      if (opts.fail) {
-        this.fire('error', new Event('error'))
-        this.end(1006, '')
-        return
-      }
-      this.readyState = 1
-      this.fire('open', new Event('open'))
-      this.opened()
-    }, 40 + Math.random() * 80)
+    window.setTimeout(
+      () => {
+        if (opts.fail) {
+          this.fire('error', new Event('error'))
+          this.end(1006, '')
+          return
+        }
+        this.readyState = 1
+        this.fire('open', new Event('open'))
+        this.opened()
+      },
+      40 + Math.random() * 80,
+    )
   }
 
   /** Called once open; subclasses start talking here. */
@@ -168,7 +181,8 @@ export class FakeSocket extends EventTarget {
     if (this.readyState !== 1) return
     if (typeof data === 'string') this.onClientText(data)
     else if (data instanceof Blob) void data.arrayBuffer().then((b) => this.onClientBinary(new Uint8Array(b)))
-    else if (ArrayBuffer.isView(data)) this.onClientBinary(new Uint8Array(data.buffer, data.byteOffset, data.byteLength))
+    else if (ArrayBuffer.isView(data))
+      this.onClientBinary(new Uint8Array(data.buffer, data.byteOffset, data.byteLength))
     else this.onClientBinary(new Uint8Array(data as ArrayBuffer))
   }
 
@@ -188,7 +202,10 @@ export class FakeSocket extends EventTarget {
 
   pushText(obj: unknown): void {
     if (this.readyState !== 1) return
-    this.fire('message', new MessageEvent('message', { data: typeof obj === 'string' ? obj : JSON.stringify(obj) }))
+    this.fire(
+      'message',
+      new MessageEvent('message', { data: typeof obj === 'string' ? obj : JSON.stringify(obj) }),
+    )
   }
 
   pushBinary(bytes: Uint8Array | string): void {

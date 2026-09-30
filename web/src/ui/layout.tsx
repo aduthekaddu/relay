@@ -24,7 +24,13 @@ export interface CardProps extends JSX.HTMLAttributes<HTMLDivElement> {
 
 /** A rounded surface-1 container with a hairline. */
 export function Card({ href, pad = 'md', tone = 'default', class: className, children, ...rest }: CardProps) {
-  const cls = cx('card', `card--pad-${pad}`, tone !== 'default' && `card--${tone}`, href && 'card--link', className as string)
+  const cls = cx(
+    'card',
+    `card--pad-${pad}`,
+    tone !== 'default' && `card--${tone}`,
+    href && 'card--link',
+    className as string,
+  )
   if (href)
     return (
       <a href={href} class={cls} {...(rest as JSX.HTMLAttributes<HTMLAnchorElement>)}>
@@ -126,7 +132,9 @@ export function ListRow({
   const inner = (
     <>
       {leading !== undefined && (
-        <span class="row__leading">{typeof leading === 'string' ? <Icon name={leading} size={18} /> : leading}</span>
+        <span class="row__leading">
+          {typeof leading === 'string' ? <Icon name={leading} size={18} /> : leading}
+        </span>
       )}
       <span class="row__main">
         <span class="row__title">{title}</span>
@@ -136,15 +144,31 @@ export function ListRow({
       {trailing && <span class="row__trailing">{trailing}</span>}
     </>
   )
-  const cls = cx('row-item', (href || onClick) && 'row-item--interactive', selected && 'is-selected', className)
+  const cls = cx(
+    'row-item',
+    (href || onClick) && 'row-item--interactive',
+    selected && 'is-selected',
+    className,
+  )
   return (
     <li class="list__item" onContextMenu={onContextMenu}>
       {href ? (
-        <a class={cls} href={href} aria-current={selected ? 'true' : undefined} aria-disabled={disabled || undefined}>
+        <a
+          class={cls}
+          href={href}
+          aria-current={selected ? 'true' : undefined}
+          aria-disabled={disabled || undefined}
+        >
           {inner}
         </a>
       ) : onClick ? (
-        <button type="button" class={cls} onClick={onClick} disabled={disabled} aria-pressed={selected || undefined}>
+        <button
+          type="button"
+          class={cls}
+          onClick={onClick}
+          disabled={disabled}
+          aria-pressed={selected || undefined}
+        >
           {inner}
         </button>
       ) : (
@@ -180,7 +204,15 @@ export interface TableProps<T> {
 }
 
 /** Dense data table (processes, services). */
-export function Table<T>({ columns, rows, rowKey, onRowClick, caption, empty, class: className }: TableProps<T>) {
+export function Table<T>({
+  columns,
+  rows,
+  rowKey,
+  onRowClick,
+  caption,
+  empty,
+  class: className,
+}: TableProps<T>) {
   return (
     <div class={cx('table-wrap', className)}>
       <table class="table">
@@ -311,7 +343,15 @@ export interface EmptyStateProps {
 }
 
 /** Empty states are invitations: one sentence + one primary action. */
-export function EmptyState({ glyph = 'empty', hue, title, body, action, size = 'md', class: className }: EmptyStateProps) {
+export function EmptyState({
+  glyph = 'empty',
+  hue,
+  title,
+  body,
+  action,
+  size = 'md',
+  class: className,
+}: EmptyStateProps) {
   return (
     <div class={cx('empty', `empty--${size}`, className)}>
       <Glyph name={glyph} size={size === 'sm' ? 32 : 56} color={hue} state="active" class="empty__glyph" />
@@ -343,12 +383,18 @@ export function Skeleton({ width, height = 14, lines = 1, radius, class: classNa
             // biome-ignore lint/suspicious/noArrayIndexKey: decorative
             key={i}
             class="skeleton"
-            style={{ width: i === lines - 1 ? '62%' : width ?? '100%', height, borderRadius: radius }}
+            style={{ width: i === lines - 1 ? '62%' : (width ?? '100%'), height, borderRadius: radius }}
           />
         ))}
       </span>
     )
-  return <span class={cx('skeleton', className)} aria-hidden="true" style={{ width: width ?? '100%', height, borderRadius: radius }} />
+  return (
+    <span
+      class={cx('skeleton', className)}
+      aria-hidden="true"
+      style={{ width: width ?? '100%', height, borderRadius: radius }}
+    />
+  )
 }
 
 // ------------------------------------------------------------ Progress
@@ -390,7 +436,15 @@ export interface ProgressRingProps {
 }
 
 /** Circular progress (quotas, disk). */
-export function ProgressRing({ value, size = 44, stroke = 4, label, tone = 'default', children, class: className }: ProgressRingProps) {
+export function ProgressRing({
+  value,
+  size = 44,
+  stroke = 4,
+  label,
+  tone = 'default',
+  children,
+  class: className,
+}: ProgressRingProps) {
   const v = clamp(value, 0, 1)
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
@@ -475,7 +529,12 @@ export function Tabs<T extends string>({ items, value, onChange, label, class: c
           </>
         )
         return it.href ? (
-          <a key={it.id} href={it.href} class={cx('tabs__tab', on && 'is-on')} aria-current={on ? 'page' : undefined}>
+          <a
+            key={it.id}
+            href={it.href}
+            class={cx('tabs__tab', on && 'is-on')}
+            aria-current={on ? 'page' : undefined}
+          >
             {body}
           </a>
         ) : (
@@ -540,7 +599,13 @@ export function PathBar({ value, home, hrefFor, class: className }: PathBarProps
           return (
             <li key={s.path || `gap${i}`}>
               {s.path === '' ? (
-                <span class="pathbar__gap" title={segs.slice(1, -3).map((x) => x.label).join('/')}>
+                <span
+                  class="pathbar__gap"
+                  title={segs
+                    .slice(1, -3)
+                    .map((x) => x.label)
+                    .join('/')}
+                >
                   …
                 </span>
               ) : last ? (

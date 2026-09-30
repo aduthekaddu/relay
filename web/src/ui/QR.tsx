@@ -18,7 +18,10 @@ interface Matrix {
   dark: (r: number, c: number) => boolean
 }
 
-type QrFactory = (type: number, level: 'L' | 'M' | 'Q' | 'H') => {
+type QrFactory = (
+  type: number,
+  level: 'L' | 'M' | 'Q' | 'H',
+) => {
   addData(s: string): void
   make(): void
   getModuleCount(): number
@@ -27,7 +30,9 @@ type QrFactory = (type: number, level: 'L' | 'M' | 'Q' | 'H') => {
 
 let lib: Promise<QrFactory> | null = null
 function loadLib(): Promise<QrFactory> {
-  lib ??= import('qrcode-generator').then((m) => ((m as unknown as { default?: QrFactory }).default ?? (m as unknown as QrFactory)))
+  lib ??= import('qrcode-generator').then(
+    (m) => (m as unknown as { default?: QrFactory }).default ?? (m as unknown as QrFactory),
+  )
   return lib
 }
 
@@ -62,10 +67,20 @@ export function QR({ value, size = 176, label, class: className }: QRProps) {
   const dots = []
   for (let r = 0; r < m.n; r++)
     for (let c = 0; c < m.n; c++)
-      if (m.dark(r, c) && !inFinder(r, c, m.n)) dots.push(<circle key={`${r}.${c}`} cx={c + quiet + 0.5} cy={r + quiet + 0.5} r={0.46} />)
+      if (m.dark(r, c) && !inFinder(r, c, m.n))
+        dots.push(<circle key={`${r}.${c}`} cx={c + quiet + 0.5} cy={r + quiet + 0.5} r={0.46} />)
   const finder = (x: number, y: number) => (
     <g key={`f${x}.${y}`}>
-      <rect x={x + quiet + 0.5} y={y + quiet + 0.5} width={6} height={6} rx={1.6} fill="none" stroke="currentColor" stroke-width={1} />
+      <rect
+        x={x + quiet + 0.5}
+        y={y + quiet + 0.5}
+        width={6}
+        height={6}
+        rx={1.6}
+        fill="none"
+        stroke="currentColor"
+        stroke-width={1}
+      />
       <rect x={x + quiet + 2} y={y + quiet + 2} width={3} height={3} rx={0.8} />
     </g>
   )

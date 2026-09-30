@@ -15,7 +15,10 @@ const LABELS: Record<Status, string> = {
 }
 
 /** Map a terminal/agent activity (+ attention, exit code) to a Status. */
-export function statusOf(activity: Activity | undefined, opts: { attention?: boolean; exitCode?: number } = {}): Status {
+export function statusOf(
+  activity: Activity | undefined,
+  opts: { attention?: boolean; exitCode?: number } = {},
+): Status {
   if (opts.attention || activity === 'waiting') return 'needs-you'
   if (activity === 'working') return 'working'
   if (activity === 'exited') return opts.exitCode && opts.exitCode !== 0 ? 'failed' : 'exited'

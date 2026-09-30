@@ -7,7 +7,7 @@
 // lucide icons are registered explicitly so the bundle only contains the
 // ones in use: `registerIcons({ 'git-branch': GitBranch })` from the module
 // that needs them (usually an area's commands.ts).
-import type { ComponentType } from 'preact'
+
 import {
   ArrowRight,
   Bell,
@@ -47,6 +47,7 @@ import {
   WifiOff,
   X,
 } from 'lucide-preact'
+import type { ComponentType } from 'preact'
 import { cx } from '../lib/util'
 import { AgentMark } from './AgentMark'
 import { Glyph } from './Glyph'
@@ -133,7 +134,12 @@ export function Icon({ name, size = 16, label, class: className }: IconProps) {
       </span>
     )
   return (
-    <span class={cls} role={label ? 'img' : undefined} aria-label={label} aria-hidden={label ? undefined : true}>
+    <span
+      class={cls}
+      role={label ? 'img' : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
+    >
       <C size={size} strokeWidth={1.75} aria-hidden />
     </span>
   )

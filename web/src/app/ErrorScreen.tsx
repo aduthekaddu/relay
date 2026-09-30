@@ -20,7 +20,10 @@ interface BoundaryState {
 export class ErrorBoundary extends Component<BoundaryProps, BoundaryState> {
   override state: BoundaryState = { error: null, key: this.props.resetKey }
 
-  static override getDerivedStateFromProps(props: BoundaryProps, state: BoundaryState): Partial<BoundaryState> | null {
+  static override getDerivedStateFromProps(
+    props: BoundaryProps,
+    state: BoundaryState,
+  ): Partial<BoundaryState> | null {
     return props.resetKey !== state.key ? { error: null, key: props.resetKey } : null
   }
 
@@ -32,14 +35,17 @@ export class ErrorBoundary extends Component<BoundaryProps, BoundaryState> {
   }
 
   override render() {
-    if (this.state.error) return <ErrorScreen error={this.state.error} onRetry={() => this.setState({ error: null })} />
+    if (this.state.error)
+      return <ErrorScreen error={this.state.error} onRetry={() => this.setState({ error: null })} />
     return this.props.children
   }
 }
 
 export function ErrorScreen({ error, onRetry }: { error: Error; onRetry: () => void }) {
   const [details, setDetails] = useState(false)
-  const chunk = /dynamically imported module|Failed to fetch|Importing a module script failed/i.test(error.message)
+  const chunk = /dynamically imported module|Failed to fetch|Importing a module script failed/i.test(
+    error.message,
+  )
   return (
     <div class="screen-center" role="alert">
       <EmptyState
@@ -72,10 +78,17 @@ export function ErrorScreen({ error, onRetry }: { error: Error; onRetry: () => v
       />
       {!chunk && (
         <div class="error-details">
-          <button type="button" class="link-quiet" aria-expanded={details} onClick={() => setDetails((d) => !d)}>
+          <button
+            type="button"
+            class="link-quiet"
+            aria-expanded={details}
+            onClick={() => setDetails((d) => !d)}
+          >
             {details ? 'Hide details' : 'Show details'}
           </button>
-          {details && <pre class="error-details__pre">{`${error.name}: ${error.message}\n${(error.stack ?? '').split('\n').slice(1, 6).join('\n')}`}</pre>}
+          {details && (
+            <pre class="error-details__pre">{`${error.name}: ${error.message}\n${(error.stack ?? '').split('\n').slice(1, 6).join('\n')}`}</pre>
+          )}
         </div>
       )}
     </div>
@@ -121,9 +134,17 @@ export function Unreachable({ onRetry }: { onRetry: () => Promise<unknown> }) {
         glyph="relay"
         hue="var(--signal)"
         title="Couldn’t reach the machine"
-        body={left > 0 ? `Retrying in ${left}s. Check that Relay is running and this device is online.` : 'Retrying…'}
+        body={
+          left > 0
+            ? `Retrying in ${left}s. Check that Relay is running and this device is online.`
+            : 'Retrying…'
+        }
         action={
-          <Button variant="secondary" icon="refresh-cw" onClick={() => void onRetry().finally(() => setAttempt((a) => a + 1))}>
+          <Button
+            variant="secondary"
+            icon="refresh-cw"
+            onClick={() => void onRetry().finally(() => setAttempt((a) => a + 1))}
+          >
             Retry now
           </Button>
         }

@@ -23,9 +23,11 @@ export class FakeEvents extends FakeSocket {
   protected override opened(): void {
     sockets.add(this)
     this.pushText({ type: 'hello', at: new Date().toISOString(), data: db.info })
-    for (const t of db.terminals) this.pushText({ type: 'terminal.updated', at: new Date().toISOString(), data: t })
+    for (const t of db.terminals)
+      this.pushText({ type: 'terminal.updated', at: new Date().toISOString(), data: t })
     this.every(1000, () => {
-      if (this.topics.has('metrics')) this.pushText({ type: 'metrics', at: new Date().toISOString(), data: metricsAt(Date.now()) })
+      if (this.topics.has('metrics'))
+        this.pushText({ type: 'metrics', at: new Date().toISOString(), data: metricsAt(Date.now()) })
     })
     // Keep working sessions visibly alive.
     this.every(3500, () => {
@@ -93,7 +95,9 @@ function banner(t: TerminalSession): string {
       `${c('38;5;209', '●')} Reading ${c('1', 'internal/share/link.go')}`,
       `${c('38;5;209', '●')} Editing ${c('1', 'internal/share/sign.go')} ${c('32', '+42')} ${c('31', '-7')}`,
       '',
-      t.attention ? `${c('33', '?')} ${t.attention.message ?? 'Waiting for input'} ${c('2', '(y/n)')}` : `${c('2', '›')} ${t.preview ?? ''}`,
+      t.attention
+        ? `${c('33', '?')} ${t.attention.message ?? 'Waiting for input'} ${c('2', '(y/n)')}`
+        : `${c('2', '›')} ${t.preview ?? ''}`,
     )
   } else if (t.preview) {
     lines.push(t.preview)
@@ -132,7 +136,9 @@ export class FakeTerminal extends FakeSocket {
       let n = 0
       this.every(900, () => {
         n++
-        this.pushBinary(`${c('2', new Date().toLocaleTimeString())} ${t.kind === 'agent' ? `${c('38;5;209', '●')} thinking… step ${n}` : `GET /api/items ${c('32', '200')} ${(4 + (n % 9)).toString()}ms`}\r\n`)
+        this.pushBinary(
+          `${c('2', new Date().toLocaleTimeString())} ${t.kind === 'agent' ? `${c('38;5;209', '●')} thinking… step ${n}` : `GET /api/items ${c('32', '200')} ${(4 + (n % 9)).toString()}ms`}\r\n`,
+        )
       })
     }
     this.pushBinary(`${c('32', '$')} `)

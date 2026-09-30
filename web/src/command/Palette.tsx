@@ -100,7 +100,10 @@ function useProviders(query: string, active: boolean, version: number): Record<s
 
 /** Items for a pushed list view (debounced when async). */
 function useViewItems(view: PaletteView | null, query: string): { items: PaletteItem[]; loading: boolean } {
-  const [state, setState] = useState<{ items: PaletteItem[]; loading: boolean }>({ items: [], loading: false })
+  const [state, setState] = useState<{ items: PaletteItem[]; loading: boolean }>({
+    items: [],
+    loading: false,
+  })
   useEffect(() => {
     if (!view?.items) return
     const ctrl = new AbortController()
@@ -158,7 +161,10 @@ export default function Palette() {
   const [selected, setSelected] = useState<{ item: PaletteItem | null; optionId?: string }>({ item: null })
   const [panelFor, setPanelFor] = useState<PaletteItem | null>(null)
   const listId = useMemo(() => `pal${++seq}`, [])
-  const controllers = useRef<{ list: ListController | null; panel: ListController | null }>({ list: null, panel: null })
+  const controllers = useRef<{ list: ListController | null; panel: ListController | null }>({
+    list: null,
+    panel: null,
+  })
   const input = useRef<HTMLInputElement>(null)
   const argRefs = useRef<Array<HTMLInputElement | null>>([])
   const root = useRef<HTMLDivElement>(null)
@@ -214,7 +220,10 @@ export default function Palette() {
     sections = composed.sections
     loading = composed.loading
   } else if (top.view.items) {
-    const ranked = top.view.filter === false ? viewItems.items.map((item) => ({ item, score: 0 })) : rankItems(query, viewItems.items)
+    const ranked =
+      top.view.filter === false
+        ? viewItems.items.map((item) => ({ item, score: 0 }))
+        : rankItems(query, viewItems.items)
     sections = groupRanked(ranked, { fallback: top.view.title })
     loading = viewItems.loading && !viewItems.items.length ? 'Loading…' : false
   }
@@ -343,18 +352,37 @@ export default function Palette() {
   }
 
   const title = top.view?.title
-  const placeholder = top.view?.placeholder ?? (top.view ? `Search ${top.view.title.toLowerCase()}…` : 'Search or run a command…')
+  const placeholder =
+    top.view?.placeholder ??
+    (top.view ? `Search ${top.view.title.toLowerCase()}…` : 'Search or run a command…')
   const argsFor = selected.item?.args?.length && !panelFor ? selected.item : null
-  const primaryLabel = selected.item ? (selected.item.view ? 'Open' : (selected.item.runLabel ?? (selected.item.link ? 'Open' : 'Run'))) : null
+  const primaryLabel = selected.item
+    ? selected.item.view
+      ? 'Open'
+      : (selected.item.runLabel ?? (selected.item.link ? 'Open' : 'Run'))
+    : null
 
   const panelSections: Section[] = panelFor
     ? [
         {
           title: panelFor.title,
           items: [
-            { item: { id: `${panelFor.id}#primary`, title: primaryLabel ?? 'Open', icon: 'corner-down-left', shortcut: ['enter'] }, score: 0 },
+            {
+              item: {
+                id: `${panelFor.id}#primary`,
+                title: primaryLabel ?? 'Open',
+                icon: 'corner-down-left',
+                shortcut: ['enter'],
+              },
+              score: 0,
+            },
             ...(panelFor.actions ?? []).map((a, i) => ({
-              item: { id: `${panelFor.id}#${a.id}`, title: a.title, icon: a.icon, shortcut: a.shortcut ?? (i === 0 ? ['mod', 'enter'] : undefined) },
+              item: {
+                id: `${panelFor.id}#${a.id}`,
+                title: a.title,
+                icon: a.icon,
+                shortcut: a.shortcut ?? (i === 0 ? ['mod', 'enter'] : undefined),
+              },
               score: 0,
             })),
           ],
@@ -443,7 +471,11 @@ export default function Palette() {
                 <LazyView view={top.view} props={{ ctx, query, pop }} />
               ) : (
                 <PaletteList
-                  sections={noResults ? groupRanked(noResultItems(query).map((item) => ({ item, score: 0 }))) : sections}
+                  sections={
+                    noResults
+                      ? groupRanked(noResultItems(query).map((item) => ({ item, score: 0 })))
+                      : sections
+                  }
                   loading={loading}
                   resetKey={`${stack.length}:${query}`}
                   label={title ?? 'Results'}
@@ -511,7 +543,11 @@ export default function Palette() {
 }
 
 function PaletteEmpty({ view }: { view: PaletteView | null }) {
-  return <div class="pal-empty">{view ? `Nothing in ${view.title.toLowerCase()} yet.` : 'Type to search commands, sessions and files.'}</div>
+  return (
+    <div class="pal-empty">
+      {view ? `Nothing in ${view.title.toLowerCase()} yet.` : 'Type to search commands, sessions and files.'}
+    </div>
+  )
 }
 
 function errorText(e: unknown): string {

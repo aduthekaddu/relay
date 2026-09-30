@@ -34,7 +34,9 @@ export function Splitter({
   second,
   class: className,
 }: SplitterProps) {
-  const [ratio, setRatio] = useState(() => (storageKey ? load(`relay.split.${storageKey}`, initial) : initial))
+  const [ratio, setRatio] = useState(() =>
+    storageKey ? load(`relay.split.${storageKey}`, initial) : initial,
+  )
   const root = useRef<HTMLDivElement>(null)
   const row = direction === 'row'
 

@@ -89,8 +89,8 @@ p {
   text-wrap: pretty;
 }
 
-ul[role='list'],
-ol[role='list'] {
+ul[role="list"],
+ol[role="list"] {
   list-style: none;
   padding: 0;
 }
@@ -223,9 +223,9 @@ table {
   }
 }
 
-:root[data-motion='reduce'] *,
-:root[data-motion='reduce'] *::before,
-:root[data-motion='reduce'] *::after {
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] *::before,
+:root[data-motion="reduce"] *::after {
   animation-duration: 1ms !important;
   animation-iteration-count: 1 !important;
   transition-property: opacity, color, background-color, border-color !important;

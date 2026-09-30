@@ -32,7 +32,12 @@ const SCOPE_ICON: Record<SearchScope, string> = {
   scripts: 'command',
 }
 
-const ACTIVITY: Record<string, Status> = { working: 'working', waiting: 'needs-you', idle: 'idle', exited: 'exited' }
+const ACTIVITY: Record<string, Status> = {
+  working: 'working',
+  waiting: 'needs-you',
+  idle: 'idle',
+  exited: 'exited',
+}
 
 /** Map one server result to a palette row (pure; tested). */
 export function resultItem(r: SearchResult): PaletteItem {
@@ -40,10 +45,28 @@ export function resultItem(r: SearchResult): PaletteItem {
   const path = r.meta?.path
   if (r.link) {
     const link = r.link
-    actions.push({ id: 'new-tab', title: 'Open in new tab', icon: 'external-link', shortcut: ['mod', 'enter'], run: () => void window.open(link, '_blank', 'noopener') })
-    actions.push({ id: 'copy-link', title: 'Copy link', icon: 'copy', run: (ctx) => ctx.copy(new URL(link, location.origin).href, 'Link') })
+    actions.push({
+      id: 'new-tab',
+      title: 'Open in new tab',
+      icon: 'external-link',
+      shortcut: ['mod', 'enter'],
+      run: () => void window.open(link, '_blank', 'noopener'),
+    })
+    actions.push({
+      id: 'copy-link',
+      title: 'Copy link',
+      icon: 'copy',
+      run: (ctx) => ctx.copy(new URL(link, location.origin).href, 'Link'),
+    })
   }
-  if (path) actions.push({ id: 'copy-path', title: 'Copy path', icon: 'copy', shortcut: ['mod', 'shift', 'C'], run: (ctx) => ctx.copy(path, 'Path') })
+  if (path)
+    actions.push({
+      id: 'copy-path',
+      title: 'Copy path',
+      icon: 'copy',
+      shortcut: ['mod', 'shift', 'C'],
+      run: (ctx) => ctx.copy(path, 'Path'),
+    })
   const status = r.meta?.activity ? ACTIVITY[r.meta.activity] : undefined
   const agent = r.meta?.agent
   return {
@@ -65,7 +88,12 @@ export function resultItem(r: SearchResult): PaletteItem {
 export function orderResults(results: SearchResult[]): SearchResult[] {
   const best = new Map<string, number>()
   for (const r of results) best.set(r.scope, Math.max(best.get(r.scope) ?? 0, r.score))
-  return [...results].sort((a, b) => (best.get(b.scope) ?? 0) - (best.get(a.scope) ?? 0) || a.scope.localeCompare(b.scope) || b.score - a.score)
+  return [...results].sort(
+    (a, b) =>
+      (best.get(b.scope) ?? 0) - (best.get(a.scope) ?? 0) ||
+      a.scope.localeCompare(b.scope) ||
+      b.score - a.score,
+  )
 }
 
 export const serverSearch: PaletteProvider = {

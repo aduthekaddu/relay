@@ -19,7 +19,10 @@ function readPalette(el: HTMLElement): Palette {
     const n = Number.parseInt(m[1], 16)
     return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
   }
-  return { dot: parse(cs.getPropertyValue('--text'), [237, 233, 224]), signal: parse(cs.getPropertyValue('--signal'), [255, 91, 31]) }
+  return {
+    dot: parse(cs.getPropertyValue('--text'), [237, 233, 224]),
+    signal: parse(cs.getPropertyValue('--signal'), [255, 91, 31]),
+  }
 }
 
 /** Brightness 0..1 of the dot at grid (x, y) at time t (s). Pure; tested. */

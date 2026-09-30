@@ -25,7 +25,10 @@ export interface EventMap {
 }
 
 export type EventName = EventType | '*'
-export type Handler<K extends string> = (data: K extends keyof EventMap ? EventMap[K] : unknown, ev: RelayEvent) => void
+export type Handler<K extends string> = (
+  data: K extends keyof EventMap ? EventMap[K] : unknown,
+  ev: RelayEvent,
+) => void
 
 export type SocketState = 'idle' | 'connecting' | 'open' | 'closed'
 export interface StatusInfo {

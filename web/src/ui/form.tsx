@@ -87,7 +87,15 @@ export const Input = forwardRef(function Input(
 ) {
   const fp = useFieldProps(id as string | undefined, invalid)
   return (
-    <span class={cx('input', `input--${size}`, mono && 'input--mono', !!icon && 'input--icon', className as string)}>
+    <span
+      class={cx(
+        'input',
+        `input--${size}`,
+        mono && 'input--mono',
+        !!icon && 'input--icon',
+        className as string,
+      )}
+    >
       {icon && <Icon name={icon} size={16} class="input__icon" />}
       <input ref={ref} class="input__el" {...fp} {...rest} />
       {trailing && <span class="input__trailing">{trailing}</span>}
@@ -135,7 +143,8 @@ export interface SelectOption {
   disabled?: boolean
 }
 
-export interface SelectProps extends Omit<JSX.HTMLAttributes<HTMLSelectElement>, 'size' | 'onChange' | 'value'> {
+export interface SelectProps
+  extends Omit<JSX.HTMLAttributes<HTMLSelectElement>, 'size' | 'onChange' | 'value'> {
   options: SelectOption[]
   value: string
   onChange: (value: string) => void
@@ -144,7 +153,16 @@ export interface SelectProps extends Omit<JSX.HTMLAttributes<HTMLSelectElement>,
 }
 
 /** Native select, styled. Native keeps mobile pickers and accessibility. */
-export function Select({ options, value, onChange, size = 'md', invalid, class: className, id, ...rest }: SelectProps) {
+export function Select({
+  options,
+  value,
+  onChange,
+  size = 'md',
+  invalid,
+  class: className,
+  id,
+  ...rest
+}: SelectProps) {
   const fp = useFieldProps(id as string | undefined, invalid)
   return (
     <span class={cx('select', `select--${size}`, className as string)}>
@@ -215,7 +233,15 @@ export interface CheckboxProps {
 }
 
 /** Checkbox with a proper label hit area. */
-export function Checkbox({ checked, onChange, label, indeterminate, disabled, id, class: className }: CheckboxProps) {
+export function Checkbox({
+  checked,
+  onChange,
+  label,
+  indeterminate,
+  disabled,
+  id,
+  class: className,
+}: CheckboxProps) {
   const fp = useFieldProps(id)
   const ref = useRef<HTMLInputElement>(null)
   useLayoutEffect(() => {
@@ -261,10 +287,25 @@ export interface SegmentedProps<T extends string> {
 }
 
 /** A small exclusive choice (radio group) — e.g. Carbon / Paper / Auto. */
-export function Segmented<T extends string>({ options, value, onChange, label, size = 'md', class: className }: SegmentedProps<T>) {
-  const idx = Math.max(0, options.findIndex((o) => o.value === value))
+export function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+  label,
+  size = 'md',
+  class: className,
+}: SegmentedProps<T>) {
+  const idx = Math.max(
+    0,
+    options.findIndex((o) => o.value === value),
+  )
   const onKey = (e: KeyboardEvent) => {
-    const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
+    const d =
+      e.key === 'ArrowRight' || e.key === 'ArrowDown'
+        ? 1
+        : e.key === 'ArrowLeft' || e.key === 'ArrowUp'
+          ? -1
+          : 0
     if (!d) return
     e.preventDefault()
     const next = options[(idx + d + options.length) % options.length]
@@ -318,7 +359,18 @@ export interface SliderProps {
 }
 
 /** Range slider with an optional mono readout. */
-export function Slider({ value, onChange, min = 0, max = 100, step = 1, label, format, disabled, id, class: className }: SliderProps) {
+export function Slider({
+  value,
+  onChange,
+  min = 0,
+  max = 100,
+  step = 1,
+  label,
+  format,
+  disabled,
+  id,
+  class: className,
+}: SliderProps) {
   const fp = useFieldProps(id)
   const pct = ((value - min) / (max - min || 1)) * 100
   return (

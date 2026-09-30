@@ -122,7 +122,13 @@ function ToastView({ t }: { t: ToastItem }) {
       onMouseLeave={arm}
     >
       <span class="toast__icon">
-        {t.kind === 'attention' ? <span class="status status--needs-you"><span class="status__dot" /></span> : <Icon name={ICONS[t.kind]} size={16} />}
+        {t.kind === 'attention' ? (
+          <span class="status status--needs-you">
+            <span class="status__dot" />
+          </span>
+        ) : (
+          <Icon name={ICONS[t.kind]} size={16} />
+        )}
       </span>
       <div class="toast__text">
         <p class="toast__msg">{t.message}</p>
