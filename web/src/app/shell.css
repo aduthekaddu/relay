@@ -708,7 +708,7 @@ html[data-keyboard] .tabbar {
 }
 
 .inbox__bar--sheet {
-  padding: 0 0 var(--s-2);
+  padding: 0 0 var(--s-2) var(--s-1);
   min-height: 36px;
 }
 
@@ -728,6 +728,10 @@ html[data-keyboard] .tabbar {
   display: grid;
   gap: var(--s-3);
   padding: var(--s-5) var(--s-4);
+}
+
+.sheet .inbox__list {
+  padding: var(--s-1) 0;
 }
 
 .inbox__list {

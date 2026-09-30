@@ -1,0 +1,233 @@
+/* Sign-in: the dot field behind, the RELAY board word, one calm card. */
+
+.login {
+  position: relative;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--s-6) + var(--safe-top)) var(--s-4) calc(var(--s-6) + var(--safe-bottom));
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.login-field {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.login-col {
+  position: relative;
+  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+}
+
+.login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.login-word {
+  color: var(--text);
+}
+
+.login-host {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+
+.login-card {
+  padding: var(--s-7) var(--s-7) var(--s-6);
+  border-radius: var(--r-lg);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-float);
+  animation: login-in var(--d-4) var(--ease-out) both;
+}
+
+@keyframes login-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.login-title {
+  font-size: var(--fs-title);
+  line-height: var(--lh-title);
+  font-weight: 650;
+  font-stretch: 110%;
+  letter-spacing: -0.02em;
+}
+
+.login-lede {
+  margin-top: var(--s-2);
+  color: var(--text-2);
+}
+
+.login-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  margin-top: var(--s-6);
+}
+
+.login-submit {
+  width: 100%;
+  margin-top: var(--s-5);
+}
+
+.login-or + .login-submit {
+  margin-top: 0;
+}
+
+.login-or {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin: var(--s-4) 0;
+  color: var(--text-3);
+  font-size: var(--fs-small);
+}
+
+.login-or::before,
+.login-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line-strong);
+}
+
+.login-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+  padding: var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: var(--fs-small);
+  line-height: var(--lh-small);
+}
+
+.login-error .icon {
+  margin-top: 2px;
+}
+
+.login-eye {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin-right: -6px;
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+}
+
+.login-eye:hover {
+  color: var(--text);
+}
+
+.login-totp .input__el {
+  text-align: center;
+  font-size: 24px;
+  letter-spacing: 0.4em;
+  font-variant-numeric: tabular-nums;
+}
+
+.login-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: var(--s-4);
+  color: var(--text-2);
+  font-size: var(--fs-small);
+}
+
+.login-link:hover {
+  color: var(--text);
+}
+
+.login-fine {
+  margin-top: var(--s-4);
+  font-size: var(--fs-small);
+  color: var(--text-3);
+  text-align: center;
+}
+
+.login-foot {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+  color: var(--text-3);
+}
+
+/* Strength meter */
+.strength {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-top: calc(-1 * var(--s-2));
+  min-height: 20px;
+}
+
+.strength__dots {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.strength__dots i {
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-4);
+  transition: background-color var(--d-2) var(--ease-out);
+}
+
+.strength--danger i.on {
+  background: var(--danger);
+}
+
+.strength--warn i.on {
+  background: var(--warn);
+}
+
+.strength--ok i.on {
+  background: var(--ok);
+}
+
+.strength__text {
+  display: flex;
+  gap: var(--s-2);
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+
+.strength__text strong {
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .login {
+    place-items: start center;
+    padding-top: calc(var(--s-8) + var(--safe-top));
+  }
+  .login-card {
+    padding: var(--s-6) var(--s-5) var(--s-5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-card {
+    animation: none;
+  }
+}

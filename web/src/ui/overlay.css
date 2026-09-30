@@ -243,6 +243,7 @@
 
 .sheet__body {
   flex: 1 1 auto;
+  padding: var(--s-2) var(--s-4) calc(var(--s-5) + var(--safe-bottom));
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;

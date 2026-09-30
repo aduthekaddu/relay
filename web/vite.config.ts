@@ -1,15 +1,56 @@
+import { createHash } from 'node:crypto'
 import { brotliCompressSync, gzipSync, constants } from 'node:zlib'
 import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import preact from '@preact/preset-vite'
 import { defineConfig, type Plugin } from 'vite'
 
+// Fill the service worker's precache list and version from the bundle:
+// the entry chunk, its static imports, their CSS and the two fonts.
+function serviceWorker(): Plugin {
+  let shell: string[] = []
+  return {
+    name: 'relay-sw',
+    apply: 'build',
+    generateBundle(_opts, bundle) {
+      const files = new Set<string>()
+      const add = (name: string) => {
+        const c = bundle[name]
+        if (!c || files.has(name)) return
+        files.add(name)
+        if (c.type === 'chunk') {
+          for (const i of c.imports) add(i)
+          for (const css of c.viteMetadata?.importedCss ?? []) files.add(css)
+        }
+      }
+      for (const [name, c] of Object.entries(bundle)) if (c.type === 'chunk' && c.isEntry) add(name)
+      for (const name of Object.keys(bundle)) if (/(mona-sans-latin-standard|jetbrains-mono-latin-wght)-normal[^/]*\.woff2$/.test(name)) files.add(name)
+      shell = ['/', '/offline.html', '/manifest.webmanifest', '/boot.js', '/icons/icon.svg', '/icons/icon-192.png', ...[...files].map((f) => `/${f}`)]
+    },
+    closeBundle: {
+      sequential: true,
+      order: 'pre',
+      handler() {
+        const p = resolve(__dirname, '../internal/web/dist/sw.js')
+        const version = createHash('sha256').update(shell.join('\n')).digest('hex').slice(0, 12)
+        const src = readFileSync(p, 'utf8')
+          .replace('__RELAY_VERSION__', version)
+          .replace('self.__RELAY_SHELL__ ||', `${JSON.stringify(shell)} ||`)
+        writeFileSync(p, src)
+      },
+    },
+  }
+}
+
 // Pre-compress built assets so the Go server can serve .br/.gz directly.
 function precompress(): Plugin {
   return {
     name: 'relay-precompress',
     apply: 'build',
-    closeBundle() {
+    closeBundle: {
+      sequential: true,
+      order: 'post',
+      handler() {
       const out = resolve(__dirname, '../internal/web/dist')
       const walk = (dir: string) => {
         for (const name of readdirSync(dir)) {
@@ -23,6 +64,7 @@ function precompress(): Plugin {
         }
       }
       walk(out)
+      },
     },
   }
 }
@@ -52,7 +94,7 @@ function fontPreload(): Plugin {
 const relay = process.env.RELAY_DEV_URL || 'http://127.0.0.1:47700'
 
 export default defineConfig({
-  plugins: [preact(), fontPreload(), precompress()],
+  plugins: [preact(), fontPreload(), serviceWorker(), precompress()],
   resolve: { alias: { '@': resolve(__dirname, 'src') } },
   build: {
     outDir: '../internal/web/dist',

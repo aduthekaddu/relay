@@ -70,7 +70,7 @@ export function Field({ label, hint, error, hideLabel, aside, id, class: classNa
   )
 }
 
-export interface InputProps extends Omit<JSX.HTMLAttributes<HTMLInputElement>, 'size' | 'icon'> {
+export interface InputProps extends Omit<JSX.InputHTMLAttributes<HTMLInputElement>, 'size' | 'icon'> {
   size?: 'sm' | 'md' | 'lg'
   /** Leading icon inside the field. */
   icon?: string
@@ -95,7 +95,7 @@ export const Input = forwardRef(function Input(
   )
 })
 
-export interface TextAreaProps extends JSX.HTMLAttributes<HTMLTextAreaElement> {
+export interface TextAreaProps extends JSX.TextareaHTMLAttributes<HTMLTextAreaElement> {
   invalid?: boolean
   mono?: boolean
   /** Grow with content up to this many rows (default 8). */

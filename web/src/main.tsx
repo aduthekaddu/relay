@@ -15,7 +15,9 @@ async function boot() {
   trackTheme()
   trackViewport()
   registerAll()
-  render(<App />, document.getElementById('app')!)
+  const root = document.getElementById('app')!
+  root.textContent = '' // drop the static boot splash; Preact owns #app from here
+  render(<App />, root)
 
   if (import.meta.env.PROD && 'serviceWorker' in navigator && window.isSecureContext) {
     const register = () =>

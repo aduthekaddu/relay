@@ -7,6 +7,7 @@ import { useEffect, useRef } from 'preact/hooks'
 import { useLocation } from 'preact-iso'
 import { setVisiblePath } from '../api/events'
 import { closePalette, openPalette, palette, togglePalette } from '../command/state'
+import { safeNext } from '../lib/url'
 import { cx, isMac } from '../lib/util'
 import { info } from '../state/info'
 import { setNotificationNavigator } from '../state/notifications'
@@ -191,6 +192,17 @@ export function Shell({ route, children }: ShellProps) {
     setNotificationNavigator((url) => navigate(url))
   }, [loc.route])
   useEffect(() => interceptLinks(), [])
+  // Notification clicks from the service worker route this tab.
+  useEffect(() => {
+    const sw = navigator.serviceWorker
+    if (!sw) return
+    const onMsg = (e: MessageEvent) => {
+      const d = e.data as { type?: string; url?: string } | null
+      if (d?.type === 'relay:navigate' && typeof d.url === 'string') navigate(safeNext(d.url))
+    }
+    sw.addEventListener('message', onMsg)
+    return () => sw.removeEventListener('message', onMsg)
+  }, [])
   useEffect(() => {
     const off = installShortcuts(
       {
