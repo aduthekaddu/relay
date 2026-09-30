@@ -176,7 +176,7 @@ func TestRecorderFormat(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rec.Output(start.Add(100*time.Millisecond), []byte("hello \xe2\x82"))  // split €
+	rec.Output(start.Add(100*time.Millisecond), []byte("hello \xe2\x82")) // split €
 	rec.Output(start.Add(200*time.Millisecond), []byte("\xac world\r\n")) // rest of €
 	rec.Resize(start.Add(time.Second), 100, 30)
 	rec.Output(start.Add(1500*time.Millisecond), []byte("\x1b[1mbold\x1b[0m"))
