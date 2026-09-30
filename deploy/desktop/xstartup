@@ -1,0 +1,33 @@
+#!/bin/sh
+# Relay desktop session. Started by Relay (internal/apps) once Xvnc is up,
+# with DISPLAY, XAUTHORITY and RELAY_DESKTOP_DIR set. Everything it reads
+# lives in RELAY_DESKTOP_DIR, so it never touches the user's own openbox,
+# tint2 or X session configuration. The desktop ends when openbox exits.
+set -u
+
+: "${RELAY_DESKTOP_DIR:?RELAY_DESKTOP_DIR is not set}"
+cd "${HOME:-/}" || exit 1
+
+# Carbon background; the X root cursor instead of the default X cross.
+xsetroot -solid '#0b0b0c' -cursor_name left_ptr 2>/dev/null
+
+# No screen blanking or DPMS inside a remote session.
+if command -v xset >/dev/null 2>&1; then
+	xset s off -dpms 2>/dev/null
+fi
+
+# Panel: launcher, taskbar, clock. Restarted if it crashes, for as long
+# as the X server is alive.
+if command -v tint2 >/dev/null 2>&1; then
+	(
+		while xsetroot -name "" 2>/dev/null; do
+			tint2 -c "$RELAY_DESKTOP_DIR/tint2rc" >/dev/null 2>&1
+			sleep 2
+		done
+	) &
+fi
+
+# The window manager is the session. Its themes are looked up in
+# RELAY_DESKTOP_DIR/share/themes first (the Relay theme), then system-wide.
+XDG_DATA_DIRS="$RELAY_DESKTOP_DIR/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" \
+	exec openbox --config-file "$RELAY_DESKTOP_DIR/openbox/rc.xml"
