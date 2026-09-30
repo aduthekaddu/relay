@@ -13,7 +13,9 @@ import (
 	_ "github.com/robfig/cron/v3"
 	_ "golang.org/x/crypto/acme/autocert"
 	_ "golang.org/x/crypto/argon2"
+	_ "golang.org/x/image/webp"
 	_ "golang.org/x/sys/unix"
+	_ "golang.org/x/term"
 	_ "modernc.org/sqlite"
 	_ "rsc.io/qr"
 )
