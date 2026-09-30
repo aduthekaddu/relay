@@ -1,0 +1,86 @@
+---
+/**
+ * FlapBoard — split-flap departures board. The markup is the final frame
+ * (readable with JS off); the `flapboard` island upgrades every cell into
+ * a four-leaf flap and cycles statuses while the board is on screen.
+ * The visual board is hidden from assistive tech; each row carries a
+ * plain-text equivalent.
+ */
+interface Row {
+  agent: string
+  task: string
+  where?: string
+  since?: string
+  status: string
+}
+interface Props {
+  rows: Row[]
+  /** Status sequences per row (index-aligned); omit for a static board. */
+  cycle?: string[][]
+  size?: 'lg' | 'sm'
+  label?: string
+  interval?: number
+  class?: string
+}
+
+const { rows, cycle = [], size = 'lg', label = 'Agent sessions', interval = 3200, class: cls } = Astro.props
+const compact = size === 'sm'
+const cols = compact
+  ? [
+      { key: 'agent', title: 'Agent', w: 7 },
+      { key: 'task', title: 'Task', w: 12 },
+      { key: 'status', title: 'Status', w: 9 },
+    ]
+  : [
+      { key: 'agent', title: 'Agent', w: 8 },
+      { key: 'task', title: 'Task', w: 13 },
+      { key: 'where', title: 'Repo', w: 4, hideSm: true },
+      { key: 'since', title: 'Since', w: 5, hideSm: true },
+      { key: 'status', title: 'Status', w: 9 },
+    ]
+const statusCol = cols.findIndex((c) => c.key === 'status')
+const slug = (s: string) => s.toLowerCase().replace(/\s+/g, '-')
+const cells = (text: string, w: number) => text.toUpperCase().padEnd(w, ' ').slice(0, w).split('')
+---
+
+<div
+  class:list={['flap', `flap-${size}`, cls]}
+  data-island="flapboard"
+  data-cycle={JSON.stringify(cycle)}
+  data-status-col={statusCol}
+  data-interval={interval}
+  role="list"
+  aria-label={label}
+>
+  {
+    !compact && (
+      <div class="flap-head" aria-hidden="true">
+        {cols.map((c) => (
+          <span class:list={['flap-h', { 'hide-sm': c.hideSm }]} style={`--w:${c.w}`}>
+            {c.title}
+          </span>
+        ))}
+      </div>
+    )
+  }
+  {
+    rows.map((r) => {
+      const rec = r as unknown as Record<string, string>
+      return (
+        <div class="flap-row" role="listitem" data-status={slug(r.status)} data-label={`${r.agent.toLowerCase()} ${r.task}`}>
+          <span class="sr-only">{`${r.agent.toLowerCase()} ${r.task}: ${r.status.toLowerCase()}`}</span>
+          <span class="flap-vis" aria-hidden="true">
+            {cols.map((c) => (
+              <span class:list={['flap-field', `flap-${c.key}`, { 'hide-sm': c.hideSm }]} style={`--w:${c.w}`}>
+                {cells(rec[c.key] ?? '', c.w).map((ch) => (
+                  <span class="flap-cell">{ch === ' ' ? '\u00a0' : ch}</span>
+                ))}
+              </span>
+            ))}
+            <span class="flap-lamp" />
+          </span>
+        </div>
+      )
+    })
+  }
+</div>

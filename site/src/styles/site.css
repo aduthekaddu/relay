@@ -393,8 +393,10 @@ main {
 
 /* ---------- reveal defaults ---------- */
 
-/* Elements start visible (no-JS, reduced motion); JS adds .will-reveal. */
-.js .will-reveal {
+/* Elements start visible (no-JS); once the inline head script marks the
+ * page as `.js` they wait for the site script, and `.js-late` (set when
+ * that script never ran) shows everything again. */
+.js:not(.js-late) .will-reveal:not(.is-in) {
   opacity: 0;
   transform: translateY(14px);
 }
@@ -404,6 +406,9 @@ main {
   transition:
     opacity 0.9s var(--ease-out),
     transform 0.9s var(--ease-out);
+}
+.js:not(.js-late) [data-split]:not(.is-split) {
+  visibility: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -418,7 +423,7 @@ main {
   .dot-needs {
     animation: none;
   }
-  .js .will-reveal {
+  .js .will-reveal:not(.is-in) {
     opacity: 1;
     transform: none;
   }

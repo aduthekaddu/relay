@@ -1,0 +1,33 @@
+---
+/**
+ * InstallOneLiner — the install command with a copy button, "Copied"
+ * feedback and a screen-reader status. Without JS the command is plain,
+ * selectable text.
+ */
+import { INSTALL } from '../lib/site'
+
+interface Props {
+  size?: 'md' | 'xl'
+  class?: string
+}
+const { size = 'md', class: cls } = Astro.props
+const [pipeFrom, pipeTo] = INSTALL.split(' | ')
+---
+
+<div class:list={['oneliner', `oneliner-${size}`, cls]} data-island="copy">
+  <span class="ol-prompt mono" aria-hidden="true">$</span>
+  <code class="ol-code" tabindex="0" aria-label="Install command">
+    {pipeFrom}<span class="ol-pipe"> | </span>{pipeTo}
+  </code>
+  <button class="ol-copy" type="button" data-copy={INSTALL} aria-label="Copy install command">
+    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"
+      ><rect x="5" y="5" width="8.5" height="8.5" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.4"></rect><path
+        d="M10.5 3.2A1.8 1.8 0 0 0 8.8 2H4a2 2 0 0 0-2 2v4.8a1.8 1.8 0 0 0 1.2 1.7"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.4"></path></svg
+    >
+    <span data-copy-label>Copy</span>
+  </button>
+  <span class="sr-only" role="status" data-copy-status></span>
+</div>

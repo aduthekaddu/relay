@@ -17,7 +17,7 @@ const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
 
 const sidebar = [
   { label: 'Start here', items: manifest.start.map(({ label, slug }) => ({ label, slug })) },
-  ...manifest.groups.map((g) => ({ label: g.label, collapsed: g.collapsed, autogenerate: { directory: g.directory } })),
+  ...manifest.groups.map((g) => ({ label: g.label, collapsed: g.collapsed, items: [{ autogenerate: { directory: g.directory } }] })),
 ]
 
 export default defineConfig({

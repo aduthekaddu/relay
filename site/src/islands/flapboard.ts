@@ -57,7 +57,7 @@ function setGlyph(h: HTMLElement, ch: string) {
 }
 
 function upgrade(el: HTMLElement): Cell {
-  const ch = (el.textContent || ' ').slice(0, 1)
+  const ch = (el.textContent || ' ').replace(/\u00a0/g, ' ').slice(0, 1) || ' '
   el.textContent = ''
   const top = half('fc-top', ch)
   const bot = half('fc-bot', ch)

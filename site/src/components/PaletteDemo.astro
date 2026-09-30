@@ -1,0 +1,49 @@
+---
+/**
+ * PaletteDemo — the ⌘K command center, typing real queries. The markup
+ * shows the first query's results (readable without JS); the `palette`
+ * island types each query, animates results in and "runs" the top one.
+ */
+import { GLYPHS, QUERIES } from '../lib/palette-data'
+
+interface Props {
+  class?: string
+  /** Show this many queries (default all). */
+  limit?: number
+}
+const { class: cls, limit } = Astro.props
+const queries = limit ? QUERIES.slice(0, limit) : QUERIES
+const first = queries[0]!
+---
+
+<figure class:list={['palette', cls]} data-island="palette" data-queries={JSON.stringify(queries)}>
+  <div class="pal-win" aria-hidden="true">
+    <div class="pal-search">
+      <span class="pal-lens">
+        <svg viewBox="0 0 16 16" width="16" height="16"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"></circle><path d="m10.5 10.5 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg>
+      </span>
+      <span class="pal-q"><span data-q>{first.q}</span><span class="pal-caret"></span></span>
+      <span class="kbd">esc</span>
+    </div>
+    <div class="pal-group mono" data-group>Best match</div>
+    <ul class="pal-list" data-list>
+      {
+        first.items.map((it, i) => (
+          <li class:list={['pal-item', { 'is-active': i === 0 }]} data-glyph={it.glyph}>
+            <span class="pal-glyph">{GLYPHS[it.glyph]}</span>
+            <span class="pal-title">{it.title}</span>
+            <span class="pal-sub">{it.sub}</span>
+            {it.hint && <span class="kbd">{it.hint}</span>}
+          </li>
+        ))
+      }
+    </ul>
+    <div class="pal-foot mono">
+      <span class="pal-toast" data-toast></span>
+      <span class="pal-keys"><span class="kbd">↵</span> Open <span class="kbd">⌘K</span> Actions</span>
+    </div>
+  </div>
+  <figcaption class="sr-only">
+    The Relay command center. Example searches: {queries.map((q) => `“${q.q}” → ${q.items[0]?.title}`).join('; ')}.
+  </figcaption>
+</figure>

@@ -77,6 +77,7 @@ const phoneTerminal: Island = (root) => {
       c.classList.toggle('is-on', on)
       if (on) active = c.dataset.callout || ''
     }
+    for (const c of callouts) c.classList.toggle('is-current', c.dataset.callout === active)
     root.dataset.hl = active
   }
   controllers.set(root, { render })

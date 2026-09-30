@@ -54,3 +54,15 @@ export const QUERIES: PaletteQuery[] = [
     done: 'Copied 11444.09',
   },
 ]
+
+/** Result glyphs (typographic, no icon font). */
+export const GLYPHS: Record<PaletteItem['glyph'], string> = {
+  agents: '✦',
+  terminal: '›_',
+  previews: '◉',
+  system: '◧',
+  files: '▤',
+  ai: '✺',
+  calc: '=',
+  clip: '⧉',
+}

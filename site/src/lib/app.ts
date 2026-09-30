@@ -22,11 +22,11 @@ const islands: Record<string, () => Promise<{ default: Island }>> = {
   palette: () => import('../islands/palette'),
   copy: () => import('../islands/copy'),
   home: () => import('../islands/home'),
-  ticker: () => import('../islands/ticker'),
   tabs: () => import('../islands/tabs'),
   'install-log': () => import('../islands/install-log'),
   nav: () => import('../islands/nav'),
   notification: () => import('../islands/notification'),
+  nightshift: () => import('../islands/nightshift'),
 }
 
 let cleanups: Cleanup[] = []
@@ -34,7 +34,7 @@ let firstLoad = true
 
 function setupLenis() {
   if (runtime.reduced || runtime.lenis) return
-  const lenis = new Lenis({ lerp: 0.12, wheelMultiplier: 1, smoothWheel: true })
+  const lenis = new Lenis({ lerp: 0.12, wheelMultiplier: 1, smoothWheel: true, anchors: { offset: 0 } })
   runtime.lenis = lenis
   lenis.on('scroll', ScrollTrigger.update)
   gsap.ticker.add((t) => lenis.raf(t * 1000))
@@ -76,7 +76,8 @@ function director(boot: boolean): Cleanup {
     if (current === el) return
     current = el
     const name = el.dataset.field!
-    if (name !== 'manual') void field.setTarget(target(name, view()), duration)
+    if (name === 'manual') el.dispatchEvent(new CustomEvent('field:activate'))
+    else void field.setTarget(target(name, view()), duration)
     field.setGain(Number(el.dataset.fieldGain ?? 1))
     quietEl = el.querySelector<HTMLElement>('[data-quiet]')
     quietLevel = Number(quietEl?.dataset.quiet || 0.15)
@@ -91,7 +92,9 @@ function director(boot: boolean): Cleanup {
     void field.setTarget(target(first.dataset.boot!, view()), 0.8)
     bootTimer = window.setTimeout(() => {
       booting = false
-      activate(first, 1.6)
+      // The visitor may have scrolled during the preloader.
+      const live = triggers.find((t) => t.isActive)
+      activate((live?.trigger as HTMLElement | undefined) ?? first, 1.6)
       ScrollTrigger.refresh()
     }, 1150)
   } else {
@@ -263,7 +266,7 @@ function teardown() {
 
 async function onPageLoad() {
   const root = document.documentElement
-  root.classList.add('js')
+  root.classList.add('js', 'app')
   if (runtime.field) root.classList.add('webgl')
   teardown()
   const boot = firstLoad
@@ -280,6 +283,6 @@ async function onPageLoad() {
 document.addEventListener('astro:page-load', () => void onPageLoad())
 document.addEventListener('astro:before-swap', teardown)
 document.addEventListener('astro:after-swap', () => {
-  document.documentElement.classList.add('js')
+  document.documentElement.classList.add('js', 'app')
   if (runtime.field) document.documentElement.classList.add('webgl')
 })
