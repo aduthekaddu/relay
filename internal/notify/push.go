@@ -236,7 +236,11 @@ func (s *Service) sendPush(ctx context.Context, n api.Notification) (int, error)
 func (s *Service) pushOne(ctx context.Context, sub storedSub, payload []byte, urgency webpush.Urgency) error {
 	ctx, cancel := context.WithTimeout(ctx, pushTimeout)
 	defer cancel()
-	res, err := webpush.SendNotificationWithContext(ctx, payload, &webpush.Subscription{
+	// webpush-go appends padding into the message's backing array, so each
+	// concurrent send needs its own copy.
+	msg := make([]byte, len(payload))
+	copy(msg, payload)
+	res, err := webpush.SendNotificationWithContext(ctx, msg, &webpush.Subscription{
 		Endpoint: sub.endpoint,
 		Keys:     webpush.Keys{P256dh: sub.p256dh, Auth: sub.auth},
 	}, &webpush.Options{

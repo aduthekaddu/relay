@@ -454,7 +454,7 @@ func (s *Service) MarkRead(ctx context.Context, ids []string, all bool) ([]strin
 		changed = []string{}
 	}
 	if s.d.Bus != nil && len(changed) > 0 {
-		s.d.Bus.Publish(api.EvNotificationRead, map[string]any{"ids": changed, "all": all})
+		s.d.Bus.Publish(api.EvNotificationRead, api.NotificationsRead{IDs: changed, All: all})
 	}
 	return changed, nil
 }
