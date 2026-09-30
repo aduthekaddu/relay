@@ -13,5 +13,7 @@ func wireSnippets(ctx context.Context, a *App) error {
 		return err
 	}
 	svc.Routes(a.Router)
+	a.D.Search.Add(svc.SnippetProvider())
+	a.D.Search.Add(svc.NoteProvider())
 	return nil
 }

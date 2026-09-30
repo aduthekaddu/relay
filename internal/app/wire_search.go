@@ -12,6 +12,9 @@ func wireSearch(ctx context.Context, a *App) error {
 	if err != nil {
 		return err
 	}
+	if a.D.Search != nil {
+		a.D.Search.Add(svc.ScriptProvider())
+	}
 	svc.Routes(a.Router)
 	return nil
 }
