@@ -3,21 +3,40 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
-    <meta name="theme-color" content="#0b0b0c" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#f3f0e8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b0c" />
     <meta name="color-scheme" content="dark light" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Relay" />
     <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="same-origin" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>Relay</title>
+    <script src="/boot.js"></script>
+    <style>
+      /* Boot splash: painted before any JS/CSS loads, replaced on render. */
+      html { background: #0b0b0c; }
+      html[data-theme='paper'] { background: #f3f0e8; }
+      .boot { position: fixed; inset: 0; display: grid; place-items: center; }
+      .boot svg { width: 40px; height: 40px; opacity: 0; animation: boot-in 400ms 120ms ease-out forwards; }
+      .boot circle { fill: #ede9e0; }
+      html[data-theme='paper'] .boot circle { fill: #16150f; }
+      .boot circle.b { fill: #ff5b1f; animation: boot-blink 1.2s steps(1, end) infinite; }
+      @keyframes boot-in { to { opacity: 1; } }
+      @keyframes boot-blink { 50% { opacity: 0.2; } }
+      @media (prefers-reduced-motion: reduce) { .boot svg, .boot circle.b { animation: none; opacity: 1; } }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app">
+      <div class="boot" aria-hidden="true">
+        <svg viewBox="0 0 7 7"><circle cx="1.5" cy="1.5" r=".41"/><circle cx="2.5" cy="1.5" r=".41"/><circle cx="3.5" cy="1.5" r=".41"/><circle class="b" cx="4.5" cy="1.5" r=".5"/><circle cx="1.5" cy="2.5" r=".41"/><circle cx="4.5" cy="2.5" r=".41"/><circle cx="1.5" cy="3.5" r=".41"/><circle cx="2.5" cy="3.5" r=".41"/><circle cx="3.5" cy="3.5" r=".41"/><circle cx="1.5" cy="4.5" r=".41"/><circle cx="3.5" cy="4.5" r=".41"/><circle cx="1.5" cy="5.5" r=".41"/><circle cx="4.5" cy="5.5" r=".41"/></svg>
+      </div>
+    </div>
+    <noscript>Relay needs JavaScript.</noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
