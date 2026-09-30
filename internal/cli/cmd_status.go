@@ -94,6 +94,9 @@ func runStatus(ctx context.Context, fs *flag.FlagSet, _ []string) error {
 
 func probe(ctx context.Context, socket, path string, sessions bool) componentStatus {
 	h, err := setup.SocketHealth(ctx, socket, path)
+	if setup.Answered(err) {
+		return componentStatus{Running: true, Version: "(health endpoint unavailable)"}
+	}
 	if err != nil {
 		return componentStatus{Error: "not running"}
 	}

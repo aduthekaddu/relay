@@ -112,7 +112,7 @@ func (d *Doctor) Run(ctx context.Context) Report {
 	server := d.checkSocket(ctx, "server", "Web server", d.Paths.CtlSocket, "/api/v1/health")
 	add(ptyd, server)
 	if cfg != nil {
-		add(d.checkListen(ctx, cfg, server.Status == StatusOK))
+		add(d.checkListen(ctx, cfg, server.Status != StatusFail))
 		if c, ok := d.checkDNS(ctx, cfg); ok {
 			add(c)
 		}
@@ -215,6 +215,10 @@ func (d *Doctor) checkDirs() []Check {
 
 func (d *Doctor) checkSocket(ctx context.Context, id, title, socket, path string) Check {
 	h, err := d.Health(ctx, socket, path)
+	if Answered(err) {
+		return Check{ID: id, Title: title, Status: StatusWarn, Detail: "running, but " + path + " answered " + err.Error(),
+			Fix: "update Relay (`relay update`) so both processes are the same version"}
+	}
 	if err != nil {
 		fix := "systemctl --user start relay-ptyd relay"
 		if d.Sys.GOOS() == "darwin" {

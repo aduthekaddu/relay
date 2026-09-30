@@ -3,6 +3,7 @@ package setup
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -15,6 +16,21 @@ type Health struct {
 	OK       bool   `json:"ok"`
 	Version  string `json:"version"`
 	Sessions int    `json:"sessions"`
+}
+
+// StatusError means the socket answered HTTP, but not with 200: the
+// process is running even though its health endpoint is unavailable.
+type StatusError struct {
+	Code   int
+	Status string
+}
+
+func (e *StatusError) Error() string { return "health: " + e.Status }
+
+// Answered reports whether err still proves that a server is listening.
+func Answered(err error) bool {
+	var se *StatusError
+	return errors.As(err, &se)
 }
 
 // SocketHealth GETs path on a unix socket with a 3 second timeout.
@@ -38,7 +54,7 @@ func SocketHealth(ctx context.Context, socket, path string) (*Health, error) {
 	}
 	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("health: %s", res.Status)
+		return nil, &StatusError{Code: res.StatusCode, Status: res.Status}
 	}
 	var h Health
 	if err := json.NewDecoder(io.LimitReader(res.Body, 64<<10)).Decode(&h); err != nil {
@@ -56,6 +72,9 @@ func WaitHealthy(ctx context.Context, socket string, timeout time.Duration) (*He
 		h, err := SocketHealth(ctx, socket, "/api/v1/health")
 		if err == nil {
 			return h, nil
+		}
+		if Answered(err) {
+			return &Health{Version: "(unknown version)"}, nil
 		}
 		last = err
 		if time.Now().After(deadline) {

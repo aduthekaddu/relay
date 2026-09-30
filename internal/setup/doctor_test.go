@@ -193,6 +193,17 @@ func TestDoctorVersionSkew(t *testing.T) {
 	}
 }
 
+func TestDoctorHealthEndpointMissing(t *testing.T) {
+	f := newDoctor(t, "")
+	f.d.Health = func(context.Context, string, string) (*Health, error) {
+		return nil, &StatusError{Code: 404, Status: "404 Not Found"}
+	}
+	c := f.d.checkSocket(context.Background(), "server", "Web server", f.d.Paths.CtlSocket, "/api/v1/health")
+	if c.Status != StatusWarn || !strings.Contains(c.Detail, "running") {
+		t.Errorf("%+v", c)
+	}
+}
+
 func TestHumanBytes(t *testing.T) {
 	for n, want := range map[uint64]string{512: "512 B", 2048: "2.0 KB", 5 << 30: "5.0 GB"} {
 		if got := humanBytes(n); got != want {
