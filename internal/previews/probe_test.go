@@ -125,3 +125,18 @@ func TestDetectFrameworkFromCmdline(t *testing.T) {
 		}
 	}
 }
+
+func TestNonHTTPBackoff(t *testing.T) {
+	tests := []struct {
+		misses int
+		want   time.Duration
+	}{
+		{0, 4 * time.Second}, {1, 4 * time.Second}, {2, 8 * time.Second},
+		{3, 16 * time.Second}, {20, 5 * time.Minute},
+	}
+	for _, tt := range tests {
+		if got := nonHTTPBackoff(tt.misses); got != tt.want {
+			t.Errorf("nonHTTPBackoff(%d) = %v, want %v", tt.misses, got, tt.want)
+		}
+	}
+}

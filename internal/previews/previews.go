@@ -36,7 +36,8 @@ const (
 	notifyAfter     = 3 * time.Second
 	notifyCooldown  = 10 * time.Minute
 	reprobeHTTP     = 30 * time.Second
-	reprobeNonHTTP  = 4 * time.Second
+	reprobeNonHTTP  = 4 * time.Second // doubled per miss, up to reprobeMax
+	reprobeMax      = 5 * time.Minute
 	modeRecheck     = 10 * time.Minute
 	onDemandMinScan = time.Second
 	probeParallel   = 4
@@ -52,6 +53,7 @@ type entry struct {
 	probe     probeResult
 	framework string
 	probedAt  time.Time
+	misses    int // consecutive non-HTTP probes (backoff)
 	firstSeen time.Time
 	notified  bool
 }
@@ -271,7 +273,7 @@ func (s *Service) scan(ctx context.Context) {
 		e.ip = so.IP
 		if e.probedAt.IsZero() ||
 			(e.probe.HTTP && now.Sub(e.probedAt) >= reprobeHTTP) ||
-			(!e.probe.HTTP && now.Sub(e.probedAt) >= reprobeNonHTTP) {
+			(!e.probe.HTTP && now.Sub(e.probedAt) >= nonHTTPBackoff(e.misses)) {
 			toProbe = append(toProbe, e)
 		}
 		next[port] = e
@@ -331,6 +333,11 @@ func (s *Service) runProbes(ctx context.Context, es []*entry, now time.Time) {
 			defer func() { <-sem }()
 			e.probe = s.prober.probe(ctx, probeHost(e.ip), e.port)
 			e.probedAt = now
+			if e.probe.HTTP {
+				e.misses = 0
+			} else {
+				e.misses++
+			}
 			e.framework = e.probe.Framework
 			if e.framework == "" {
 				e.framework = detectFramework(nil, nil, e.info.Cmdline)
@@ -338,6 +345,17 @@ func (s *Service) runProbes(ctx context.Context, es []*entry, now time.Time) {
 		}(e)
 	}
 	wg.Wait()
+}
+
+// nonHTTPBackoff is how long to wait before re-probing a port that did
+// not answer HTTP: a dev server that is still booting is found quickly,
+// while databases and other services are not hammered every few seconds.
+func nonHTTPBackoff(misses int) time.Duration {
+	d := reprobeNonHTTP
+	for i := 1; i < misses && d < reprobeMax; i++ {
+		d *= 2
+	}
+	return min(d, reprobeMax)
 }
 
 // probeHost is the loopback address that reaches a socket bound to ip.
