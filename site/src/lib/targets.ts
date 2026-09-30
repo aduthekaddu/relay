@@ -19,12 +19,13 @@ const m = meta as unknown as Meta
 /** Images whose single warm light is a point source that should blink as the beacon. */
 const POINT_LIGHTS = new Set(['tower', 'rack', 'windows'])
 
-const image = (src: string, name: string, gain: number, focus: [number, number]) =>
+const image = (src: string, name: string, gain: number, focus: [number, number], flip = false) =>
   ({
     kind: 'image',
     src,
     gain,
     focus,
+    flip,
     beacon: POINT_LIGHTS.has(name) ? (m[name]?.beacon ?? null) : null,
   }) as const
 
@@ -35,7 +36,13 @@ export interface View {
 
 export const TARGETS: Record<string, (v: View) => Target> = {
   boot: (v) => ({
-    layers: [{ kind: 'dotfont', text: 'RELAY', h: v.mobile ? 0.16 : 0.34, w: 0.82, y: 0.47 }],
+    // The wordmark lands where the headline is not: the free right column on
+    // desktop, the band between nav and eyebrow on phones.
+    layers: [
+      v.mobile
+        ? { kind: 'dotfont', text: 'RELAY', h: 0.1, w: 0.8, x: 0.5, y: 0.165 }
+        : { kind: 'dotfont', text: 'RELAY', h: 0.3, w: 0.4, x: 0.74, y: 0.42 },
+    ],
     ambient: 0,
   }),
   hero: (v) => ({
@@ -129,7 +136,8 @@ export const TARGETS: Record<string, (v: View) => Target> = {
     ambient: 0.3,
   }),
   'page-desktop': (v) => ({
-    layers: [image(desk, 'desk', 0.85, v.mobile ? [0.16, 0.4] : [0.2, 0.42])],
+    // Mirrored on wide screens so the lit monitor sits opposite the headline.
+    layers: [image(desk, 'desk', 0.85, v.mobile ? [0.16, 0.4] : [0.2, 0.42], !v.mobile)],
     ambient: 0.1,
   }),
   'page-security': (v) => ({

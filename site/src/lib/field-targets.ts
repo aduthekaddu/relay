@@ -29,7 +29,15 @@ export type Layer =
       accent?: boolean
       gain?: number
     }
-  | { kind: 'image'; src: string; focus?: [number, number]; gain?: number; beacon?: [number, number] | null }
+  | {
+      kind: 'image'
+      src: string
+      focus?: [number, number]
+      gain?: number
+      beacon?: [number, number] | null
+      /** Mirror horizontally (focus and beacon are in unmirrored coords). */
+      flip?: boolean
+    }
   | {
       kind: 'device'
       device: 'phone' | 'tablet' | 'laptop'
@@ -163,14 +171,23 @@ export async function rasterize(target: Target, g: Geometry): Promise<Raster> {
       case 'image': {
         const img = await loadImage(l.src)
         if (!img) break
-        const focus = l.focus ?? [0.5, 0.5]
-        const r = coverRect(img.naturalWidth, img.naturalHeight, g.cols, g.rows, focus)
+        const [fx, fy] = l.focus ?? [0.5, 0.5]
+        const r = coverRect(img.naturalWidth, img.naturalHeight, g.cols, g.rows, [l.flip ? 1 - fx : fx, fy])
         ctx.globalAlpha = Math.min(1, l.gain ?? 1)
         ctx.imageSmoothingEnabled = true
-        ctx.drawImage(img, r.x, r.y, r.w, r.h)
+        if (l.flip) {
+          ctx.save()
+          ctx.translate(g.cols, 0)
+          ctx.scale(-1, 1)
+          ctx.drawImage(img, g.cols - r.x - r.w, r.y, r.w, r.h)
+          ctx.restore()
+        } else {
+          ctx.drawImage(img, r.x, r.y, r.w, r.h)
+        }
         ctx.globalAlpha = 1
         if (l.beacon && target.beacon === undefined) {
-          beacon = [(r.x + l.beacon[0] * r.w) * g.pitch, (r.y + l.beacon[1] * r.h) * g.pitch]
+          const bx = l.flip ? 1 - l.beacon[0] : l.beacon[0]
+          beacon = [(r.x + bx * r.w) * g.pitch, (r.y + l.beacon[1] * r.h) * g.pitch]
         }
         break
       }
