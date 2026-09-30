@@ -24,6 +24,12 @@ func newGrok() *Adapter {
 		Interactive: func(bin, prompt, model string) []string {
 			return withPrompt(withFlag([]string{bin}, "-m", model), prompt)
 		},
+		// grok --session-id pins the id of a new conversation (verified with
+		// `grok --help`), so Relay-launched terminals pair exactly.
+		PresetID: func() ([]string, string) {
+			id := newUUID()
+			return []string{"--session-id", id}, id
+		},
 		Resume: func(bin, id string) []string { return []string{bin, "--resume", id} },
 		Fork:   func(bin, id string) []string { return []string{bin, "--resume", id, "--fork-session"} },
 		Headless: func(bin, prompt, model string) []string {
