@@ -39,7 +39,7 @@ function Routes() {
 /** Painted while auth state loads; matches the boot splash in index.html. */
 function Splash() {
   return (
-    <div class="boot" aria-busy="true" aria-label="Loading Relay">
+    <div class="boot" role="status" aria-busy="true" aria-label="Loading Relay">
       <svg viewBox="0 0 7 7" aria-hidden="true">
         {[
           [1, 1],

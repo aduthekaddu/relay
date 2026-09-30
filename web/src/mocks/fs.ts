@@ -175,7 +175,7 @@ export function list(
 ): DirListing | null {
   const p = normalize(path)
   const n = tree.get(p)
-  if (!n || n.type !== 'dir') return null
+  if (n?.type !== 'dir') return null
   let all = [...tree.entries()].filter(([k]) => parentOf(k) === p).map(([k, v]) => entry(k, v))
   const hiddenCount = all.filter((e) => e.hidden).length
   if (!opts.hidden) all = all.filter((e) => !e.hidden)
@@ -209,7 +209,7 @@ export function readText(
 ): { text: string; size: number; modTime: string; truncated: boolean; encoding: string } | null {
   const p = normalize(path)
   const n = tree.get(p)
-  if (!n || n.type !== 'file' || n.text === undefined) return null
+  if (n?.type !== 'file' || n.text === undefined) return null
   return {
     text: n.text,
     size: n.text.length,

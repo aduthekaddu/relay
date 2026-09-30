@@ -14,6 +14,7 @@ export function safeNext(raw: string | null | undefined): string {
     return '/'
   }
   v = v.trim()
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: rejecting control characters is the point
   if (!v.startsWith('/') || v.startsWith('//') || v.startsWith('/\\') || /[\u0000-\u001f\\]/.test(v))
     return '/'
   try {

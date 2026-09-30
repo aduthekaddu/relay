@@ -21,9 +21,7 @@ export function AgentMark({ agent, size = 'md', color, withName = false, class: 
     <span
       class={cx('agent-mark', `agent-mark--${size}`, !withName && className)}
       style={{ '--agent': color || m.color }}
-      role={withName ? undefined : 'img'}
-      aria-label={withName ? undefined : m.name}
-      aria-hidden={withName ? true : undefined}
+      {...(withName ? { 'aria-hidden': true } : { role: 'img', 'aria-label': m.name })}
       title={withName ? undefined : m.name}
     >
       {m.mono}

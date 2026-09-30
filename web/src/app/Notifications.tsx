@@ -168,7 +168,7 @@ export function Inbox({ header = false }: { header?: boolean }) {
                     <time dateTime={n.at}>{ago(n.at)}</time>
                   </span>
                 </span>
-                {!n.read && <span class="inbox-item__dot" aria-label="Unread" />}
+                {!n.read && <span class="inbox-item__dot" role="img" aria-label="Unread" />}
               </button>
               <button
                 type="button"

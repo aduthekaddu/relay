@@ -32,7 +32,6 @@ export const immersiveOverride = signal<boolean | null>(null)
  * that change as `deps` (defaults to title + subtitle + back).
  */
 export function usePageChrome(c: PageChrome, deps: unknown[] = [c.title, c.subtitle, c.back]): void {
-  // biome-ignore lint/correctness/useExhaustiveDependencies: caller controls deps
   useLayoutEffect(() => {
     pageChrome.value = c
     return () => {

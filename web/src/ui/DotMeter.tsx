@@ -35,6 +35,7 @@ export function DotMeter({
   const lit = Math.round(v * dots)
   const tone = v >= danger ? 'danger' : v >= warn ? 'warn' : 'ok'
   return (
+    // biome-ignore lint/a11y/useSemanticElements: <meter> cannot render the dot bitmap
     <span
       class={cx('dot-meter', `dot-meter--${size}`, `dot-meter--${tone}`, className)}
       role="meter"
@@ -47,7 +48,6 @@ export function DotMeter({
     >
       <span class="dot-meter__dots" aria-hidden="true">
         {Array.from({ length: dots }, (_, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: fixed-length decorative row
           <i key={i} class={i < lit ? 'on' : undefined} />
         ))}
       </span>

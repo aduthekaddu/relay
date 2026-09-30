@@ -317,9 +317,8 @@ export interface KbdProps {
 export function Kbd({ keys, class: className }: KbdProps) {
   const labels = keyLabels(keys)
   return (
-    <span class={cx('kbd', className)} aria-label={labels.join(' ')}>
+    <span class={cx('kbd', className)} role="img" aria-label={labels.join(' ')}>
       {labels.map((k, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: static key list
         <kbd key={i}>{k}</kbd>
       ))}
     </span>
@@ -380,7 +379,6 @@ export function Skeleton({ width, height = 14, lines = 1, radius, class: classNa
       <span class={cx('skeleton-stack', className)} aria-hidden="true">
         {Array.from({ length: lines }, (_, i) => (
           <span
-            // biome-ignore lint/suspicious/noArrayIndexKey: decorative
             key={i}
             class="skeleton"
             style={{ width: i === lines - 1 ? '62%' : (width ?? '100%'), height, borderRadius: radius }}
@@ -513,6 +511,8 @@ export function Tabs<T extends string>({ items, value, onChange, label, class: c
     ref.current?.querySelectorAll<HTMLElement>('[role=tab]')[next]?.focus()
   }
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: arrow-key roving for the tablist
+    // biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-label names the tablist or the link group
     <div
       ref={ref}
       class={cx('tabs', className)}
@@ -593,6 +593,7 @@ export function PathBar({ value, home, hrefFor, class: className }: PathBarProps
   const shown = segs.length > 5 ? [segs[0], { label: '…', path: '' }, ...segs.slice(-3)] : segs
   return (
     <nav class={cx('pathbar', className)} aria-label="Path">
+      {/* biome-ignore lint/a11y/noRedundantRoles: restores list semantics Safari drops with list-style: none */}
       <ol role="list">
         {shown.map((s, i) => {
           const last = i === shown.length - 1

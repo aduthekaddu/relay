@@ -1012,17 +1012,15 @@ export function searchAll(query: string, scopes: SearchScope[] | null, limit: nu
   )
   push(
     'files',
-    fs
-      .allPaths()
-      .map((p) => ({
-        scope: 'files',
-        id: p,
-        title: p.slice(p.lastIndexOf('/') + 1),
-        subtitle: p.replace(db.HOME, '~'),
-        link: `/files${p.replace(db.HOME, '')}`,
-        score: score(p.slice(p.lastIndexOf('/') + 1), needle) * 0.9,
-        meta: { path: p },
-      })),
+    fs.allPaths().map((p) => ({
+      scope: 'files',
+      id: p,
+      title: p.slice(p.lastIndexOf('/') + 1),
+      subtitle: p.replace(db.HOME, '~'),
+      link: `/files${p.replace(db.HOME, '')}`,
+      score: score(p.slice(p.lastIndexOf('/') + 1), needle) * 0.9,
+      meta: { path: p },
+    })),
   )
   push(
     'previews',

@@ -164,5 +164,6 @@ export function DotField() {
       window.removeEventListener('pointermove', onMove)
     }
   }, [])
+  // biome-ignore lint/a11y/noAriaHiddenOnFocusable: a canvas without tabindex is not focusable; the field is decorative
   return <canvas ref={ref} class="login-field" aria-hidden="true" />
 }

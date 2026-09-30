@@ -210,7 +210,6 @@ export default function Palette() {
   // ---------------------------------------------------------------- data
   const results = useProviders(query, top.view === null, version)
   const viewItems = useViewItems(top.view, query)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: version tracks registry changes
   const commands = useMemo(() => allCommands().map(commandItem), [version])
 
   let sections: Section[] = []
@@ -231,7 +230,6 @@ export default function Palette() {
 
   // Reset inline args when the selection changes.
   const selId = selected.item?.id
-  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed on the selected id
   useEffect(() => {
     setArgs({})
     setArgError(null)
@@ -436,6 +434,7 @@ export default function Palette() {
                 onInput={(e) => setQuery((e.target as HTMLInputElement).value)}
               />
               {argsFor && (
+                // biome-ignore lint/a11y/useSemanticElements: inline chips; a fieldset breaks the single-line field layout
                 <div class="pal-args" role="group" aria-label={`${argsFor.title} arguments`}>
                   {argsFor.args?.map((a, i) => (
                     <input

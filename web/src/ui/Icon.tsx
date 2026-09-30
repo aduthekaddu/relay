@@ -134,12 +134,7 @@ export function Icon({ name, size = 16, label, class: className }: IconProps) {
       </span>
     )
   return (
-    <span
-      class={cls}
-      role={label ? 'img' : undefined}
-      aria-label={label}
-      aria-hidden={label ? undefined : true}
-    >
+    <span class={cls} {...(label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': true })}>
       <C size={size} strokeWidth={1.75} aria-hidden />
     </span>
   )

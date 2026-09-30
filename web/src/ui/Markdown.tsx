@@ -47,7 +47,6 @@ export function Markdown({ source, compact, class: className }: MarkdownProps) {
     }
   }, [html])
   if (html === null) return <Skeleton lines={3} class={className} />
-  // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitised by DOMPurify in markdown-impl
   return (
     <div
       ref={ref}

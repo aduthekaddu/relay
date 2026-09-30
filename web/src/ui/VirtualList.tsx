@@ -113,6 +113,7 @@ function VirtualListInner<T>(
   const rows: ComponentChildren[] = []
   for (let i = first; i < last; i++) {
     rows.push(
+      // biome-ignore lint/a11y/useSemanticElements: absolutely positioned rows inside a scroll spacer
       <div
         key={itemKey(items[i], i)}
         class="vlist__row"
@@ -126,12 +127,14 @@ function VirtualListInner<T>(
     )
   }
   return (
+    // biome-ignore lint/a11y/useSemanticElements: virtualised list needs a div scroller
     <div
       ref={el}
       class={cx('vlist', className)}
       onScroll={onScroll}
       role="list"
       aria-label={label}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: scrollable regions must be keyboard focusable
       tabIndex={0}
     >
       <div class="vlist__spacer" style={{ height: items.length * itemHeight }}>

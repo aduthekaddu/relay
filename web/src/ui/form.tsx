@@ -215,7 +215,7 @@ export function Switch({ checked, onChange, label, disabled, id, class: classNam
   )
   if (!label) return control
   return (
-    <label class={cx('check-row', className)}>
+    <label class={cx('check-row', className)} htmlFor={fp.id}>
       {control}
       <span class="check-row__label">{label}</span>
     </label>
@@ -325,6 +325,7 @@ export function Segmented<T extends string>({
     >
       <span class="segmented__thumb" aria-hidden="true" />
       {options.map((o) => (
+        // biome-ignore lint/a11y/useSemanticElements: styled radiogroup with roving tabindex
         <button
           key={o.value}
           type="button"

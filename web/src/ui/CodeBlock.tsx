@@ -76,7 +76,6 @@ export function CodeBlock({
           </span>
         )}
         {html !== null ? (
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: highlight.js output escapes the source text
           <pre class="code__pre hljs" dangerouslySetInnerHTML={{ __html: html }} />
         ) : (
           <pre class="code__pre">{code}</pre>

@@ -110,6 +110,7 @@ function ToastView({ t }: { t: ToastItem }) {
     }
   }
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: swipe-to-dismiss gesture; the close button is the accessible path
     <div
       ref={ref}
       class={cx('toast', `toast--${t.kind}`)}

@@ -101,7 +101,10 @@ class LiveEvents {
 
   on<K extends EventName>(type: K, fn: Handler<K>): () => void {
     let set = this.handlers.get(type)
-    if (!set) this.handlers.set(type, (set = new Set()))
+    if (!set) {
+      set = new Set()
+      this.handlers.set(type, set)
+    }
     set.add(fn as Handler<string>)
     return () => set?.delete(fn as Handler<string>)
   }

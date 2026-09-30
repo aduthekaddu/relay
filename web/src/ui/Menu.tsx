@@ -142,6 +142,9 @@ export function Menu({
           isSep(it) ? (
             <hr key={it.id} class="menu__sep" />
           ) : (
+            // biome-ignore lint/a11y/useKeyWithClickEvents: keyboard handled on the menu via aria-activedescendant
+            // biome-ignore lint/a11y/noStaticElementInteractions: role is menuitem or menuitemcheckbox
+            // biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-checked is valid for menuitemcheckbox
             <div
               key={it.id}
               id={`mi-${it.id}`}

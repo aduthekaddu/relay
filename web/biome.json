@@ -33,6 +33,24 @@
       "formatter": {
         "enabled": false
       }
+    },
+    {
+      "includes": [
+        "**/*.css"
+      ],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noImportantStyles": "off"
+          },
+          "style": {
+            "noDescendingSpecificity": "off"
+          },
+          "correctness": {
+            "noUnknownTypeSelector": "off"
+          }
+        }
+      }
     }
   ]
 }

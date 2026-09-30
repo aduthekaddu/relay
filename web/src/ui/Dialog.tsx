@@ -45,6 +45,7 @@ export function Dialog({
     <Portal>
       <div class="dialog-layer">
         <div class="scrim scrim--in" onClick={dismissable ? onClose : undefined} aria-hidden="true" />
+        {/* biome-ignore lint/a11y/useAriaPropsSupportedByRole: role is dialog or alertdialog */}
         <div
           ref={ref}
           class={cx('dialog', `dialog--${size}`, className)}

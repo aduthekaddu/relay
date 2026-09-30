@@ -174,7 +174,7 @@ function TabBar({ area }: { area: AreaId }) {
                 state={active ? 'active' : 'idle'}
                 color={active ? 'var(--hue)' : undefined}
               />
-              {badge > 0 && <span class="tab__badge" aria-label={`${badge} need you`} />}
+              {badge > 0 && <span class="tab__badge" role="img" aria-label={`${badge} need you`} />}
             </span>
             <span class="tab__label">{a.label}</span>
           </a>

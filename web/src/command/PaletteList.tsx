@@ -79,7 +79,6 @@ export function PaletteList({
     setSel(selRef.current)
   }
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on query change only
   useLayoutEffect(() => select(0), [resetKey])
   // Keep the selection valid when the list shrinks.
   if (sel > 0 && sel >= flat.length) {
@@ -139,6 +138,7 @@ export function PaletteList({
       }}
     >
       {sections.map((s) => (
+        // biome-ignore lint/a11y/useSemanticElements: listbox option groups must be role=group
         <div class="pal-section" role="group" aria-label={s.title} key={s.title}>
           {slot === 'list' && (
             <div class="pal-section__title" aria-hidden="true">
@@ -228,12 +228,7 @@ function PaletteRow({ id, ranked, active, touch, onHover, onRun, onActions }: Ro
       <span class="pal-row__main">
         <span class="pal-row__title">
           {highlightRuns(item.title, indexes).map((run, k) =>
-            run.hit ? (
-              // biome-ignore lint/suspicious/noArrayIndexKey: static runs
-              <mark key={k}>{run.text}</mark>
-            ) : (
-              run.text
-            ),
+            run.hit ? <mark key={k}>{run.text}</mark> : run.text,
           )}
         </span>
         {item.subtitle && <span class="pal-row__sub">{item.subtitle}</span>}
