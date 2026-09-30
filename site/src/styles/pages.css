@@ -1558,3 +1558,9 @@
 .webgl .nosignal .dotword {
   display: none;
 }
+.split .feature-row {
+  grid-template-columns: 40px 1fr;
+}
+.split .feature-row p {
+  grid-column: 2;
+}
