@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Relay web server. Rendered by `relay setup` into ~/Library/LaunchAgents. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>dev.relay.serve</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>{{ xml .Binary }}</string>
+    <string>serve</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+{{- range .EnvPairs }}
+    <key>{{ xml .Key }}</key>
+    <string>{{ xml .Value }}</string>
+{{- end }}
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <dict>
+    <key>SuccessfulExit</key>
+    <false/>
+  </dict>
+  <key>ThrottleInterval</key>
+  <integer>5</integer>
+  <key>Umask</key>
+  <integer>63</integer>
+  <key>StandardOutPath</key>
+  <string>{{ xml .LogDir }}/relay.log</string>
+  <key>StandardErrorPath</key>
+  <string>{{ xml .LogDir }}/relay.log</string>
+</dict>
+</plist>

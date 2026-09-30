@@ -1,0 +1,116 @@
+# Release: on a `v*` tag, build the web bundle once, cross-compile the single
+# binary for linux/darwin x amd64/arm64 with the web app embedded, write
+# checksums.txt and publish a GitHub release with generated notes.
+# scripts/install.sh and `relay update` consume exactly these asset names.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  web:
+    name: build web
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: web
+      - run: pnpm build
+        working-directory: web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: internal/web/dist
+          if-no-files-found: error
+          retention-days: 1
+
+  build:
+    name: relay_${{ matrix.goos }}_${{ matrix.goarch }}
+    needs: web
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: true
+      matrix:
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: internal/web/dist
+      - name: go test (host only)
+        if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
+        run: go test -count=1 ./...
+      - name: build
+        env:
+          CGO_ENABLED: "0"
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          commit="$(git rev-parse --short HEAD)"
+          date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          pkg=github.com/aduthekaddu/relay/internal/version
+          mkdir -p dist
+          go build -trimpath \
+            -ldflags "-s -w -X ${pkg}.Version=${VERSION} -X ${pkg}.Commit=${commit} -X ${pkg}.Date=${date}" \
+            -o "dist/relay_${GOOS}_${GOARCH}" ./cmd/relay
+      - uses: actions/upload-artifact@v4
+        with:
+          name: relay_${{ matrix.goos }}_${{ matrix.goarch }}
+          path: dist/relay_${{ matrix.goos }}_${{ matrix.goarch }}
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: publish release
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: relay_*
+          path: dist
+          merge-multiple: true
+      - name: checksums
+        working-directory: dist
+        run: |
+          chmod +x relay_*
+          sha256sum relay_* > checksums.txt
+          cat checksums.txt
+      - name: create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          prerelease=""
+          case "$TAG" in *-*) prerelease="--prerelease" ;; esac
+          gh release create "$TAG" dist/relay_* dist/checksums.txt \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Relay $TAG" \
+            --generate-notes \
+            --verify-tag $prerelease
