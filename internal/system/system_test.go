@@ -199,6 +199,7 @@ func TestStartPublishesOnlyWhenSubscribed(t *testing.T) {
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
+	startAt := time.Now()
 	go func() { done <- s.Start(ctx) }()
 
 	select {
@@ -212,14 +213,29 @@ func TestStartPublishesOnlyWhenSubscribed(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("no metrics event while subscribed")
 	}
+	subscribed <- false
+	select {
+	case ev := <-sub.C:
+		t.Fatalf("published metrics after unsubscribe: %+v", ev)
+	case <-time.After(1200 * time.Millisecond):
+	}
+	historyCount := func() int {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		return len(s.hist.since(time.Time{}))
+	}
+	if historyCount() == 0 {
+		t.Fatal("history ring was not fed without a subscriber")
+	}
+	deadline := startAt.Add(historyInterval + 2*time.Second)
+	for historyCount() < 2 && time.Now().Before(deadline) {
+		time.Sleep(50 * time.Millisecond)
+	}
+	if n := historyCount(); n < 2 {
+		t.Fatalf("history ring stopped while unsubscribed: got %d sample(s)", n)
+	}
 	cancel()
 	<-done
-	s.mu.Lock()
-	n := len(s.hist.since(time.Time{}))
-	s.mu.Unlock()
-	if n == 0 {
-		t.Fatal("history ring not fed")
-	}
 }
 
 func TestParseLogRequest(t *testing.T) {

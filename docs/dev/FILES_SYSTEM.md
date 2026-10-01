@@ -161,8 +161,9 @@ run against fixture trees.
 
 Sampling runs in `Service.Start`:
 
-- **1 Hz** while a browser is subscribed to `metrics`. Each sample is
-  published as `api.EvMetrics`.
+- **1 Hz** while at least one visible browser is subscribed to `metrics`.
+  Each sample is published as `api.EvMetrics`. Hidden tabs do not keep this
+  high-frequency sampler active or receive metrics frames.
 - Otherwise **every 10 s**, only to feed the history ring: 360 samples (one
   hour), with the host and CPU model left out.
 
@@ -252,5 +253,6 @@ busiest processes first. Each result links to `/system/processes?pid=N`, and
 - The files and system services publish audit entries (`api.AuditEntry`) on
   the bus topic `"audit"` (= `core.BusAudit`) unless their `Audit` hook is
   set. Once `core.AuditEvent` exists, wiring sets the hook to translate.
-- `system.Service.Subscribed` must point at `d.Presence.Subscribed` (nil
-  means nobody is subscribed, so there is no 1 Hz sampling).
+- `wireSystem` points `system.Service.Subscribed` at the `Presence` installed
+  by `wireLive`. The query counts visible subscribed clients; nil means no
+  subscriber, so the service keeps only the 10 s history sampler.

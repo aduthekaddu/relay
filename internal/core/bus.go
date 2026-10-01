@@ -57,7 +57,8 @@ type Presence interface {
 	// Online reports whether at least one browser has the app open and
 	// visible.
 	Online() bool
-	// Subscribed reports whether any connected browser subscribed to the
-	// topic (e.g. "metrics").
+	// Subscribed reports whether any visible connected browser subscribed
+	// to the topic (e.g. "metrics"). Hidden pages do not keep high-frequency
+	// streams active.
 	Subscribed(topic string) bool
 }

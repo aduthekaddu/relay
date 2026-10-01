@@ -130,7 +130,9 @@ func (s *Service) Start(ctx context.Context) error {
 				s.mu.Unlock()
 				lastHist = now
 			}
-			if live && s.d.Bus != nil {
+			// Recheck after sampling so a page hidden during a slow sample
+			// does not receive one last high-frequency event.
+			if live && s.d.Bus != nil && s.subscribed("metrics") {
 				s.d.Bus.Publish(api.EvMetrics, m)
 			}
 		}

@@ -8,7 +8,7 @@ import (
 )
 
 // wireLive is owned by the live feature. It installs core.Presence, so it
-// runs before the features that consult it (terminal, notify).
+// runs before the features that consult it (terminal, notify, system).
 func wireLive(ctx context.Context, a *App) error {
 	svc, err := live.New(a.D)
 	if err != nil {

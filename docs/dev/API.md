@@ -75,9 +75,11 @@ Secure` (unless `insecure_cookies`).
 
 On connect the server sends `hello` with `Info`, then a snapshot:
 `terminal.updated` for each live terminal. Clients subscribe to `metrics`
-explicitly (1 Hz while subscribed). `visibility` messages tell the server
-which route the user is looking at, so the notifier can skip pushing a
-notification for the terminal already on screen. Ping every 25 s.
+explicitly; the server publishes at 1 Hz while at least one subscribed browser
+tab is visible. Hidden tabs neither keep the high-frequency sampler active nor receive
+metrics frames. `visibility` messages tell the server which route the user is
+looking at and whether the tab is visible, so live sampling and notification
+suppression can follow the current browser state. Ping every 25 s.
 
 Feature owners publish `capabilities.changed` with `{feature}` to invalidate
 cached Info. See [capability events and timing](CAPABILITIES.md).

@@ -215,6 +215,71 @@ func TestBackendTopicsAndGatedMetrics(t *testing.T) {
 	}
 }
 
+func TestSubscribedRequiresVisibleMetricsClientsAndResetsOnReconnect(t *testing.T) {
+	h := newHarness(t)
+	first := h.connect(t, "s1")
+	second := h.connect(t, "s2")
+	if h.svc.Subscribed("metrics") {
+		t.Fatal("connected clients without topic subscriptions must not activate metrics")
+	}
+
+	send(t, first, api.ClientEvent{Type: "subscribe", Topics: []string{"metrics"}})
+	roundTrip(t, first)
+	send(t, second, api.ClientEvent{Type: "subscribe", Topics: []string{"metrics"}})
+	roundTrip(t, second)
+	if !h.svc.Subscribed("metrics") {
+		t.Fatal("two visible subscribers should activate metrics")
+	}
+
+	hidden := false
+	send(t, first, api.ClientEvent{Type: "visibility", Visible: &hidden})
+	roundTrip(t, first)
+	if !h.svc.Subscribed("metrics") {
+		t.Fatal("one remaining visible subscriber should keep metrics active")
+	}
+	h.bus.Publish(api.EvMetrics, map[string]int{"cpu": 3})
+	h.bus.Publish("visible.marker", nil)
+	if ev := readEvent(t, second); ev.Type != api.EvMetrics {
+		t.Fatalf("visible subscriber got %q, want metrics", ev.Type)
+	}
+	if ev := readEvent(t, second); ev.Type != "visible.marker" {
+		t.Fatalf("visible subscriber got %q after metrics, want marker", ev.Type)
+	}
+	if ev := readEvent(t, first); ev.Type != "visible.marker" {
+		t.Fatalf("hidden subscriber got %q, want only marker", ev.Type)
+	}
+	send(t, second, api.ClientEvent{Type: "visibility", Visible: &hidden})
+	roundTrip(t, second)
+	if h.svc.Subscribed("metrics") {
+		t.Fatal("hidden subscribers must not activate metrics")
+	}
+
+	visible := true
+	send(t, first, api.ClientEvent{Type: "visibility", Visible: &visible})
+	roundTrip(t, first)
+	if !h.svc.Subscribed("metrics") {
+		t.Fatal("a visible subscribed client should reactivate metrics")
+	}
+	send(t, first, api.ClientEvent{Type: "unsubscribe", Topics: []string{"metrics"}})
+	roundTrip(t, first)
+	if h.svc.Subscribed("metrics") {
+		t.Fatal("unsubscribed visible client must not activate metrics")
+	}
+
+	_ = first.CloseNow()
+	_ = second.CloseNow()
+	waitFor(t, func() bool { return h.svc.Clients() == 0 })
+	reconnected := h.connect(t, "s3")
+	if h.svc.Subscribed("metrics") {
+		t.Fatal("reconnected client inherited a stale metrics subscription")
+	}
+	send(t, reconnected, api.ClientEvent{Type: "subscribe", Topics: []string{"metrics"}})
+	roundTrip(t, reconnected)
+	if !h.svc.Subscribed("metrics") {
+		t.Fatal("reconnected visible subscriber did not activate metrics")
+	}
+}
+
 func TestVisibilityDrivesPresence(t *testing.T) {
 	h := newHarness(t)
 	c := h.connect(t, "s1")

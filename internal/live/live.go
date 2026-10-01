@@ -111,7 +111,7 @@ func (s *Service) dispatch(ev api.Event) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for c := range s.clients {
-		if gated && !c.subscribed(ev.Type) {
+		if gated && !c.visibleSubscription(ev.Type) {
 			continue
 		}
 		if !c.enqueue(msg) {
@@ -202,12 +202,12 @@ func (s *Service) Online() bool {
 	return false
 }
 
-// Subscribed reports whether any connected browser subscribed to topic.
+// Subscribed reports whether any visible connected browser subscribed to topic.
 func (s *Service) Subscribed(topic string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for c := range s.clients {
-		if c.subscribed(topic) {
+		if c.visibleSubscription(topic) {
 			return true
 		}
 	}
@@ -254,10 +254,10 @@ func (c *client) enqueue(msg []byte) bool {
 	}
 }
 
-func (c *client) subscribed(topic string) bool {
+func (c *client) visibleSubscription(topic string) bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.topics[topic]
+	return c.visible && c.topics[topic]
 }
 
 func (c *client) view() (bool, string) {
