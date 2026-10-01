@@ -11,7 +11,7 @@
     "dither": "node scripts/dither.mjs",
     "og": "node scripts/og.mjs",
     "test": "node --test scripts/*.test.mjs",
-    "typecheck": "tsc --noEmit -p .",
+    "typecheck": "astro sync && tsc --noEmit -p .",
     "lint": "biome check src scripts",
     "budget": "node scripts/budget.mjs"
   },
