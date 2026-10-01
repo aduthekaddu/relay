@@ -19,13 +19,21 @@ export interface SetupRequest {
 }
 
 /** {name}: passkey register/rename, token create. */
-export interface NameRequest { name: string }
+export interface NameRequest {
+  name: string
+}
 /** {code}: TOTP enable/disable. */
-export interface CodeRequest { code: string }
+export interface CodeRequest {
+  code: string
+}
 /** GET /api/v1/auth/totp */
-export interface TOTPStatus { enabled: boolean }
+export interface TOTPStatus {
+  enabled: boolean
+}
 /** POST /api/v1/auth/sessions/revoke-others */
-export interface RevokedCount { revoked: number }
+export interface RevokedCount {
+  revoked: number
+}
 
 /** Passkey with authenticator metadata (passkey list/register/rename). */
 export interface PasskeyDetail extends Passkey {
