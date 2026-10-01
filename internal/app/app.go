@@ -115,6 +115,7 @@ func Build(ctx context.Context, log *slog.Logger) (*App, error) {
 		StartedAt: time.Now().UTC(),
 		Search:    core.NewSearchRegistry(),
 	}
+	d.InitSettings()
 	a := &App{D: d}
 	a.Router = server.NewRouter(nil, a.Origins)
 	a.OnClose(st.Close)

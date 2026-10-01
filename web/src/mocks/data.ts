@@ -1,6 +1,7 @@
 // Synthetic fixtures for the mock backend. Every name, path and host here
 // is invented. The store is mutable so actions (rename, kill, mark read…)
 // behave like a real server for the rest of the session.
+import type { SettingsState } from '../api/runtime-settings'
 import type {
   AgentInfo,
   AgentMessage,
@@ -24,7 +25,6 @@ import type {
   ScheduleRun,
   ScriptCommand,
   Service,
-  Settings,
   Snippet,
   TerminalSession,
   Tool,
@@ -59,13 +59,30 @@ export const info: Info = {
   },
 }
 
-export const settings: Settings = {
+export const settings: SettingsState = {
   workspaceRoots: [`${HOME}/code`],
   defaultShell: '/bin/zsh',
   defaultCwd: HOME,
   recordAgents: true,
   claudeQuota: true,
   idleMinutes: 10,
+  recordingMode: 'agents',
+  effective: {
+    workspaceRoots: [`${HOME}/code`],
+    claudeQuota: true,
+    codeIdleStop: '10m0s',
+    desktopIdleStop: '10m0s',
+    terminal: { defaultShell: '/bin/zsh', defaultCwd: HOME, recordingMode: 'agents', source: 'file' },
+    terminalStatus: 'next-session',
+  },
+  apply: {
+    workspaceRoots: 'next-request',
+    defaultShell: 'next-session',
+    defaultCwd: 'next-session',
+    recordAgents: 'next-session',
+    claudeQuota: 'next-request',
+    idleMinutes: 'next-idle-check',
+  },
 }
 
 // ---------------------------------------------------------------- auth

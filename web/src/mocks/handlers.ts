@@ -12,6 +12,7 @@ import type {
 } from '../api/types'
 import * as db from './data'
 import * as fs from './fs'
+import { patchRuntimeSettings } from './runtime-settings'
 import { emit } from './sockets'
 import { history, metricsAt, processes } from './system'
 import {
@@ -93,7 +94,10 @@ function requireAuth(): MockResponse | null {
 route('GET', '/health', () => ok({ ok: true, version: db.info.version }))
 route('GET', '/info', () => ok(db.info))
 route('GET', '/settings', () => ok(db.settings))
-route('PATCH', '/settings', (r) => ok(Object.assign(db.settings, body(r))))
+route('PATCH', '/settings', (r) => {
+  const result = patchRuntimeSettings(db.settings, body(r))
+  return result.ok ? ok(Object.assign(db.settings, result.value)) : fail(400, 'bad_request', result.message)
+})
 
 // ---------------------------------------------------------------- auth
 

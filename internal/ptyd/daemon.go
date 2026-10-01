@@ -46,18 +46,21 @@ type Options struct {
 	// nil it is enabled under systemd (INVOCATION_ID set) or with
 	// RELAY_LOGIN_ENV=1.
 	LoginEnv *bool
+	// LoadTerminal reloads only new-session defaults, without changing startup config.
+	LoadTerminal func(context.Context) (config.TerminalConfig, error)
 }
 
 // Daemon manages sessions. Create with New, then Run.
 type Daemon struct {
-	cfg       *config.Config
-	paths     config.Paths
-	socket    string
-	log       *slog.Logger
-	recordDir string
-	stateFile string
-	idleAfter time.Duration
-	loginEnv  bool
+	cfg          *config.Config
+	paths        config.Paths
+	socket       string
+	log          *slog.Logger
+	recordDir    string
+	stateFile    string
+	idleAfter    time.Duration
+	loginEnv     bool
+	loadTerminal func(context.Context) (config.TerminalConfig, error)
 
 	baseEnvOnce sync.Once
 	baseEnv     map[string]string
@@ -97,17 +100,18 @@ func New(opts Options) (*Daemon, error) {
 		login = *opts.LoginEnv
 	}
 	d := &Daemon{
-		cfg:       opts.Cfg,
-		paths:     opts.Paths,
-		socket:    sock,
-		log:       log,
-		recordDir: opts.Paths.Recordings,
-		stateFile: filepath.Join(opts.Paths.DataDir, "ptyd", "sessions.json"),
-		idleAfter: idle,
-		loginEnv:  login,
-		sessions:  map[string]*Session{},
-		subs:      map[*subscriber]struct{}{},
-		dirty:     make(chan struct{}, 1),
+		cfg:          config.Clone(opts.Cfg),
+		loadTerminal: opts.LoadTerminal,
+		paths:        opts.Paths,
+		socket:       sock,
+		log:          log,
+		recordDir:    opts.Paths.Recordings,
+		stateFile:    filepath.Join(opts.Paths.DataDir, "ptyd", "sessions.json"),
+		idleAfter:    idle,
+		loginEnv:     login,
+		sessions:     map[string]*Session{},
+		subs:         map[*subscriber]struct{}{},
+		dirty:        make(chan struct{}, 1),
 	}
 	if d.recordDir == "" {
 		d.recordDir = filepath.Join(opts.Paths.DataDir, "recordings")
@@ -202,7 +206,7 @@ func (d *Daemon) Create(spec ptyclient.CreateSpec) (*api.TerminalSession, error)
 // prepare validates spec and computes env, display argv, resolved binary
 // path and working directory. It fills defaults into spec (kept for
 // restore).
-func (d *Daemon) prepare(spec *ptyclient.CreateSpec) (map[string]string, []string, string, string, error) {
+func (d *Daemon) prepare(spec *ptyclient.CreateSpec, terminal config.TerminalConfig) (map[string]string, []string, string, string, error) {
 	if spec.Kind == "" {
 		spec.Kind = api.KindShell
 	}
@@ -225,7 +229,7 @@ func (d *Daemon) prepare(spec *ptyclient.CreateSpec) (map[string]string, []strin
 	spec.Name = strings.TrimSpace(cleanText([]byte(spec.Name), 128))
 
 	env := d.sessionEnv(spec)
-	shell := defaultShell(d.cfg.Terminal.Shell, env)
+	shell := defaultShell(terminal.Shell, env)
 	if len(spec.Command) == 0 {
 		spec.Command = []string{shell, "-l"}
 	}
@@ -233,7 +237,7 @@ func (d *Daemon) prepare(spec *ptyclient.CreateSpec) (map[string]string, []strin
 	if err != nil {
 		return nil, nil, "", "", badRequest(err.Error())
 	}
-	cwd, err := d.resolveCwd(spec.Cwd)
+	cwd, err := d.resolveCwd(spec.Cwd, terminal.DefaultCwd)
 	if err != nil {
 		return nil, nil, "", "", err
 	}
@@ -244,9 +248,9 @@ func (d *Daemon) prepare(spec *ptyclient.CreateSpec) (map[string]string, []strin
 	return env, append([]string(nil), spec.Command...), path, cwd, nil
 }
 
-func (d *Daemon) resolveCwd(cwd string) (string, error) {
+func (d *Daemon) resolveCwd(cwd, defaultCwd string) (string, error) {
 	if cwd == "" {
-		cwd = d.cfg.Terminal.DefaultCwd
+		cwd = defaultCwd
 	}
 	if cwd == "" || cwd == "~" || strings.HasPrefix(cwd, "~/") {
 		home := d.paths.Home
@@ -338,11 +342,11 @@ func (d *Daemon) scrollbackBytes(override int) int {
 	return clamp(n, 64<<10, 64<<20)
 }
 
-func (d *Daemon) shouldRecord(spec ptyclient.CreateSpec) bool {
+func (d *Daemon) shouldRecord(spec ptyclient.CreateSpec, mode string) bool {
 	if spec.Record != nil {
 		return *spec.Record
 	}
-	switch d.cfg.Terminal.Record {
+	switch mode {
 	case "all":
 		return true
 	case "agents":

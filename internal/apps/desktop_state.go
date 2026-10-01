@@ -153,7 +153,7 @@ func (k *desktop) checkIdle(ctx context.Context, now time.Time) {
 	if k.unavailable != "" {
 		return
 	}
-	limit := k.d.Cfg.Desktop.IdleStop.Duration
+	limit := k.d.RuntimeConfig().Desktop.IdleStop.Duration
 	if limit <= 0 {
 		return
 	}

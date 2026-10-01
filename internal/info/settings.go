@@ -1,6 +1,7 @@
 package info
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"net/http"
@@ -37,9 +38,18 @@ type settingsPatch struct {
 }
 
 func (s *Service) handleGetSettings(w http.ResponseWriter, r *http.Request) {
-	s.cfgLock.Lock()
-	defer s.cfgLock.Unlock()
-	httpx.OK(w, settingsFrom(s.d.Cfg))
+	var raw, runtime *config.Config
+	err := s.d.Settings.Read(func(c *config.Config) error {
+		var err error
+		raw, err = loadSaved(s.d.Paths, false)
+		runtime = c
+		return err
+	})
+	if err != nil {
+		httpx.Error(w, http.StatusInternalServerError, "config_read", "Could not read relay.toml.")
+		return
+	}
+	httpx.OK(w, s.settingsState(r.Context(), raw, runtime))
 }
 
 func (s *Service) handlePatchSettings(w http.ResponseWriter, r *http.Request) {
@@ -52,26 +62,32 @@ func (s *Service) handlePatchSettings(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, httpx.BadRequest(err.Error()))
 		return
 	}
-	s.cfgLock.Lock()
-	defer s.cfgLock.Unlock()
-	// Apply to the file as written (no env overrides, no ~ expansion), so
-	// saving never bakes RELAY_* environment values or absolute home
-	// paths into relay.toml.
-	onDisk, err := loadRaw(s.d.Paths)
+	var raw, runtime *config.Config
+	err := s.d.Settings.Update(func(next *config.Config) error {
+		var err error
+		raw, err = loadSaved(s.d.Paths, true)
+		if err != nil {
+			var strict *toml.StrictMissingError
+			if errors.As(err, &strict) {
+				return httpx.Conflict("relay.toml contains unknown keys. Preserve or remove them before saving settings.")
+			}
+			return &httpx.Err{Status: 500, Code: "config_read", Message: "Could not read relay.toml."}
+		}
+		// Keep file values unexpanded and independent of process environment.
+		applyPatch(raw, &p, false, s.d.Paths.Home)
+		applyPatch(next, &p, true, s.d.Paths.Home)
+		if err := config.Save(s.d.Paths, raw); err != nil {
+			return &httpx.Err{Status: 500, Code: "config_save", Message: "Could not save relay.toml."}
+		}
+		runtime = config.Clone(next)
+		return nil
+	})
 	if err != nil {
-		s.log.Error("read config for settings update", "err", err)
-		httpx.Error(w, http.StatusInternalServerError, "internal", "Could not read relay.toml.")
+		httpx.Fail(w, err)
 		return
 	}
-	applyPatch(onDisk, &p, false, s.d.Paths.Home)
-	if err := config.Save(s.d.Paths, onDisk); err != nil {
-		s.log.Error("save settings", "err", err)
-		httpx.Error(w, http.StatusInternalServerError, "internal", "Could not save relay.toml.")
-		return
-	}
-	applyPatch(s.d.Cfg, &p, true, s.d.Paths.Home)
 	s.audit(r, &p)
-	httpx.OK(w, settingsFrom(s.d.Cfg))
+	httpx.OK(w, s.settingsState(r.Context(), raw, runtime))
 }
 
 // audit publishes a settings change on the backend bus (recorded by auth).
@@ -125,7 +141,11 @@ func settingsFrom(c *config.Config) api.Settings {
 func applyPatch(c *config.Config, p *settingsPatch, expand bool, home string) {
 	path := func(v string) string {
 		if expand {
-			return expandHome(v, home)
+			expanded := expandHome(v, home)
+			if real, err := filepath.EvalSymlinks(expanded); err == nil {
+				return real
+			}
+			return expanded
 		}
 		return v
 	}
@@ -175,10 +195,10 @@ func (s *Service) validatePatch(p *settingsPatch) error {
 			if r == "" {
 				continue
 			}
-			if err := checkDirPath(r, home, false); err != nil {
+			r = cleanPath(r)
+			if err := checkDirPath(r, home); err != nil {
 				return fmt.Errorf("workspace root %q: %w", r, err)
 			}
-			r = cleanPath(r)
 			if !seen[r] {
 				seen[r] = true
 				out = append(out, r)
@@ -203,10 +223,10 @@ func (s *Service) validatePatch(p *settingsPatch) error {
 		if v == "" {
 			v = "~"
 		}
-		if err := checkDirPath(v, home, true); err != nil {
+		v = cleanPath(v)
+		if err := checkDirPath(v, home); err != nil {
 			return fmt.Errorf("default folder: %w", err)
 		}
-		v = cleanPath(v)
 		p.DefaultCwd = &v
 	}
 	if p.IdleMinutes != nil && (*p.IdleMinutes < 0 || *p.IdleMinutes > maxIdleMinutes) {
@@ -215,17 +235,13 @@ func (s *Service) validatePatch(p *settingsPatch) error {
 	return nil
 }
 
-// checkDirPath accepts absolute or ~-relative paths; mustExist also
-// requires an existing directory.
-func checkDirPath(p, home string, mustExist bool) error {
+// checkDirPath accepts absolute or ~-relative existing directories.
+func checkDirPath(p, home string) error {
 	if len(p) > maxPathLen || strings.ContainsAny(p, "\x00\n") {
 		return errors.New("invalid path")
 	}
 	if p != "~" && !strings.HasPrefix(p, "~/") && !filepath.IsAbs(p) {
 		return errors.New("use an absolute path or one starting with ~/")
-	}
-	if !mustExist {
-		return nil
 	}
 	st, err := os.Stat(expandHome(p, home))
 	if err != nil || !st.IsDir() {
@@ -249,9 +265,9 @@ func cleanPath(p string) string {
 	return filepath.Clean(p)
 }
 
-// loadRaw reads relay.toml over the defaults without env overrides or
+// loadSaved reads relay.toml over the defaults without env overrides or
 // normalisation.
-func loadRaw(p config.Paths) (*config.Config, error) {
+func loadSaved(p config.Paths, strict bool) (*config.Config, error) {
 	cfg := config.Defaults()
 	b, err := os.ReadFile(p.ConfigFile)
 	if errors.Is(err, os.ErrNotExist) {
@@ -260,7 +276,11 @@ func loadRaw(p config.Paths) (*config.Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read %s: %w", p.ConfigFile, err)
 	}
-	if err := toml.Unmarshal(b, cfg); err != nil {
+	decoder := toml.NewDecoder(bytes.NewReader(b))
+	if strict {
+		decoder.DisallowUnknownFields()
+	}
+	if err := decoder.Decode(cfg); err != nil {
 		return nil, fmt.Errorf("parse %s: %w", p.ConfigFile, err)
 	}
 	return cfg, nil

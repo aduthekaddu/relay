@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/aduthekaddu/relay/internal/api"
+	"github.com/aduthekaddu/relay/internal/config"
 	"github.com/aduthekaddu/relay/internal/core"
 	"github.com/aduthekaddu/relay/internal/httpx"
 	"github.com/aduthekaddu/relay/internal/server"
@@ -54,6 +55,7 @@ type Service struct {
 
 	wsMu    sync.Mutex
 	wsCache []string
+	wsRoots []string
 	wsAt    time.Time
 }
 
@@ -184,8 +186,16 @@ func (s *Service) env() *env {
 func (s *Service) workspaceDirs(ctx context.Context) []string {
 	s.wsMu.Lock()
 	defer s.wsMu.Unlock()
-	if time.Since(s.wsAt) < time.Minute && s.wsCache != nil {
-		return s.wsCache
+	runtime := s.d.RuntimeConfig()
+	policy := config.PinnedWorkspacePolicy(runtime, s.home)
+	if time.Since(s.wsAt) < time.Minute && s.wsCache != nil && slices.Equal(s.wsRoots, runtime.Agents.WorkspaceRoots) {
+		out := make([]string, 0, len(s.wsCache))
+		for _, path := range s.wsCache {
+			if real := policy.Resolve(path); real != "" {
+				out = append(out, real)
+			}
+		}
+		return out
 	}
 	set := map[string]bool{}
 	if wp, ok := s.d.Workspaces.(interface {
@@ -214,11 +224,13 @@ func (s *Service) workspaceDirs(ctx context.Context) []string {
 	}
 	out := make([]string, 0, len(set))
 	for k := range set {
-		out = append(out, k)
+		if real := policy.Resolve(k); real != "" {
+			out = append(out, real)
+		}
 	}
 	sort.Strings(out)
-	s.wsCache, s.wsAt = out, time.Now()
-	return out
+	s.wsCache, s.wsAt, s.wsRoots = out, time.Now(), runtime.Agents.WorkspaceRoots
+	return slices.Clone(out)
 }
 
 // adapter returns the enabled adapter id or an error.

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/aduthekaddu/relay/internal/api"
+	"github.com/aduthekaddu/relay/internal/config"
 	"github.com/aduthekaddu/relay/internal/core"
 	"github.com/aduthekaddu/relay/internal/httpx"
 	"github.com/aduthekaddu/relay/internal/ptyclient"
@@ -68,12 +69,11 @@ type cwdSource interface {
 
 // Service implements the workspaces feature and core.WorkspaceService.
 type Service struct {
-	d     *core.Deps
-	git   gitRunner
-	pty   ptyAPI
-	home  string
-	roots []string // discovery roots (existing, cleaned)
-	allow []string // allowed path prefixes for git operations
+	d        *core.Deps
+	git      gitRunner
+	pty      ptyAPI
+	home     string
+	reposKey string // canonical roots associated with the discovery cache
 
 	mu        sync.Mutex
 	repos     []string // discovered repo roots
@@ -98,6 +98,7 @@ var _ core.WorkspaceService = (*Service)(nil)
 
 // New builds the service and migrates its table. It starts no goroutines.
 func New(d *core.Deps) (*Service, error) {
+	d.InitSettings()
 	if d.Store != nil {
 		if err := d.Store.Migrate(context.Background(), "workspaces", migrations); err != nil {
 			return nil, fmt.Errorf("workspaces migrations: %w", err)
@@ -116,23 +117,7 @@ func New(d *core.Deps) (*Service, error) {
 	if d.Pty != nil {
 		s.pty = d.Pty
 	}
-	var roots []string
-	fileRoot := home
-	if d.Cfg != nil {
-		roots = d.Cfg.Agents.WorkspaceRoots
-		if d.Cfg.Files.Root != "" {
-			fileRoot = d.Cfg.Files.Root
-		}
-	}
-	s.allow = append(s.allow, cleanReal(fileRoot))
-	for _, r := range roots {
-		r = expandHome(r, home)
-		if st, err := os.Stat(r); err == nil && st.IsDir() {
-			rr := cleanReal(r)
-			s.roots = append(s.roots, rr)
-			s.allow = append(s.allow, rr)
-		}
-	}
+
 	return s, nil
 }
 
@@ -203,14 +188,28 @@ func (s *Service) RootOf(path string) string {
 	if path == "" || !filepath.IsAbs(path) {
 		return ""
 	}
-	path = filepath.Clean(path)
+	real, err := filepath.EvalSymlinks(filepath.Clean(path))
+	if err != nil {
+		return ""
+	}
+	path = real
+	policy := s.policy()
+	if !allowed(path, policy.Allowed) {
+		return ""
+	}
 	s.mu.Lock()
 	if e, ok := s.rootCache[path]; ok && time.Since(e.at) < rootTTL {
 		s.mu.Unlock()
-		return e.root
+		if allowed(e.root, policy.Allowed) {
+			return e.root
+		}
+		return ""
 	}
 	s.mu.Unlock()
 	root := findRoot(path)
+	if !allowed(root, policy.Allowed) {
+		return ""
+	}
 	s.mu.Lock()
 	if len(s.rootCache) > 8192 {
 		s.rootCache = map[string]rootEntry{}
@@ -240,17 +239,22 @@ func findRoot(path string) string {
 
 // discoverRepos walks the workspace roots (depth ≤ 3) for git repos.
 func (s *Service) discoverRepos(ctx context.Context) []string {
+	return s.discoverFor(ctx, s.policy())
+}
+
+func (s *Service) discoverFor(ctx context.Context, policy config.WorkspacePaths) []string {
+	key := strings.Join(policy.Roots, "\x00")
 	s.discover.Lock()
 	defer s.discover.Unlock()
 	s.mu.Lock()
-	if time.Since(s.reposAt) < discoverTTL && s.repos != nil {
+	if s.reposKey == key && time.Since(s.reposAt) < discoverTTL && s.repos != nil {
 		r := s.repos
 		s.mu.Unlock()
 		return r
 	}
 	s.mu.Unlock()
 	set := map[string]bool{}
-	for _, root := range s.roots {
+	for _, root := range policy.Roots {
 		walkRepos(ctx, root, discoverDepth, set)
 	}
 	repos := make([]string, 0, len(set))
@@ -259,7 +263,7 @@ func (s *Service) discoverRepos(ctx context.Context) []string {
 	}
 	sort.Strings(repos)
 	s.mu.Lock()
-	s.repos, s.reposAt = repos, time.Now()
+	s.repos, s.reposAt, s.reposKey = repos, time.Now(), key
 	s.mu.Unlock()
 	return repos
 }
@@ -304,6 +308,7 @@ func (s *Service) Paths(ctx context.Context) []string {
 // collect merges discovered repos, pins, agent cwds and terminal cwds
 // into workspaces (without git briefs).
 func (s *Service) collect(ctx context.Context) []*api.Workspace {
+	policy := s.policy()
 	byPath := map[string]*api.Workspace{}
 	get := func(root string) *api.Workspace {
 		w, ok := byPath[root]
@@ -313,11 +318,11 @@ func (s *Service) collect(ctx context.Context) []*api.Workspace {
 		}
 		return w
 	}
-	for _, r := range s.discoverRepos(ctx) {
+	for _, r := range s.discoverFor(ctx, policy) {
 		get(r)
 	}
 	for path, at := range s.pins(ctx) {
-		if st, err := os.Stat(path); err == nil && st.IsDir() {
+		if st, err := os.Stat(path); err == nil && st.IsDir() && allowed(cleanReal(path), policy.Allowed) {
 			w := get(path)
 			w.Pinned = true
 			if at.After(w.LastUsedAt) {
@@ -328,7 +333,7 @@ func (s *Service) collect(ctx context.Context) []*api.Workspace {
 	if src, ok := s.d.Agents.(cwdSource); ok && s.d.Agents != nil {
 		for _, u := range src.AgentCwds(ctx, 1000) {
 			root := s.RootOf(u.Path)
-			if root == "" || root == s.home {
+			if root == "" || root == s.home || !allowed(root, policy.Allowed) {
 				continue
 			}
 			w := get(root)
@@ -351,7 +356,7 @@ func (s *Service) collect(ctx context.Context) []*api.Workspace {
 				cwd = t.Cwd
 			}
 			root := s.RootOf(cwd)
-			if root == "" || root == s.home {
+			if root == "" || root == s.home || !allowed(root, policy.Allowed) {
 				continue
 			}
 			w := get(root)
@@ -525,10 +530,8 @@ func (s *Service) resolveDir(p string) (string, error) {
 	if err != nil || !st.IsDir() {
 		return "", &httpx.Err{Status: 400, Code: "bad_request", Message: "path is not a directory", Field: "path"}
 	}
-	for _, a := range s.allow {
-		if within(real, a) {
-			return real, nil
-		}
+	if allowed(real, s.policy().Allowed) {
+		return real, nil
 	}
 	return "", httpx.Forbidden("path is outside the allowed roots")
 }
@@ -542,6 +545,9 @@ func (s *Service) repoRoot(p string) (string, error) {
 	root := findRoot(dir)
 	if root == "" {
 		return "", &httpx.Err{Status: 400, Code: "bad_request", Message: "not a git repository", Field: "path"}
+	}
+	if !allowed(root, s.policy().Allowed) {
+		return "", httpx.Forbidden("repository is outside the allowed roots")
 	}
 	return root, nil
 }
@@ -590,4 +596,20 @@ func gitErr(err error) error {
 		return httpx.Unavailable("git is not installed")
 	}
 	return httpx.Conflict(err.Error())
+}
+
+func (s *Service) policy() config.WorkspacePaths {
+	return config.PinnedWorkspacePolicy(s.d.RuntimeConfig(), s.home)
+}
+
+func allowed(path string, roots []string) bool {
+	if path == "" {
+		return false
+	}
+	for _, root := range roots {
+		if within(path, root) {
+			return true
+		}
+	}
+	return false
 }

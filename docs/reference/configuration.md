@@ -5,9 +5,14 @@ description: Every key in relay.toml, with its type, default and meaning, plus w
 
 Relay has one config file, `relay.toml`, in [TOML](https://toml.io) format.
 Every key has a sensible default, so a missing or empty file is a valid
-configuration. `relay setup` writes the keys that describe your setup, and
-**Settings** in the app changes the rest. You can also edit the file by
-hand. Restart the web server afterwards to apply your changes:
+configuration. `relay setup` writes the keys that describe your setup.
+The Settings API edits workspace roots, terminal defaults/recording, quota
+opt-in and Code/Desktop idle timeouts. The Settings screen is still pending.
+API responses separate saved values from consumer state and timing; saving
+never restarts a service.
+
+You can also edit the file by hand. Restart the web server to apply its
+startup settings and manually changed workspace/quota/idle values:
 
 ```bash
 systemctl --user restart relay     # does not touch your terminals
@@ -26,8 +31,22 @@ your password hash.
 
 :::note
 When you change settings in the app, Relay rewrites `relay.toml`, and
-comments in the file are not kept. Keep notes somewhere else.
+comments in the file are not kept. Keep notes somewhere else. API saves
+preserve unrelated known keys and reject unknown TOML keys with 409 so they
+are not silently erased. GET can still read a file containing unknown keys.
 :::
+
+Updated ptyd instances reload shell, default cwd and recording for each new
+terminal from their own file. Existing terminals remain alive with their
+original defaults. An older daemon requires an explicit planned restart;
+a daemon using another config file reports `different-config`. Check the
+Settings API's effective state before assuming a saved value was adopted.
+Code/Desktop idle changes take effect on the next idle check; zero disables
+idle stopping. Custom apps keep their own timeout. Workspace root changes
+update discovery and Git authorization together while `files.root` remains
+an independent grant. Manual edits to other daemon settings require its
+restart. See [runtime settings](../dev/RUNTIME_SETTINGS.md) for the complete
+policy.
 
 **Value formats.** Durations are strings such as `"90s"`, `"45m"`, `"12h"`
 or `"30d"` (days). Paths may start with `~/`, which means your home folder.

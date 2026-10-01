@@ -34,16 +34,16 @@ type Service struct {
 	// lookPath finds executables (replaceable in tests).
 	lookPath func(name string) (string, error)
 
-	mu      sync.Mutex
-	probed  time.Time
-	bins    map[string]bool
-	osUser  string
-	host    string
-	cfgLock sync.Mutex // serialises settings writes
+	mu     sync.Mutex
+	probed time.Time
+	bins   map[string]bool
+	osUser string
+	host   string
 }
 
 // New constructs the service. It starts no goroutines.
 func New(d *core.Deps) (*Service, error) {
+	d.InitSettings()
 	log := d.Log
 	if log == nil {
 		log = slog.New(slog.NewTextHandler(os.Stderr, nil))
@@ -79,7 +79,7 @@ func (s *Service) handleInfo(w http.ResponseWriter, r *http.Request) {
 
 // Info describes this installation (also the payload of the live "hello").
 func (s *Service) Info(ctx context.Context) api.Info {
-	cfg := s.d.Cfg
+	cfg := s.d.RuntimeConfig()
 	origin := cfg.Origin()
 	info := api.Info{
 		Version:   s.d.Version,
@@ -99,7 +99,8 @@ func (s *Service) Info(ctx context.Context) api.Info {
 	f.Desktop = cfg.Desktop.Enabled && bins["Xvnc"]
 	f.Code = cfg.Code.Enabled && (bins["code-server"] || bins["openvscode-server"] || bins["custom-code"])
 	f.PreviewsMode, f.PreviewsHost = previewsMode(cfg.Previews.Mode, cfg.Previews.Host, origin)
-	f.Recording = cfg.Terminal.Record != "" && cfg.Terminal.Record != "off"
+	defaults, _ := s.terminalDefaults(ctx)
+	f.Recording = defaults != nil && defaults.RecordingMode != "" && defaults.RecordingMode != "off"
 	f.Ripgrep = bins["rg"]
 	return info
 }

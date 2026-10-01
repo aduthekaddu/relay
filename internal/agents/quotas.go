@@ -59,8 +59,8 @@ func (s *Service) quotas(ctx context.Context) []api.Quota {
 			out = append(out, *q)
 		}
 	}
-	if _, ok := s.byID["claude"]; ok && s.d.Cfg != nil && s.d.Cfg.Usage.ClaudeQuota {
-		if q := s.claudeQuota(ctx); q != nil {
+	if _, ok := s.byID["claude"]; ok && s.d.RuntimeConfig().Usage.ClaudeQuota {
+		if q := s.claudeQuota(ctx); q != nil && s.d.RuntimeConfig().Usage.ClaudeQuota {
 			out = append(out, *q)
 		}
 	}

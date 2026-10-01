@@ -43,7 +43,17 @@ func runPtyd(ctx context.Context, fs *flag.FlagSet, _ []string) error {
 	if err != nil {
 		return err
 	}
-	d, err := ptyd.New(ptyd.Options{Cfg: cfg, Paths: paths, Socket: fs.Lookup("socket").Value.String(), Log: log})
+	d, err := ptyd.New(ptyd.Options{Cfg: cfg, Paths: paths, Socket: fs.Lookup("socket").Value.String(), Log: log,
+		LoadTerminal: func(ctx context.Context) (config.TerminalConfig, error) {
+			if err := ctx.Err(); err != nil {
+				return config.TerminalConfig{}, err
+			}
+			cfg, err := config.Load(paths)
+			if err != nil {
+				return config.TerminalConfig{}, err
+			}
+			return cfg.Terminal, nil
+		}})
 	if err != nil {
 		return err
 	}

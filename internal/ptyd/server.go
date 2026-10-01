@@ -31,6 +31,7 @@ type patchRequest struct {
 func (d *Daemon) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /v1/health", d.hHealth)
+	mux.HandleFunc("GET /v1/settings", d.hSettings)
 	mux.HandleFunc("GET /v1/sessions", d.hList)
 	mux.HandleFunc("POST /v1/sessions", d.hCreate)
 	mux.HandleFunc("GET /v1/sessions/{id}", d.withSession(d.hGet))

@@ -324,11 +324,27 @@ func Save(p Paths, cfg *Config) error {
 	if err := os.MkdirAll(filepath.Dir(p.ConfigFile), 0o700); err != nil {
 		return err
 	}
-	tmp := p.ConfigFile + ".tmp"
-	if err := os.WriteFile(tmp, b, 0o600); err != nil {
-		return err
+	f, err := os.CreateTemp(filepath.Dir(p.ConfigFile), ".relay-settings-*")
+	if err != nil {
+		return fmt.Errorf("create config temporary file: %w", err)
 	}
-	return os.Rename(tmp, p.ConfigFile)
+	tmp := f.Name()
+	defer os.Remove(tmp)
+	if _, err := f.Write(b); err != nil {
+		f.Close()
+		return fmt.Errorf("write config: %w", err)
+	}
+	if err := f.Sync(); err != nil {
+		f.Close()
+		return fmt.Errorf("sync config: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("close config: %w", err)
+	}
+	if err := os.Rename(tmp, p.ConfigFile); err != nil {
+		return fmt.Errorf("replace config: %w", err)
+	}
+	return nil
 }
 
 func applyEnv(cfg *Config) {

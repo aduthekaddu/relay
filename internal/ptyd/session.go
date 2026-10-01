@@ -75,7 +75,16 @@ type Session struct {
 
 // startSession spawns spec. The caller registers the session.
 func (d *Daemon) startSession(spec ptyclient.CreateSpec) (*Session, error) {
-	env, argv, path, cwd, err := d.prepare(&spec)
+	terminal, err := d.terminalConfig(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	if spec.Record == nil {
+		record := d.shouldRecord(spec, terminal.Record)
+		// Kind defaults to shell; only explicit agent sessions use agents mode.
+		spec.Record = &record
+	}
+	env, argv, path, cwd, err := d.prepare(&spec, terminal)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +131,7 @@ func (d *Daemon) startSession(spec ptyclient.CreateSpec) (*Session, error) {
 		Meta:           copyMeta(spec.Meta),
 		CreatedAt:      now,
 	}
-	if d.shouldRecord(spec) {
+	if d.shouldRecord(spec, terminal.Record) {
 		rec, err := newRecorder(d.recordDir, id, cols, rows, env["SHELL"], now)
 		if err != nil {
 			d.log.Warn("recording disabled", "session", id, "err", err)

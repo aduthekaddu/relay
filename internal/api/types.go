@@ -1017,5 +1017,5 @@ type Settings struct {
 	DefaultCwd     string   `json:"defaultCwd"`
 	RecordAgents   bool     `json:"recordAgents"`
 	ClaudeQuota    bool     `json:"claudeQuota"` // allow reading Claude plan usage via its OAuth token
-	IdleMinutes    int      `json:"idleMinutes"` // desktop/app idle stop
+	IdleMinutes    int      `json:"idleMinutes"` // Code/Desktop idle stop; user apps keep their own timeout
 }

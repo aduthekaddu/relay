@@ -110,7 +110,7 @@ func (s *Service) codeApp() *webApp {
 		desc:        "VS Code in the browser, with your files and terminals",
 		installed:   ok,
 		installHint: "Install code-server (" + codeInstallURL + ") or set code.binary in relay.toml",
-		idle:        func() time.Duration { return s.d.Cfg.Code.IdleStop.Duration },
+		idle:        func() time.Duration { return s.d.RuntimeConfig().Code.IdleStop.Duration },
 		dial:        revproxy.UnixSocket(sock, 2*time.Second),
 		act:         &revproxy.Activity{},
 	}

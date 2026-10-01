@@ -25,7 +25,8 @@ import (
 )
 
 type Deps struct {
-	Cfg       *config.Config
+	Cfg       *config.Config  // immutable startup configuration
+	Settings  *config.Runtime // shared settings snapshots and transactions
 	Paths     config.Paths
 	Store     *store.Store
 	Bus       *events.Bus

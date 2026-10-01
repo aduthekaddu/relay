@@ -18,8 +18,15 @@ Legend: 🔓 public · 🔌 WebSocket · ⏳ long-running (202 + events).
 | --- | --- | --- |
 | GET 🔓 | `/api/v1/health` | → `{ok:true, version}` (no secrets) |
 | GET | `/api/v1/info` | → `Info` |
-| GET | `/api/v1/settings` | → `Settings` |
-| PATCH | `/api/v1/settings` | `Partial<Settings>` → `Settings` (persists to relay.toml) |
+| GET | `/api/v1/settings` | → `SettingsState` (saved and effective values) |
+| PATCH | `/api/v1/settings` | `Partial<Settings>` → `SettingsState` (atomic save; consumer timing reported) |
+
+Settings metadata is read-only. Validation errors return 400; unknown TOML
+fields return 409; configuration read/save failures return 500 without
+publishing an effective update. See [runtime settings](RUNTIME_SETTINGS.md)
+for all six fields, daemon compatibility and existing-session behavior.
+Types are in `internal/api/runtime_settings.go` and
+`web/src/api/runtime-settings.ts`.
 
 ## auth (owner: auth)
 

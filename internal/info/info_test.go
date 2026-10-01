@@ -171,7 +171,7 @@ func TestSettingsRoundTrip(t *testing.T) {
 	if err := config.Save(f.paths, pre); err != nil {
 		t.Fatal(err)
 	}
-	f.d.Cfg.Terminal.Record = "all"
+	f.d.Settings = config.NewRuntime(pre, f.home)
 	sub := f.d.Bus.Subscribe(4, nil)
 	defer sub.Close()
 
@@ -179,7 +179,10 @@ func TestSettingsRoundTrip(t *testing.T) {
 	if err := os.Mkdir(proj, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	body := `{"workspaceRoots":["~/code/", "~/code", "/srv/x", "  "],"defaultCwd":"~/code","recordAgents":true,"idleMinutes":45,"claudeQuota":true}`
+	if err := os.Mkdir(filepath.Join(f.home, "other"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := `{"workspaceRoots":["~/code/",  "~/code", "~/other", "  "],"defaultCwd":"~/code","recordAgents":true,"idleMinutes":45,"claudeQuota":true}`
 	w := f.do(t, "PATCH", "/api/v1/settings", body, true)
 	if w.Code != 200 {
 		t.Fatalf("%d %s", w.Code, w.Body)
@@ -216,8 +219,8 @@ func TestSettingsRoundTrip(t *testing.T) {
 	}
 
 	// recordAgents=false turns recording off entirely.
-	if w := f.do(t, "PATCH", "/api/v1/settings", `{"recordAgents":false}`, true); w.Code != 200 || f.d.Cfg.Terminal.Record != "off" {
-		t.Fatalf("%d record=%q", w.Code, f.d.Cfg.Terminal.Record)
+	if w := f.do(t, "PATCH", "/api/v1/settings", `{"recordAgents":false}`, true); w.Code != 200 || f.d.RuntimeConfig().Terminal.Record != "off" {
+		t.Fatalf("%d record=%q", w.Code, f.d.RuntimeConfig().Terminal.Record)
 	}
 	if w := f.do(t, "GET", "/api/v1/settings", "", true); !strings.Contains(w.Body.String(), `"recordAgents":false`) {
 		t.Fatalf("GET = %s", w.Body)

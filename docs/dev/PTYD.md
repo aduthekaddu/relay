@@ -12,6 +12,7 @@ running and systemd is unavailable, `relay serve` starts it detached
 | Method | Path | Notes |
 | --- | --- | --- |
 | GET | `/v1/health` | `{ok, version, sessions}` |
+| GET | `/v1/settings` | Next terminal defaults, file/startup source and private config identity |
 | GET | `/v1/sessions` | `[]api.TerminalSession` |
 | POST | `/v1/sessions` | `ptyclient.CreateSpec` → session |
 | GET/PATCH/DELETE | `/v1/sessions/{id}` | get / update name, pinned, meta / kill (`?signal=`) `&forget=1` |
@@ -35,6 +36,14 @@ starts `relay ptyd --socket …` with `setsid`, stdio to
 callers are safe: losers of the lock race exit on their own.
 `relay serve` calls it at startup unless `RELAY_NO_PTYD=1` (set that when
 `relay-ptyd.service` owns the daemon).
+
+The CLI daemon reloads shell, default cwd and recording from its own config
+file for each new creation. The three defaults come from one snapshot;
+explicit session overrides still win. Existing sessions are unchanged.
+Other daemon settings and its cached login environment remain startup
+state. Serve compares the source identity and reports older or differently
+configured daemons explicitly. No settings save restarts a service. See
+[runtime settings](RUNTIME_SETTINGS.md).
 
 ## Sessions
 

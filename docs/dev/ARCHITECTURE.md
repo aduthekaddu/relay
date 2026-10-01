@@ -115,6 +115,13 @@ Services set on `core.Deps` during wiring (nil-check before use):
 `Notifier` (notify), `Workspaces` (workspaces), `Agents` (agents),
 `Presence` (live), `Search` registry (always present).
 
+Runtime settings use a shared `config.Runtime` on `core.Deps`, initialized
+by app wiring before services start. `Deps.Cfg` is immutable startup state.
+Features obtain defensive snapshots; settings writes serialize merge,
+persistence and publication. ptyd reloads terminal defaults per creation
+and reports its separate effective state through its owner socket. See
+[the settings contract](RUNTIME_SETTINGS.md).
+
 ## Routing and authentication
 
 `server.Router` has four registration levels:
