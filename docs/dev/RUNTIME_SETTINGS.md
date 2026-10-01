@@ -100,3 +100,12 @@ do not establish real OAuth, Code-server or VNC availability.
 Dated implementation evidence and the exact uncommitted patch are recorded
 under the private plan package. No production configuration, live service,
 dependency, staging, commit or deployment is part of this change.
+
+## Info recording probe
+
+Info and live hello query current daemon recording defaults with a 100 ms
+probe deadline, respecting a shorter caller deadline. A timeout reports
+recording unavailable/false; a successful probe enables recording only for
+a non-empty mode other than off. The result is not cached, so the next Info
+call can observe changed daemon defaults. Settings saved/effective queries
+retain their separate one-second probe and explicit unavailable state.

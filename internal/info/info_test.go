@@ -6,17 +6,21 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/aduthekaddu/relay/internal/api"
 	"github.com/aduthekaddu/relay/internal/config"
 	"github.com/aduthekaddu/relay/internal/core"
 	"github.com/aduthekaddu/relay/internal/events"
+	"github.com/aduthekaddu/relay/internal/ptyclient"
 	"github.com/aduthekaddu/relay/internal/server"
 	"github.com/aduthekaddu/relay/internal/store"
 )
@@ -265,6 +269,87 @@ func TestCleanPath(t *testing.T) {
 	for in, want := range cases {
 		if got := cleanPath(in); got != want {
 			t.Errorf("cleanPath(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func infoDaemonFixture(t *testing.T, f *fixture, handler http.Handler) {
+	t.Helper()
+	dir, err := os.MkdirTemp("", "rs135-info-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.RemoveAll(dir); err != nil {
+			t.Error(err)
+		}
+	})
+	socket := filepath.Join(dir, "p.sock")
+	listener, err := net.Listen("unix", socket)
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := &http.Server{Handler: handler}
+	done := make(chan error, 1)
+	go func() { done <- server.Serve(listener) }()
+	t.Cleanup(func() {
+		if err := server.Close(); err != nil {
+			t.Error(err)
+		}
+		if err := <-done; !errors.Is(err, http.ErrServerClosed) {
+			t.Errorf("fixture daemon: %v", err)
+		}
+	})
+	f.d.Pty = ptyclient.New(socket)
+}
+
+func TestInfoRecordingProbeDeadline(t *testing.T) {
+	f := newFixture(t)
+	var requests atomic.Int64
+	infoDaemonFixture(t, f, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		<-r.Context().Done()
+	}))
+	for _, budget := range []time.Duration{500 * time.Millisecond, 80 * time.Millisecond} {
+		ctx := context.Background()
+		cancel := func() {}
+		if budget == 80*time.Millisecond {
+			ctx, cancel = context.WithTimeout(ctx, 20*time.Millisecond)
+		}
+		start := time.Now()
+		got := f.svc.Info(ctx)
+		elapsed := time.Since(start)
+		cancel()
+		t.Logf("stalled owned unix daemon: info elapsed=%v budget=%v", elapsed, budget)
+		if elapsed >= budget {
+			t.Errorf("Info blocked %v on recording defaults; budget %v", elapsed, budget)
+		}
+		if got.Features.Recording {
+			t.Error("unavailable recording defaults reported enabled")
+		}
+	}
+	if requests.Load() != 2 {
+		t.Fatalf("fixture daemon requests=%d, want 2", requests.Load())
+	}
+}
+
+func TestInfoRecordingModesRemainFresh(t *testing.T) {
+	f := newFixture(t)
+	var mode atomic.Value
+	mode.Store("off")
+	infoDaemonFixture(t, f, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if err := json.NewEncoder(w).Encode(ptyclient.TerminalSettings{
+			TerminalDefaults: api.TerminalDefaults{RecordingMode: mode.Load().(string), Source: "file"},
+			ConfigID:         config.SettingsSourceID(f.paths),
+		}); err != nil {
+			t.Error(err)
+		}
+	}))
+	for _, value := range []string{"", "off", "agents", "all", "off"} {
+		mode.Store(value)
+		want := value != "" && value != "off"
+		if got := f.svc.Info(context.Background()).Features.Recording; got != want {
+			t.Fatalf("recording mode %q: got %v, want %v", value, got, want)
 		}
 	}
 }

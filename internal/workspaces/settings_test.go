@@ -7,6 +7,7 @@ import (
 	"slices"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/aduthekaddu/relay/internal/config"
 	"github.com/aduthekaddu/relay/internal/core"
@@ -173,5 +174,48 @@ func TestSettingsReplacedCanonicalRootDoesNotExpandGrant(t *testing.T) {
 	}
 	if got := s.RootOf(filepath.Join(old, "repo")); got != "" {
 		t.Fatalf("replaced root cache authorized %s", got)
+	}
+}
+
+func TestSettingsPinnedAliasesUseCanonicalWorkspace(t *testing.T) {
+	s, d, home, old, next := workspaceFixture(t)
+	ctx := context.Background()
+	repo := filepath.Join(old, "repo")
+	latest := time.UnixMilli(5000)
+	aliases := []string{filepath.Join(home, "alias-a"), filepath.Join(home, "alias-b")}
+	for i, alias := range aliases {
+		if err := os.Symlink(repo, alias); err != nil {
+			t.Fatal(err)
+		}
+		// Legacy/external pin rows may retain symlink spellings. The current pin API
+		// writes canonical paths, but existing persistent rows must be reconciled.
+		if _, err := d.Store.DB.ExecContext(ctx,
+			"INSERT INTO workspace_pins(path,pinned,at) VALUES(?,1,?)", alias, 4000+i*1000); err != nil {
+			t.Fatal(err)
+		}
+	}
+	workspaces := s.collect(ctx)
+	for _, workspace := range workspaces {
+		t.Logf("collected canonical workspace: %+v", *workspace)
+	}
+	if len(workspaces) != 1 || workspaces[0].Path != repo || !workspaces[0].Pinned || !workspaces[0].LastUsedAt.Equal(latest) {
+		t.Fatalf("canonical pin and discovery must merge: %+v", workspaces)
+	}
+	if err := d.Settings.Update(func(c *config.Config) error {
+		c.Agents.WorkspaceRoots = []string{next}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	workspaces = s.collect(ctx)
+	if len(workspaces) != 1 || workspaces[0].Path != filepath.Join(next, "repo") || workspaces[0].Pinned {
+		t.Fatalf("removed-root aliases retained authorization: %+v", workspaces)
+	}
+	var count int
+	if err := d.Store.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM workspace_pins").Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Fatalf("persistent legacy pins changed: %d", count)
 	}
 }

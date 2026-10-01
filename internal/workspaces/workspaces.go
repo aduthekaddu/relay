@@ -322,7 +322,8 @@ func (s *Service) collect(ctx context.Context) []*api.Workspace {
 		get(r)
 	}
 	for path, at := range s.pins(ctx) {
-		if st, err := os.Stat(path); err == nil && st.IsDir() && allowed(cleanReal(path), policy.Allowed) {
+		path = cleanReal(path)
+		if st, err := os.Stat(path); err == nil && st.IsDir() && allowed(path, policy.Allowed) {
 			w := get(path)
 			w.Pinned = true
 			if at.After(w.LastUsedAt) {

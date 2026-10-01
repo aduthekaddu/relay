@@ -26,6 +26,9 @@ import (
 // probeTTL bounds how often binary presence is re-checked.
 const probeTTL = time.Minute
 
+// recordingProbeTimeout bounds the optional daemon probe in Info/live hello.
+const recordingProbeTimeout = 100 * time.Millisecond
+
 // Service is the info feature.
 type Service struct {
 	d   *core.Deps
@@ -99,7 +102,9 @@ func (s *Service) Info(ctx context.Context) api.Info {
 	f.Desktop = cfg.Desktop.Enabled && bins["Xvnc"]
 	f.Code = cfg.Code.Enabled && (bins["code-server"] || bins["openvscode-server"] || bins["custom-code"])
 	f.PreviewsMode, f.PreviewsHost = previewsMode(cfg.Previews.Mode, cfg.Previews.Host, origin)
-	defaults, _ := s.terminalDefaults(ctx)
+	recordingCtx, cancel := context.WithTimeout(ctx, recordingProbeTimeout)
+	defaults, _ := s.terminalDefaults(recordingCtx)
+	cancel()
 	f.Recording = defaults != nil && defaults.RecordingMode != "" && defaults.RecordingMode != "off"
 	f.Ripgrep = bins["rg"]
 	return info
