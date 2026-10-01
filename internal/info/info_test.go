@@ -109,6 +109,7 @@ func TestInfoFeatures(t *testing.T) {
 		}
 		return "", errors.New("not found")
 	}
+	f.d.Apps = fixtureCapabilities{}
 	f.d.Cfg.Code.Enabled = true
 	f.d.Cfg.Desktop.Enabled = true
 	if err := f.d.Store.SetKV(context.Background(), "notify.vapid.public", "BPk"); err != nil {
@@ -142,26 +143,6 @@ func TestPasskeysUsable(t *testing.T) {
 	for origin, want := range cases {
 		if got := passkeysUsable(origin); got != want {
 			t.Errorf("passkeysUsable(%q) = %v, want %v", origin, got, want)
-		}
-	}
-}
-
-func TestPreviewsMode(t *testing.T) {
-	cases := []struct {
-		mode, host, origin string
-		wantMode, wantHost string
-	}{
-		{"off", "dev.example", "https://x", "off", ""},
-		{"path", "dev.example", "https://x", "path", ""},
-		{"subdomain", "dev.example", "http://x", "subdomain", "dev.example"},
-		{"auto", "dev.example", "https://x", "subdomain", "dev.example"},
-		{"", "dev.example", "http://x", "path", ""},
-		{"auto", "", "https://x", "path", ""},
-	}
-	for _, tc := range cases {
-		m, h := previewsMode(tc.mode, tc.host, tc.origin)
-		if m != tc.wantMode || h != tc.wantHost {
-			t.Errorf("previewsMode(%q,%q,%q) = %q,%q", tc.mode, tc.host, tc.origin, m, h)
 		}
 	}
 }
@@ -352,4 +333,13 @@ func TestInfoRecordingModesRemainFresh(t *testing.T) {
 			t.Fatalf("recording mode %q: got %v, want %v", value, got, want)
 		}
 	}
+}
+
+type fixtureCapabilities struct{}
+
+func (fixtureCapabilities) CodeCapability() api.AppCapability {
+	return api.AppCapability{Enabled: true, Available: true, State: "stopped", Missing: []string{}}
+}
+func (fixtureCapabilities) DesktopCapability() api.AppCapability {
+	return api.AppCapability{Enabled: true, Available: false, State: "unavailable", Missing: []string{"vnc"}}
 }

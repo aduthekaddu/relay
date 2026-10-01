@@ -23,9 +23,11 @@ const (
 // procSpec describes a supervised child process.
 type procSpec struct {
 	Name string
-	Argv []string
-	Env  []string // full environment; nil inherits Relay's
-	Dir  string
+	// ResolveCommand rechecks a managed feature selection for each launch.
+	ResolveCommand func() (argv, env []string, err error)
+	Argv           []string
+	Env            []string // full environment; nil inherits Relay's
+	Dir            string
 	// Ready returns nil once the child accepts connections.
 	Ready        func(ctx context.Context) error
 	ReadyTimeout time.Duration
@@ -131,18 +133,27 @@ func (p *proc) Start(ctx context.Context) error {
 func (p *proc) run(ready chan struct{}) {
 	resolve := sync.OnceFunc(func() { close(ready) })
 	defer resolve()
+	argv, env := p.spec.Argv, p.spec.Env
+	if p.spec.ResolveCommand != nil {
+		var err error
+		argv, env, err = p.spec.ResolveCommand()
+		if err != nil {
+			p.fail(err.Error())
+			return
+		}
+	}
 	if p.spec.BeforeStart != nil {
 		if err := p.spec.BeforeStart(); err != nil {
 			p.fail(fmt.Sprintf("prepare %s: %v", p.spec.Name, err))
 			return
 		}
 	}
-	if len(p.spec.Argv) == 0 {
+	if len(argv) == 0 {
 		p.fail("no command configured")
 		return
 	}
-	cmd := exec.Command(p.spec.Argv[0], p.spec.Argv[1:]...)
-	cmd.Env = p.spec.Env
+	cmd := exec.Command(argv[0], argv[1:]...)
+	cmd.Env = env
 	cmd.Dir = p.spec.Dir
 	cmd.SysProcAttr = childAttr()
 	out := newTailBuffer(8 << 10)

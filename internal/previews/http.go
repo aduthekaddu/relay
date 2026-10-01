@@ -68,7 +68,10 @@ func (s *Service) handleLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	on := s.listening(r.Context(), port)
-	p, _ := s.get(port)
+	s.mu.Lock()
+	mode = s.Mode()
+	p := s.previewLocked(port, s.entries[port])
+	s.mu.Unlock()
 	link := api.PreviewLink{Port: port, URL: p.URL, Mode: mode, Listening: on}
 	if on {
 		link.Preview = &p
@@ -150,7 +153,7 @@ func (s *Service) proxyFor(mode string, port int) *revproxy.Proxy {
 	if mode == modePath {
 		opts.StripPrefix = "/p/" + strconv.Itoa(port)
 	} else {
-		opts.PublicOrigin = subdomainOrigin(port, s.baseHost(), s.origin)
+		opts.PublicOrigin = subdomainOrigin(port, s.baseHost(), s.subdomainOriginConfig())
 	}
 	p := revproxy.New(revproxy.Target{
 		Dial: revproxy.LoopbackTCP(port, 2*time.Second),
@@ -271,7 +274,7 @@ func (s *Service) handleAuth(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, fmt.Errorf("issue preview token: %w", err))
 		return
 	}
-	dest := subdomainOrigin(port, s.baseHost(), s.origin) + callbackPath + "?token=" + url.QueryEscape(tok) + "&next=" + url.QueryEscape(next)
+	dest := subdomainOrigin(port, s.baseHost(), s.subdomainOriginConfig()) + callbackPath + "?token=" + url.QueryEscape(tok) + "&next=" + url.QueryEscape(next)
 	http.Redirect(w, r, dest, http.StatusFound)
 }
 

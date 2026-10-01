@@ -94,6 +94,21 @@ The host name in the URL (`relay`) is ignored. Any name works.
 | Command center | `/api/v1/search`, `/api/v1/scripts`, `/api/v1/ask` | Federated search, script commands, Quick AI |
 | Toolbox | `/api/v1/toolbox/*` | Tools, installs, MCP servers |
 
+## Capability state
+
+Authenticated `GET /api/v1/info` reports `capabilities.previews`,
+`capabilities.code` and `capabilities.desktop`. Preview configured and
+effective modes are separate; URLs use the effective decision. Code and
+desktop separate `enabled`, current `available` prerequisites and `state`
+(disabled, unavailable, stopped, starting, running or failed). Installation
+alone does not mean running. These queries never start optional services.
+
+Managed entries in `GET /api/v1/apps` and `GET /api/v1/desktop` include their
+capability snapshots. Existing `features.code` and `features.desktop` mean
+enabled and available. The `capabilities.changed` event tells clients to
+refresh Info. [The developer contract](../dev/CAPABILITIES.md) defines every
+field, discovery order, legacy state mapping and update timing.
+
 ## Examples
 
 All examples assume `RELAY_URL` and `RELAY_TOKEN` are set as shown above.

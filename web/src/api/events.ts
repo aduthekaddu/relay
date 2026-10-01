@@ -9,12 +9,14 @@
 // Reconnects with jittered exponential backoff (0.5 s → 10 s), resends
 // topics and visibility after every reconnect, pings every 25 s and treats
 // 65 s of silence as a dead connection.
+import type { CapabilityChange } from './capabilities'
 import { wsUrl } from './client'
 import type { ClientEvent, EventType, Info, Notification, RelayEvent, TerminalSession } from './types'
 
 /** Payload type per event (unknown for events owned by later features). */
 export interface EventMap {
   hello: Info
+  'capabilities.changed': CapabilityChange
   'terminal.created': TerminalSession
   'terminal.updated': TerminalSession
   'terminal.exited': TerminalSession

@@ -42,6 +42,8 @@ type webApp struct {
 	id, name, desc, kind, icon string
 	base                       string // "/apps/<id>"
 	installed                  bool
+	capMu                      sync.Mutex
+	implementation, source     string
 	installHint                string
 	idle                       func() time.Duration // 0 = never stop
 	dial                       func(ctx context.Context) (net.Conn, error)
@@ -61,7 +63,9 @@ type Service struct {
 	order []string
 	desk  *desktop
 
-	closeOnce sync.Once
+	closeOnce          sync.Once
+	capMu              sync.Mutex
+	lastCode, lastDesk api.AppCapability
 }
 
 // New detects the IDE, reads user apps from config and prepares the
@@ -87,8 +91,10 @@ func New(d *core.Deps) (*Service, error) {
 		return nil, err
 	}
 	s.desk = desk
+	s.lastCode, s.lastDesk = s.CodeCapability(), s.DesktopCapability()
 	desk.onChange = func() {
 		st := desk.State()
+		s.refreshCapabilities()
 		d.Bus.Publish(api.EvDesktopState, st)
 		d.Bus.Publish(api.EvAppState, desktopApp(st))
 	}
@@ -114,16 +120,14 @@ func (s *Service) codeApp() *webApp {
 		dial:        revproxy.UnixSocket(sock, 2*time.Second),
 		act:         &revproxy.Activity{},
 	}
-	if ok {
-		a.desc = "VS Code in the browser (" + filepath.Base(bin) + ")"
-	}
 	a.proc = newProc(procSpec{
-		Name:         "code-server",
-		Argv:         codeArgs(bin, flavor, sock, p.DataDir, a.base),
-		Env:          childEnv(os.Environ(), nil),
-		Dir:          p.Home,
-		Ready:        socketReady(sock),
-		ReadyTimeout: 90 * time.Second,
+		Name:           "code-server",
+		ResolveCommand: func() ([]string, []string, error) { return s.resolveCode(a, sock) },
+		Argv:           codeArgs(bin, flavor, sock, p.DataDir, a.base),
+		Env:            childEnv(os.Environ(), nil),
+		Dir:            p.Home,
+		Ready:          socketReady(sock),
+		ReadyTimeout:   90 * time.Second,
 		BeforeStart: func() error {
 			for _, dir := range []string{"user", "extensions"} {
 				if err := os.MkdirAll(filepath.Join(p.DataDir, "code", dir), 0o700); err != nil {
@@ -261,6 +265,9 @@ func removeStaleSocket(path string) error {
 // State
 
 func (s *Service) appState(a *webApp) api.App {
+	if a.id == "code" {
+		return s.codeState(a)
+	}
 	out := api.App{
 		ID: a.id, Name: a.name, Description: a.desc, Kind: a.kind, Icon: a.icon,
 		Installed: a.installed, URL: a.base + "/",
@@ -290,13 +297,17 @@ func (s *Service) appState(a *webApp) api.App {
 	return out
 }
 
-func (s *Service) publishApp(a *webApp) { s.d.Bus.Publish(api.EvAppState, s.appState(a)) }
+func (s *Service) publishApp(a *webApp) {
+	s.refreshCapabilities()
+	s.d.Bus.Publish(api.EvAppState, s.appState(a))
+}
 
 func desktopApp(st api.DesktopState) api.App {
 	a := api.App{
 		ID: "desktop", Name: "Desktop", Kind: "desktop", Icon: "desktop", URL: "/desktop",
 		Description: "A full Linux desktop in the browser",
-		State:       st.State, Installed: st.State != "unavailable", Error: st.Error, InstallHint: st.InstallHint,
+		State:       st.State, Installed: st.Capability.Enabled && st.Capability.Available, Error: st.Error, InstallHint: st.InstallHint,
+		Capability: &st.Capability,
 	}
 	if st.Error != "" && st.State == stateStopped {
 		a.State = stateError
@@ -337,6 +348,7 @@ func (s *Service) Start(ctx context.Context) error {
 			return ctx.Err()
 		case now := <-t.C:
 			s.checkIdle(ctx, now)
+			s.refreshCapabilities()
 		}
 	}
 }

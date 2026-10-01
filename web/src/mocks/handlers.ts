@@ -10,6 +10,7 @@ import type {
   TerminalSession,
   UsageSummary,
 } from '../api/types'
+import { setManagedState } from './capabilities'
 import * as db from './data'
 import * as fs from './fs'
 import { patchRuntimeSettings } from './runtime-settings'
@@ -729,11 +730,44 @@ route('PATCH', '/previews/{port}', (r) => {
   emit('previews.changed', db.previews)
   return ok(p)
 })
-route('GET', '/apps', () => ok(db.apps))
+route('GET', '/apps', () =>
+  ok(db.apps.filter((app) => app.id !== 'code' || db.info.capabilities.code.enabled)),
+)
+const starts = { code: 0, desktop: 0 }
+function managedState(feature: 'code' | 'desktop', state: 'starting' | 'running' | 'stopped'): void {
+  setManagedState(db.info, db.apps, db.desktop, feature, state)
+  const app = db.apps.find((item) => item.id === feature)
+  if (app) emit('app.state', app)
+  if (feature === 'desktop') emit('desktop.state', db.desktop)
+  emit('capabilities.changed', { feature })
+}
+function managedAction(feature: 'code' | 'desktop', action: 'start' | 'stop'): void {
+  const current = db.info.capabilities[feature].state
+  if (action === 'start' && (current === 'starting' || current === 'running')) return
+  const attempt = ++starts[feature]
+  managedState(feature, action === 'start' ? 'starting' : 'stopped')
+  if (action === 'start')
+    setTimeout(
+      () => {
+        if (starts[feature] !== attempt) return
+        managedState(feature, 'running')
+      },
+      feature === 'desktop' ? 1800 : 1500,
+    )
+}
 for (const action of ['start', 'stop'] as const) {
   route('POST', `/apps/{id}/${action}`, (r) => {
     const a = db.apps.find((x) => x.id === r.params.id)
-    if (!a) return notFound('No such app')
+    if (!a || (a.id === 'code' && !db.info.capabilities.code.enabled)) return notFound('No such app')
+    if (a.id === 'code' || a.id === 'desktop') {
+      const capability = db.info.capabilities[a.id]
+      const active = capability.state === 'running' || (a.id === 'code' && capability.state === 'starting')
+      if (action === 'start' && (!capability.enabled || (!capability.available && !active))) {
+        return fail(503, 'unavailable', 'Prerequisites are unavailable.')
+      }
+      managedAction(a.id, action)
+      return ok(a)
+    }
     if (!a.installed) return fail(409, 'not_installed', a.installHint ?? 'Not installed.')
     a.state = action === 'start' ? 'starting' : 'stopped'
     if (action === 'start')
@@ -748,16 +782,18 @@ for (const action of ['start', 'stop'] as const) {
 }
 route('GET', '/desktop', () => ok(db.desktop))
 route('POST', '/desktop/start', () => {
-  db.desktop.state = 'starting'
-  setTimeout(() => {
-    db.desktop.state = 'running'
-    db.desktop.display = ':1'
-    emit('desktop.state', db.desktop)
-  }, 1800)
+  if (
+    !db.desktop.capability.enabled ||
+    (!db.desktop.capability.available && db.desktop.capability.state !== 'running')
+  ) {
+    return fail(503, 'unavailable', 'Desktop prerequisites are unavailable.')
+  }
+  managedAction('desktop', 'start')
   return ok(db.desktop)
 })
 route('POST', '/desktop/stop', () => {
-  Object.assign(db.desktop, { state: 'stopped', display: undefined, viewers: 0 })
+  managedAction('desktop', 'stop')
+  db.desktop.viewers = 0
   return ok(db.desktop)
 })
 route('POST', '/desktop/launch', (r) => {

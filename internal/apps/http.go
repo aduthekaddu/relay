@@ -46,7 +46,7 @@ func (s *Service) handleAppStart(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, httpx.NotFound("no such app"))
 		return
 	}
-	if !a.installed {
+	if !s.appUsable(a) {
 		httpx.Fail(w, httpx.Unavailable(a.name+" is not installed: "+a.installHint))
 		return
 	}
@@ -114,7 +114,7 @@ func (s *Service) serveApp(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "cross-origin request refused", http.StatusForbidden)
 		return
 	}
-	if !a.installed {
+	if !s.appUsable(a) {
 		writePage(w, http.StatusServiceUnavailable, pageData{Title: a.name, Heading: a.name + " is not installed", Body: a.installHint})
 		return
 	}
@@ -133,6 +133,9 @@ func (s *Service) serveApp(w http.ResponseWriter, r *http.Request) {
 // true when the request can be proxied now.
 func (s *Service) ensureRunning(w http.ResponseWriter, r *http.Request, a *webApp) bool {
 	st, _, msg := a.proc.Status()
+	if a.id == "code" && msg != "" {
+		msg = "Code could not start or exited unexpectedly."
+	}
 	if st == stateRunning {
 		return true
 	}
@@ -150,6 +153,9 @@ func (s *Service) ensureRunning(w http.ResponseWriter, r *http.Request, a *webAp
 		return false
 	}
 	st, _, msg = a.proc.Status()
+	if a.id == "code" && msg != "" {
+		msg = "Code could not start or exited unexpectedly."
+	}
 	switch {
 	case st == stateRunning:
 		return true

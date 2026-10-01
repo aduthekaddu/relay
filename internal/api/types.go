@@ -51,8 +51,9 @@ type Info struct {
 	Home      string    `json:"home"`
 	StartedAt time.Time `json:"startedAt"`
 	// PublicURL is the canonical browser origin, e.g. https://dev.example.com
-	PublicURL string   `json:"publicUrl"`
-	Features  Features `json:"features"`
+	PublicURL    string       `json:"publicUrl"`
+	Features     Features     `json:"features"`
+	Capabilities Capabilities `json:"capabilities"`
 }
 
 type Features struct {
@@ -739,17 +740,18 @@ type UpdatePreviewRequest struct {
 // Apps (browser IDE, desktop, user-defined services)
 
 type App struct {
-	ID          string    `json:"id"` // "code", "desktop", or user-defined
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Kind        string    `json:"kind"`  // "code" | "desktop" | "web"
-	State       string    `json:"state"` // running | starting | stopped | unavailable | error
-	Installed   bool      `json:"installed"`
-	URL         string    `json:"url,omitempty"`
-	Icon        string    `json:"icon,omitempty"`
-	Since       time.Time `json:"since,omitempty"`
-	Error       string    `json:"error,omitempty"`
-	InstallHint string    `json:"installHint,omitempty"`
+	ID          string         `json:"id"` // "code", "desktop", or user-defined
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Kind        string         `json:"kind"`  // "code" | "desktop" | "web"
+	State       string         `json:"state"` // running | starting | stopped | unavailable | error
+	Installed   bool           `json:"installed"`
+	URL         string         `json:"url,omitempty"`
+	Icon        string         `json:"icon,omitempty"`
+	Since       time.Time      `json:"since,omitempty"`
+	Error       string         `json:"error,omitempty"`
+	InstallHint string         `json:"installHint,omitempty"`
+	Capability  *AppCapability `json:"capability,omitempty"`
 }
 
 type DesktopApp struct {
@@ -760,14 +762,15 @@ type DesktopApp struct {
 }
 
 type DesktopState struct {
-	State       string       `json:"state"` // running | stopped | starting | unavailable
-	Display     string       `json:"display,omitempty"`
-	Width       int          `json:"width"`
-	Height      int          `json:"height"`
-	Apps        []DesktopApp `json:"apps"`
-	Viewers     int          `json:"viewers"`
-	Error       string       `json:"error,omitempty"`
-	InstallHint string       `json:"installHint,omitempty"`
+	State       string        `json:"state"` // running | stopped | starting | unavailable
+	Display     string        `json:"display,omitempty"`
+	Width       int           `json:"width"`
+	Height      int           `json:"height"`
+	Apps        []DesktopApp  `json:"apps"`
+	Viewers     int           `json:"viewers"`
+	Error       string        `json:"error,omitempty"`
+	InstallHint string        `json:"installHint,omitempty"`
+	Capability  AppCapability `json:"capability"`
 }
 
 // ---------------------------------------------------------------------------

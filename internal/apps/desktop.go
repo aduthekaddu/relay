@@ -36,9 +36,14 @@ var (
 // desktop manages the remote desktop: an Xvnc server whose RFB endpoint is
 // an owner-only unix socket, plus the openbox/tint2 session on top of it.
 type desktop struct {
-	d        *core.Deps
-	log      *slog.Logger
-	onChange func()
+	d              *core.Deps
+	log            *slog.Logger
+	onChange       func()
+	lookPath       func(string) (string, error)
+	platform       string
+	failed         bool
+	started        bool
+	implementation string
 
 	display string // ":7"
 	num     int
@@ -72,7 +77,7 @@ type desktop struct {
 func newDesktop(d *core.Deps, log *slog.Logger, lookPath func(string) (string, error)) (*desktop, error) {
 	cfg := d.Cfg.Desktop
 	k := &desktop{
-		d: d, log: log, display: cfg.Display, width: defaultWidth, height: defaultHeight,
+		d: d, log: log, lookPath: lookPath, platform: runtime.GOOS, display: cfg.Display, width: defaultWidth, height: defaultHeight,
 		dir:   filepath.Join(d.Paths.RuntimeDir, "desktop"),
 		sock:  filepath.Join(d.Paths.RuntimeDir, "vnc.sock"),
 		conns: map[net.Conn]struct{}{},
@@ -89,52 +94,34 @@ func newDesktop(d *core.Deps, log *slog.Logger, lookPath func(string) (string, e
 		log.Warn("invalid desktop.geometry, using default", "geometry", cfg.Geometry)
 	}
 	m := displayRe.FindStringSubmatch(cfg.Display)
-	switch {
-	case runtime.GOOS != "linux":
-		k.unavailable = "The remote desktop needs Linux (TigerVNC Xvnc)."
-	case !cfg.Enabled:
-		k.unavailable = "The desktop is disabled (desktop.enabled = false in relay.toml)."
-	case m == nil:
-		k.unavailable = fmt.Sprintf("desktop.display %q is not a local display like \":7\".", cfg.Display)
-	case len(k.sock) > 100:
-		k.unavailable = "The runtime directory path is too long for a unix socket."
-	}
 	if m != nil {
 		k.num, _ = strconv.Atoi(m[1])
 		k.xsock = fmt.Sprintf("/tmp/.X11-unix/X%d", k.num)
 	}
 	k.scanner = &runningScanner{procDir: "/proc", display: k.display, ttl: 2 * time.Second}
-	xvncBin, openbox := findFirst(lookPath, "Xvnc", "Xtigervnc"), findFirst(lookPath, "openbox")
-	if k.unavailable == "" && (xvncBin == "" || openbox == "") {
-		k.unavailable = "TigerVNC (Xvnc) and openbox are not installed."
-		k.hint = deskInstallHint
-	}
+	xvncBin := findFirst(lookPath, "Xvnc", "Xtigervnc")
 	var errs []error
 	k.catalog, errs = deskCatalog(cfg.Apps, d.Paths.DataDir, d.Paths.Home, lookPath)
 	for _, err := range errs {
 		log.Warn("ignoring desktop app", "err", err)
 	}
-	if k.unavailable != "" {
-		k.xvnc = newProc(procSpec{Name: "Xvnc"}, nil)
-		k.session = newProc(procSpec{Name: "desktop session"}, nil)
-		return k, nil
-	}
 	k.xvnc = newProc(procSpec{
-		Name:         "Xvnc",
-		Argv:         k.xvncArgs(xvncBin),
-		Env:          k.sessionEnv(),
-		Dir:          d.Paths.Home,
-		Ready:        k.xReady,
-		ReadyTimeout: 20 * time.Second,
-		StopGrace:    3 * time.Second,
-		BeforeStart:  k.prepare,
+		Name:           "Xvnc",
+		ResolveCommand: k.resolveXvnc,
+		Argv:           k.xvncArgs(xvncBin),
+		Env:            k.sessionEnv(),
+		Dir:            d.Paths.Home,
+		Ready:          k.xReady,
+		ReadyTimeout:   20 * time.Second,
+		StopGrace:      3 * time.Second,
+		BeforeStart:    k.prepare,
 	}, k.changed)
 	argv := []string{"/bin/sh", filepath.Join(k.dir, "xstartup")}
 	if drs := findFirst(lookPath, "dbus-run-session"); drs != "" {
 		argv = append([]string{drs, "--"}, argv...)
 	}
 	k.session = newProc(procSpec{
-		Name: "desktop session", Argv: argv, Env: k.sessionEnv(), Dir: d.Paths.Home,
+		Name: "desktop session", Argv: argv, ResolveCommand: k.resolveSession, Env: k.sessionEnv(), Dir: d.Paths.Home,
 		StopGrace: 3 * time.Second,
 	}, k.sessionChanged)
 	return k, nil

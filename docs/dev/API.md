@@ -28,6 +28,11 @@ for all six fields, daemon compatibility and existing-session behavior.
 Types are in `internal/api/runtime_settings.go` and
 `web/src/api/runtime-settings.ts`.
 
+Info includes read-only [feature capabilities](CAPABILITIES.md): configured,
+available, effective and lifecycle state from preview/apps owners. The
+managed Apps and Desktop responses expose the same additive snapshots.
+Queries do not launch optional services.
+
 ## auth (owner: auth)
 
 | Method | Path | Body → Response |
@@ -73,6 +78,9 @@ On connect the server sends `hello` with `Info`, then a snapshot:
 explicitly (1 Hz while subscribed). `visibility` messages tell the server
 which route the user is looking at, so the notifier can skip pushing a
 notification for the terminal already on screen. Ping every 25 s.
+
+Feature owners publish `capabilities.changed` with `{feature}` to invalidate
+cached Info. See [capability events and timing](CAPABILITIES.md).
 
 ## terminals & uploads (owner: terminal)
 

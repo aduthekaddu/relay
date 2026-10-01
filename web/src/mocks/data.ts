@@ -47,6 +47,31 @@ export const info: Info = {
   home: HOME,
   startedAt: before(3 * DAY + 4 * HOUR),
   publicUrl: 'https://atlas.example.test',
+  capabilities: {
+    previews: {
+      configuredMode: 'auto',
+      effectiveMode: 'subdomain',
+      host: 'atlas.example.test',
+      detection: 'verified',
+      checkedAt: before(30),
+    },
+    code: {
+      enabled: true,
+      available: true,
+      state: 'running',
+      missing: [],
+      implementation: 'code-server',
+      source: 'standalone',
+    },
+    desktop: {
+      enabled: true,
+      available: true,
+      state: 'stopped',
+      missing: [],
+      implementation: 'Xtigervnc',
+      source: 'path',
+    },
+  },
   features: {
     passkeys: true,
     push: true,
@@ -870,6 +895,7 @@ export const apps: App[] = [
     name: 'VS Code',
     description: 'code-server in the browser, on this machine.',
     kind: 'code',
+    capability: info.capabilities.code,
     state: 'running',
     installed: true,
     url: '/apps/code/',
@@ -880,6 +906,7 @@ export const apps: App[] = [
     name: 'Desktop',
     description: 'A real Linux desktop over noVNC.',
     kind: 'desktop',
+    capability: info.capabilities.desktop,
     state: 'stopped',
     installed: true,
   },
@@ -895,6 +922,8 @@ export const apps: App[] = [
 ]
 
 export const desktop: DesktopState = {
+  capability: info.capabilities.desktop,
+  display: ':7',
   state: 'stopped',
   width: 1600,
   height: 1000,

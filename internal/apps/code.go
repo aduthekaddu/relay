@@ -18,42 +18,52 @@ const (
 )
 
 // codeBinary locates code-server or openvscode-server: the configured
-// binary first, then PATH, ~/.local/bin and ~/.local/lib/code-server-*.
+// binary exclusively when set; otherwise PATH, ~/.local/bin and standalone
+// ~/.local/lib/code-server-* installs.
 func codeBinary(configured, home string, lookPath func(string) (string, error)) (string, ideFlavor, bool) {
+	bin, flavor, _, ok := discoverCode(configured, home, lookPath)
+	return bin, flavor, ok
+}
+
+// discoverCode is shared by capability queries and the launch resolver.
+// No positive or negative installation result is cached.
+func discoverCode(configured, home string, lookPath func(string) (string, error)) (string, ideFlavor, string, bool) {
+	configured = strings.TrimSpace(configured)
 	if configured != "" {
 		p := expandHome(configured, home)
 		if !strings.ContainsRune(p, '/') {
-			if lp, err := lookPath(p); err == nil {
-				p = lp
+			if lp, err := lookPath(p); err == nil && isExecutable(lp) {
+				return lp, flavorOf(lp), "configured", true
 			}
+			p = filepath.Join(home, ".local", "bin", p)
 		}
-		if isExecutable(p) {
-			return p, flavorOf(p), true
+		p, err := filepath.Abs(p)
+		if err != nil {
+			return "", flavorCodeServer, "configured", false
 		}
-		return p, flavorOf(p), false
+		return p, flavorOf(p), "configured", isExecutable(p)
 	}
 	for _, name := range []string{"code-server", "openvscode-server"} {
-		if p, err := lookPath(name); err == nil {
-			return p, flavorOf(p), true
+		if p, err := lookPath(name); err == nil && isExecutable(p) {
+			return p, flavorOf(p), "path", true
 		}
 	}
-	for _, p := range []string{
-		filepath.Join(home, ".local", "bin", "code-server"),
-		filepath.Join(home, ".local", "bin", "openvscode-server"),
-	} {
-		if isExecutable(p) {
-			return p, flavorOf(p), true
+	if home != "" {
+		for _, name := range []string{"code-server", "openvscode-server"} {
+			p := filepath.Join(home, ".local", "bin", name)
+			if isExecutable(p) {
+				return p, flavorOf(p), "local-bin", true
+			}
+		}
+		matches, _ := filepath.Glob(filepath.Join(home, ".local", "lib", "code-server-*", "bin", "code-server"))
+		sort.Slice(matches, func(i, j int) bool { return versionLess(matches[j], matches[i]) })
+		for _, p := range matches {
+			if isExecutable(p) {
+				return p, flavorCodeServer, "standalone", true
+			}
 		}
 	}
-	// Standalone installs: ~/.local/lib/code-server-<version>/bin/code-server.
-	matches, _ := filepath.Glob(filepath.Join(home, ".local", "lib", "code-server-*", "bin", "code-server"))
-	sort.Slice(matches, func(i, j int) bool { return versionLess(matches[j], matches[i]) })
-	for _, p := range matches {
-		if isExecutable(p) {
-			return p, flavorCodeServer, true
-		}
-	}
-	return "", flavorCodeServer, false
+	return "", flavorCodeServer, "", false
 }
 
 func flavorOf(p string) ideFlavor {
@@ -90,7 +100,7 @@ func dirVersion(p string) []int {
 
 func isExecutable(p string) bool {
 	fi, err := os.Stat(p)
-	return err == nil && !fi.IsDir() && fi.Mode()&0o111 != 0
+	return err == nil && fi.Mode().IsRegular() && fi.Mode()&0o111 != 0
 }
 
 func expandHome(p, home string) string {

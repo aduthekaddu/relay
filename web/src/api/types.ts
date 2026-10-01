@@ -5,6 +5,8 @@ export interface ErrorBody { error: ErrorDetail }
 export interface ErrorDetail { code: string; message: string; field?: string; retryIn?: number }
 export interface Page<T> { items: T[]; nextCursor?: string; total?: number }
 
+import type { AppCapability, Capabilities } from "./capabilities"
+
 // ---------------------------------------------------------------- info
 export interface Features {
   passkeys: boolean; push: boolean; desktop: boolean; code: boolean
@@ -13,7 +15,7 @@ export interface Features {
 }
 export interface Info {
   version: string; commit?: string; hostname: string; os: string; arch: string
-  user: string; home: string; startedAt: string; publicUrl: string; features: Features
+  user: string; home: string; startedAt: string; publicUrl: string; features: Features; capabilities: Capabilities
 }
 
 // ---------------------------------------------------------------- auth
@@ -159,12 +161,12 @@ export interface UpdatePreviewRequest { label?: string; pinned?: boolean; hidden
 export interface App {
   id: string; name: string; description: string; kind: 'code' | 'desktop' | 'web'
   state: 'running' | 'starting' | 'stopped' | 'unavailable' | 'error'
-  installed: boolean; url?: string; icon?: string; since?: string; error?: string; installHint?: string
+  installed: boolean; url?: string; icon?: string; since?: string; error?: string; installHint?: string; capability?: AppCapability
 }
 export interface DesktopApp { id: string; name: string; running: boolean; icon?: string }
 export interface DesktopState {
   state: 'running' | 'stopped' | 'starting' | 'unavailable'; display?: string; width: number; height: number
-  apps: DesktopApp[]; viewers: number; error?: string; installHint?: string
+  apps: DesktopApp[]; viewers: number; error?: string; installHint?: string; capability: AppCapability
 }
 
 // ---------------------------------------------------------------- notifications
@@ -218,7 +220,7 @@ export type EventType =
   | 'hello' | 'terminal.created' | 'terminal.updated' | 'terminal.exited' | 'terminal.removed'
   | 'agents.indexed' | 'agents.session' | 'notification' | 'notification.read' | 'metrics'
   | 'previews.changed' | 'clip' | 'open' | 'schedule.run' | 'app.state' | 'desktop.state'
-  | 'toolbox.job' | 'workspace.changed'
+  | 'toolbox.job' | 'workspace.changed' | 'capabilities.changed'
 export interface RelayEvent<T = unknown> { type: EventType; at: string; data?: T }
 export interface ClientEvent { type: 'subscribe' | 'unsubscribe' | 'visibility' | 'ping'; topics?: string[]; visible?: boolean; path?: string }
 

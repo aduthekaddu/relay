@@ -13,6 +13,7 @@ func wireApps(ctx context.Context, a *App) error {
 	if err != nil {
 		return err
 	}
+	a.D.Apps = svc
 	svc.Routes(a.Router)
 	a.OnStart("apps", svc.Start)
 	a.OnClose(svc.Close)

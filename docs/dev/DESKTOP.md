@@ -10,8 +10,11 @@ changes publish `app.state` (and `desktop.state`).
 
 ## Code (browser IDE)
 
-Binary: `code.binary`, then `code-server` / `openvscode-server` on PATH,
-then `~/.local/bin`, then the newest `~/.local/lib/code-server-*`. It runs
+An explicit `code.binary` is authoritative, including configured names and
+`~/` paths. Without one, discovery checks `code-server` / `openvscode-server`
+on PATH, then `~/.local/bin`, then the newest standalone
+`~/.local/lib/code-server-*/bin/code-server`. Queries and each explicit start
+refresh discovery. An installed binary does not imply readiness. It runs
 fully separate from any other code-server on the machine:
 
 ```
@@ -45,6 +48,11 @@ Relative sockets live in the runtime directory. Without `command`, Relay
 only proxies, and the app counts as running while it accepts connections.
 
 ## Desktop
+
+Linux, `Xvnc` or `Xtigervnc`, openbox, a valid local display and supported
+runtime path are required. Their availability is refreshed without launching
+an X server. See [capability states](CAPABILITIES.md). Both X and the session
+must be ready for running; failed session cleanup retains the failure.
 
 TigerVNC `Xvnc` on `desktop.display` (default `:7`), `desktop.geometry`
 (default 1600x1000):

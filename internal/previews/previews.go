@@ -72,7 +72,7 @@ type Service struct {
 	res     resolver
 	rt      *server.Router
 
-	mode atomic.Value // string: subdomain | path | off
+	mode atomic.Value // api.PreviewCapability; written under mu
 
 	scanMu   sync.Mutex // serialises scans
 	mu       sync.Mutex // guards the fields below
@@ -118,7 +118,7 @@ func New(d *core.Deps) (*Service, error) {
 	if s.tok, err = loadTokens(ctx, d.Store); err != nil {
 		return nil, err
 	}
-	s.mode.Store(s.initialMode())
+	s.mode.Store(s.initialCapability())
 	return s, nil
 }
 
@@ -132,34 +132,6 @@ func defaultSource() source {
 	}
 	return emptySource{}
 }
-
-// initialMode is the mode before DNS detection has run.
-func (s *Service) initialMode() string {
-	cfg := s.d.Cfg.Previews
-	m := strings.ToLower(strings.TrimSpace(cfg.Mode))
-	if m == "" || m == modeAuto {
-		lb := strings.ToLower(cfg.Host)
-		if lb == "localhost" || strings.HasSuffix(lb, ".localhost") {
-			return modeSubdomain
-		}
-		if lb == "" {
-			return modePath
-		}
-		return modePath // until wildcard DNS is confirmed
-	}
-	return detectMode(context.Background(), m, cfg.Host, nil)
-}
-
-// Mode returns the effective preview mode: subdomain, path or off.
-func (s *Service) Mode() string {
-	m, _ := s.mode.Load().(string)
-	if m == "" {
-		return modePath
-	}
-	return m
-}
-
-func (s *Service) baseHost() string { return strings.ToLower(strings.TrimSpace(s.d.Cfg.Previews.Host)) }
 
 // Start runs the detection loop until ctx is cancelled.
 func (s *Service) Start(ctx context.Context) error {
@@ -183,18 +155,6 @@ func (s *Service) Start(ctx context.Context) error {
 			}
 			s.scan(ctx)
 		}
-	}
-}
-
-func (s *Service) redetectMode(ctx context.Context) {
-	cfg := s.d.Cfg.Previews
-	m := detectMode(ctx, strings.ToLower(strings.TrimSpace(cfg.Mode)), cfg.Host, s.res)
-	if old := s.Mode(); old != m {
-		s.mode.Store(m)
-		s.log.Info("previews mode", "mode", m, "host", cfg.Host)
-		s.mu.Lock()
-		s.lastList = nil // URLs changed: force a publish
-		s.mu.Unlock()
 	}
 }
 
@@ -455,6 +415,9 @@ func (s *Service) List() []api.Preview {
 }
 
 func (s *Service) listLocked() []api.Preview {
+	if s.Mode() == modeOff {
+		return []api.Preview{}
+	}
 	out := make([]api.Preview, 0, len(s.entries))
 	for port, e := range s.entries {
 		out = append(out, s.previewLocked(port, e))
@@ -472,7 +435,7 @@ func (s *Service) previewLocked(port int, e *entry) api.Preview {
 	m := s.metas[port]
 	p := api.Preview{
 		Port:   port,
-		URL:    previewURL(s.Mode(), port, s.baseHost(), s.origin),
+		URL:    s.urlFor(s.Mode(), port),
 		Pinned: m.Pinned,
 		Hidden: m.Hidden,
 		Label:  m.Label,

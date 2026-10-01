@@ -93,7 +93,13 @@ func TestSettingsDesktopIdlePreservesViewersAndUnsupportedState(t *testing.T) {
 	d := testDeps(t, nil)
 	d.InitSettings()
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	k := &desktop{d: d, log: log, xvnc: ownedIdleProc(t), session: ownedIdleProc(t), scanner: &runningScanner{procDir: t.TempDir()}, lastUse: time.Now()}
+	k, err := newDesktop(d, log, fakeLookPath("Xvnc", "openbox"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	k.xvnc, k.session = ownedIdleProc(t), ownedIdleProc(t)
+	k.scanner = &runningScanner{procDir: t.TempDir()}
+	k.lastUse = time.Now()
 	t.Cleanup(func() { k.Stop(context.Background()) })
 	set := func(minutes int) {
 		t.Helper()

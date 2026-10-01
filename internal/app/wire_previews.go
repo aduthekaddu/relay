@@ -12,6 +12,7 @@ func wirePreviews(ctx context.Context, a *App) error {
 	if err != nil {
 		return err
 	}
+	a.D.Previews = svc
 	svc.Routes(a.Router)
 	a.OnStart("previews", svc.Start)
 	a.OnClose(svc.Close)

@@ -26,12 +26,18 @@ func (k *desktop) sessionChanged() {
 	xs, _, _ := k.xvnc.Status()
 	k.mu.Lock()
 	stopping := k.stopping
+	if st == stateError {
+		k.failed = true
+	}
 	k.mu.Unlock()
 	if !stopping && (st == stateStopped || st == stateError) && (xs == stateRunning || xs == stateStarting) {
 		go func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 			defer cancel()
-			if err := k.Stop(ctx); err != nil {
+			k.opMu.Lock()
+			err := k.stopLocked(ctx)
+			k.opMu.Unlock()
+			if err != nil {
 				k.log.Warn("desktop stop after session exit", "err", err)
 			}
 		}()
@@ -41,36 +47,44 @@ func (k *desktop) sessionChanged() {
 
 // status combines both processes into one desktop state.
 func (k *desktop) status() (state, errMsg string) {
-	if k.unavailable != "" {
-		return "unavailable", k.unavailable
+	cap := k.Capability()
+	switch cap.State {
+	case "disabled":
+		return "unavailable", "The desktop is disabled."
+	case "unavailable":
+		return "unavailable", "Desktop prerequisites are unavailable."
+	case "failed":
+		return stateStopped, "The desktop could not start or exited unexpectedly."
+	default:
+		return cap.State, ""
 	}
-	xs, _, xerr := k.xvnc.Status()
-	ss, _, serr := k.session.Status()
-	switch {
-	case xs == stateRunning && ss == stateRunning:
-		return stateRunning, ""
-	case xs == stateStarting, xs == stateRunning:
-		return stateStarting, ""
-	case xs == stateError:
-		return stateStopped, xerr
-	case ss == stateError:
-		return stateStopped, serr
-	}
-	return stateStopped, ""
 }
 
 // State is the API view of the desktop.
 func (k *desktop) State() api.DesktopState {
-	state, msg := k.status()
+	cap := k.Capability()
+	state, msg := legacyAppState(cap.State), ""
+	if cap.State == "failed" {
+		state = stateStopped
+		msg = "The desktop could not start or exited unexpectedly."
+	}
 	k.mu.Lock()
 	defer k.mu.Unlock()
 	st := api.DesktopState{
 		State: state, Display: k.display, Width: k.width, Height: k.height,
-		Viewers: k.viewers, Error: msg, Apps: []api.DesktopApp{},
+		Viewers: k.viewers, Error: msg, Apps: []api.DesktopApp{}, Capability: cap,
 	}
 	if state == "unavailable" {
-		st.Error, st.InstallHint = k.unavailable, k.hint
-		if k.hint != "" {
+		st.Error = "Desktop prerequisites are unavailable."
+		if cap.State == "disabled" {
+			st.Error = "The desktop is disabled."
+		}
+		for _, missing := range cap.Missing {
+			if missing == "vnc" || missing == "openbox" {
+				st.InstallHint = deskInstallHint
+			}
+		}
+		if st.InstallHint != "" && cap.State != "disabled" {
 			st.Error = ""
 		}
 	}
@@ -87,20 +101,26 @@ func (k *desktop) State() api.DesktopState {
 // Start brings the desktop up (Xvnc, then the session) and waits until
 // both run. Starting a running desktop is a no-op.
 func (k *desktop) Start(ctx context.Context) error {
-	if k.unavailable != "" {
-		msg := k.unavailable
-		if k.hint != "" {
-			msg += " Install with: " + k.hint
-		}
-		return httpx.Unavailable(msg)
-	}
 	k.opMu.Lock()
 	defer k.opMu.Unlock()
+	cap := k.Capability()
+	if !cap.Enabled || (!cap.Available && cap.State != stateRunning) {
+		return httpx.Unavailable("Desktop prerequisites are unavailable.")
+	}
+	k.mu.Lock()
+	k.failed = false
+	k.mu.Unlock()
 	k.touch()
 	if err := k.xvnc.Start(ctx); err != nil {
 		return startErr(err)
 	}
+	k.mu.Lock()
+	k.started = true
+	k.mu.Unlock()
 	if err := k.session.Start(ctx); err != nil {
+		k.mu.Lock()
+		k.failed = true
+		k.mu.Unlock()
 		_ = k.stopLocked(context.Background())
 		return startErr(err)
 	}
@@ -112,20 +132,33 @@ func startErr(err error) error {
 	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return err
 	}
-	return httpx.Unavailable("The desktop could not start: " + err.Error())
+	return httpx.Unavailable("The desktop could not start; inspect the local service log.")
 }
 
 // Stop ends the session and the X server. Viewers are disconnected.
 func (k *desktop) Stop(ctx context.Context) error {
-	if k.unavailable != "" {
+	if k.xvnc == nil || k.session == nil {
 		return nil
 	}
 	k.opMu.Lock()
 	defer k.opMu.Unlock()
+	k.mu.Lock()
+	k.failed = false
+	k.mu.Unlock()
 	return k.stopLocked(ctx)
 }
 
 func (k *desktop) stopLocked(ctx context.Context) error {
+	k.mu.Lock()
+	started := k.started
+	k.mu.Unlock()
+	if !started && k.xvnc.PID() == 0 && k.session.PID() == 0 {
+		// Clear failed/pending attempts without claiming display or file ownership.
+		if err := k.session.Stop(ctx); err != nil {
+			return err
+		}
+		return k.xvnc.Stop(ctx)
+	}
 	k.mu.Lock()
 	k.stopping = true
 	k.mu.Unlock()

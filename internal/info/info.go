@@ -99,9 +99,13 @@ func (s *Service) Info(ctx context.Context) api.Info {
 	f := &info.Features
 	f.Passkeys = passkeysUsable(origin)
 	f.Push = s.pushConfigured(ctx)
-	f.Desktop = cfg.Desktop.Enabled && bins["Xvnc"]
-	f.Code = cfg.Code.Enabled && (bins["code-server"] || bins["openvscode-server"] || bins["custom-code"])
-	f.PreviewsMode, f.PreviewsHost = previewsMode(cfg.Previews.Mode, cfg.Previews.Host, origin)
+	info.Capabilities = s.capabilities()
+	f.Desktop = info.Capabilities.Desktop.Enabled && info.Capabilities.Desktop.Available
+	f.Code = info.Capabilities.Code.Enabled && info.Capabilities.Code.Available
+	f.PreviewsMode = info.Capabilities.Previews.EffectiveMode
+	if f.PreviewsMode == "subdomain" {
+		f.PreviewsHost = info.Capabilities.Previews.Host
+	}
 	recordingCtx, cancel := context.WithTimeout(ctx, recordingProbeTimeout)
 	defaults, _ := s.terminalDefaults(recordingCtx)
 	cancel()
@@ -127,24 +131,6 @@ func passkeysUsable(origin string) bool {
 	return u.Scheme == "https"
 }
 
-// previewsMode resolves "auto": subdomain previews need a base host and an
-// HTTPS origin (each <port>.<host> gets its own certificate); otherwise
-// path mode (/p/<port>/).
-func previewsMode(mode, host, origin string) (string, string) {
-	switch strings.ToLower(strings.TrimSpace(mode)) {
-	case "off":
-		return "off", ""
-	case "path":
-		return "path", ""
-	case "subdomain":
-		return "subdomain", host
-	}
-	if host != "" && strings.HasPrefix(origin, "https://") {
-		return "subdomain", host
-	}
-	return "path", ""
-}
-
 // pushConfigured reports whether the notify feature generated VAPID keys
 // (read-only check of the store KV).
 func (s *Service) pushConfigured(ctx context.Context) bool {
@@ -165,11 +151,8 @@ func (s *Service) binaries() map[string]bool {
 		return s.bins
 	}
 	out := map[string]bool{}
-	for _, name := range []string{"Xvnc", "code-server", "openvscode-server", "rg"} {
+	for _, name := range []string{"rg"} {
 		out[name] = s.findBinary(name)
-	}
-	if b := strings.TrimSpace(s.d.Cfg.Code.Binary); b != "" {
-		out["custom-code"] = s.findBinary(b)
 	}
 	s.bins, s.probed = out, time.Now()
 	return out

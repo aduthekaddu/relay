@@ -40,7 +40,13 @@ stays up for 3 s sends a `preview` notification ("Vite on :5173"), with a
 - `auto` (default): subdomain when a random `<n>.<host>` resolves to the
   same addresses as `<host>` (wildcard DNS), else path. Rechecked every
   10 minutes. `localhost` hosts always support subdomains.
-- `off`: detection only, no proxy.
+- `off`: no detection loop, list or proxy.
+
+Auto mode begins in path/pending for non-local DNS hosts. Both lookups share
+a three-second deadline. Missing/invalid/IP hosts use path. The same normalized
+host and serving port drive URLs, dispatch and [Info capabilities](CAPABILITIES.md).
+Mode changes refresh existing URLs immediately and invalidate browser Info.
+Explicit subdomain mode does not verify DNS or TLS.
 
 ## Proxy rules (SECURITY.md)
 

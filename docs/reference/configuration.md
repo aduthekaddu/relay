@@ -152,12 +152,17 @@ file.
 | `show_hidden` | bool | `false` | Show dotfiles by default |
 | `use_trash` | bool | `true` | Delete to the Trash (restorable) instead of deleting permanently |
 
+Code/desktop enabled flags, Code binary, desktop display and preview
+mode/host are startup settings. Editing them requires the next serve start;
+the runtime Settings API does not change them. Installation checks refresh
+on queries without starting services. See [API capability state](api.md#capability-state).
+
 ## `[previews]`
 
 | Key | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `mode` | string | `"auto"` | `"auto"`, `"subdomain"`, `"path"` or `"off"`. See [Previews](../guides/previews.md#choose-subdomain-or-path-mode) |
-| `host` | string | value of `server.domain` | Base name for subdomain previews: `<port>.<host>` |
+| `host` | string | value of `server.domain` | Base name for subdomain previews: `<port>.<host>`; optional explicit serving port. Names are normalized; absent/invalid/IP hosts use path |
 | `port_min` | int | `1024` | Lowest port listed |
 | `port_max` | int | `65535` | Highest port listed |
 | `ignore` | list of ints | `[]` | Ports never listed, for example databases |

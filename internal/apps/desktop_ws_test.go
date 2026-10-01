@@ -133,7 +133,7 @@ func fakeRFB(t *testing.T, sock string, w, h int) *sync.WaitGroup {
 func testDesktop(t *testing.T, sock string, ensure func(context.Context) error) *desktop {
 	t.Helper()
 	return &desktop{
-		log: slog.New(slog.NewTextHandler(io.Discard, nil)), sock: sock,
+		d: testDeps(t, nil), log: slog.New(slog.NewTextHandler(io.Discard, nil)), sock: sock,
 		conns: map[net.Conn]struct{}{}, ensure: ensure, unavailable: "test",
 		scanner: &runningScanner{procDir: t.TempDir(), ttl: time.Second},
 	}
