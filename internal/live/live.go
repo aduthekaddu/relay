@@ -140,7 +140,7 @@ func (s *Service) dropSessions(data any) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for c := range s.clients {
-		if c.sessionID != "" && set[c.sessionID] {
+		if !c.guard.Managed() && c.sessionID != "" && set[c.sessionID] {
 			c.kill(websocket.StatusPolicyViolation, "signed out")
 		}
 	}
@@ -242,6 +242,7 @@ type client struct {
 	visible bool
 	path    string
 
+	guard    *server.SocketGuard
 	killOnce sync.Once
 }
 
@@ -271,6 +272,9 @@ func (c *client) view() (bool, string) {
 func (c *client) kill(code websocket.StatusCode, reason string) {
 	c.killOnce.Do(func() {
 		go func() {
+			if c.guard.Revoked() {
+				c.guard.Wait()
+			}
 			_ = c.conn.Close(code, reason)
 			c.cancel()
 		}()
@@ -291,14 +295,15 @@ func (s *Service) handleEvents(w http.ResponseWriter, r *http.Request) {
 	p := server.PrincipalFrom(r.Context())
 	// Origin was already verified by the router for cookie principals;
 	// token and local callers are not ambient-credential (CSRF) risks.
-	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{InsecureSkipVerify: true, CompressionMode: websocket.CompressionDisabled})
+	conn, guard, err := server.AcceptSocket(w, r, &websocket.AcceptOptions{InsecureSkipVerify: true, CompressionMode: websocket.CompressionDisabled})
 	if err != nil {
 		return // Accept already wrote the error response
 	}
+	defer guard.Stop()
 	conn.SetReadLimit(readLimit)
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
-	c := &client{conn: conn, send: make(chan []byte, sendQueue), cancel: cancel, topics: map[string]bool{}, visible: true}
+	c := &client{guard: guard, conn: conn, send: make(chan []byte, sendQueue), cancel: cancel, topics: map[string]bool{}, visible: true}
 	if p != nil {
 		c.sessionID = p.SessionID
 	}
@@ -394,6 +399,9 @@ func (s *Service) readLoop(ctx context.Context, c *client) error {
 		var ev api.ClientEvent
 		if err := json.Unmarshal(data, &ev); err != nil {
 			continue // ignore malformed frames rather than dropping the socket
+		}
+		if !c.guard.Check() {
+			return context.Canceled
 		}
 		s.handleClientEvent(c, ev)
 	}

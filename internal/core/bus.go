@@ -11,7 +11,7 @@ const (
 	// clipboard that arrived from a non-HTTP source (OSC 52, desktop).
 	BusClipCapture = "clip.capture"
 	// BusSessionRevoked carries a SessionRevoked. internal/auth publishes
-	// it when browser sessions end (logout, revoke, password change) so
+	// it after browser-session or API-token revocation so
 	// long-lived connections (WebSockets) authenticated by them can close.
 	BusSessionRevoked = "auth.session.revoked"
 )
@@ -33,9 +33,11 @@ type ClipCapture struct {
 }
 
 // SessionRevoked is the payload of BusSessionRevoked. SessionIDs are the
-// public session ids (server.Principal.SessionID).
+// public session ids (server.Principal.SessionID). TokenIDs are public
+// API-token ids (server.Principal.TokenID). No credential values or hashes.
 type SessionRevoked struct {
 	SessionIDs []string
+	TokenIDs   []string
 }
 
 // IsBackendTopic reports whether t is a backend-only bus topic that must

@@ -332,7 +332,7 @@ func (a *Accounts) lookupToken(ctx context.Context, hash string) (*tokenRow, err
 }
 
 func (a *Accounts) touchToken(ctx context.Context, id string, at time.Time) error {
-	_, err := a.st.DB.ExecContext(ctx, `UPDATE auth_tokens SET last_used_at=? WHERE id=?`, ms(at), id)
+	_, err := a.st.DB.ExecContext(ctx, `UPDATE auth_tokens SET last_used_at=? WHERE id=? AND last_used_at<=?`, ms(at), id, ms(at.Add(-tokenTouchEvery)))
 	return err
 }
 

@@ -281,7 +281,9 @@ func (s *Service) refreshRememberCookie(w http.ResponseWriter, r *http.Request) 
 	if v == "" {
 		return
 	}
-	if e := s.cache.get(secret.HashToken(v), s.now()); e != nil && e.remember {
+	ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
+	defer cancel()
+	if row, err := s.acc.sessionByHash(ctx, secret.HashToken(v)); err == nil && row != nil && row.Remember {
 		s.setSessionCookie(w, r, v, true)
 	}
 }

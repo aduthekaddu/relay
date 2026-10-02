@@ -22,6 +22,7 @@ type ctxKey int
 const (
 	principalKey ctxKey = iota
 	localConnKey
+	socketAuthKey
 )
 
 // PrincipalFrom returns the caller, or nil on public routes.
@@ -154,7 +155,13 @@ func (rt *Router) protect(h http.HandlerFunc, ws bool) http.Handler {
 				return
 			}
 		}
-		h(w, r.WithContext(WithPrincipal(r.Context(), p)))
+		ctx := WithPrincipal(r.Context(), p)
+		if ws {
+			if a, ok := rt.auth.(SocketAuthenticator); ok {
+				ctx = context.WithValue(ctx, socketAuthKey, a)
+			}
+		}
+		h(w, r.WithContext(ctx))
 	})
 }
 

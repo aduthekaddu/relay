@@ -7,6 +7,12 @@ status. Timestamps are RFC 3339.
 
 Auth: browser session cookie `relay_session` (`__Host-relay_session` over
 HTTPS), `Authorization: Bearer rly_<token>`, or the local control socket.
+The events, terminal attach, desktop and log WebSockets revalidate their
+cookie/token credentials, reject newly received input after revocation, and
+close within 3 s. Status 1008 uses the fixed reason `authentication ended`;
+unresponsive peers can receive an abrupt close. The local control socket is
+exempt. See [revocation ownership and bounds](AUTH.md#revocation-ownership).
+
 Unsafe cookie requests and every cookie WebSocket must send an allowed
 `Origin` (the canonical origin from config).
 
