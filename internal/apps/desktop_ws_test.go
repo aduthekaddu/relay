@@ -14,9 +14,12 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/aduthekaddu/relay/internal/api"
+	"github.com/aduthekaddu/relay/internal/server"
 	"github.com/coder/websocket"
 )
 
@@ -316,5 +319,90 @@ func waitFor(t *testing.T, cond func() bool) {
 			t.Fatal("condition not met in time")
 		}
 		time.Sleep(20 * time.Millisecond)
+	}
+}
+
+type desktopSocketAuth struct{ valid atomic.Bool }
+
+func (a *desktopSocketAuth) Identify(*http.Request) *server.Principal {
+	return &server.Principal{User: "fixture", Method: "token", TokenID: "synthetic"}
+}
+func (a *desktopSocketAuth) SocketValid(context.Context, *http.Request, *server.Principal) bool {
+	return a.valid.Load()
+}
+func (a *desktopSocketAuth) SubscribeRevocations(*server.Principal) (<-chan api.Event, func()) {
+	return nil, func() {}
+}
+
+func TestDesktopRevocationInterruptsBlockedInput(t *testing.T) {
+	for _, mode := range []string{"blocked-vnc-write", "streamed-frame"} {
+		t.Run(mode, func(t *testing.T) {
+			sock := filepath.Join(shortDir(t), "vnc.sock")
+			ln, err := net.Listen("unix", sock)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer ln.Close()
+			backend := make(chan net.Conn, 1)
+			go func() {
+				c, err := ln.Accept()
+				if err == nil {
+					backend <- c
+				}
+			}()
+			a := &desktopSocketAuth{}
+			a.valid.Store(true)
+			k := testDesktop(t, sock, func(context.Context) error { return nil })
+			rt := server.NewRouter(a, nil)
+			rt.WS("GET /ws", k.ServeWS)
+			hs := httptest.NewServer(rt)
+			defer hs.Close()
+			c, _, err := websocket.Dial(context.Background(), "ws"+strings.TrimPrefix(hs.URL, "http")+"/ws", nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer c.CloseNow()
+			vnc := <-backend
+			defer vnc.Close()
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			sent := make(chan error, 1)
+			if mode == "blocked-vnc-write" {
+				go func() { sent <- c.Write(ctx, websocket.MessageBinary, make([]byte, 4<<20)) }()
+			} else {
+				wr, err := c.Writer(ctx, websocket.MessageBinary)
+				if err != nil {
+					t.Fatal(err)
+				}
+				// Open a fragmented frame while valid, then pause without ending it.
+				if _, err := wr.Write(make([]byte, 128<<10)); err != nil {
+					t.Fatal(err)
+				}
+				t.Cleanup(func() { wr.Close() })
+			}
+			// Prove that forwarding reached VNC before revoking. Leave the rest
+			// unread so the next backend write cannot finish.
+			_ = vnc.SetReadDeadline(time.Now().Add(3 * time.Second))
+			if _, err := io.ReadFull(vnc, make([]byte, 4096)); err != nil {
+				t.Fatal(err)
+			}
+			_ = vnc.SetReadDeadline(time.Time{})
+			started := time.Now()
+			a.valid.Store(false)
+			for k.State().Viewers != 0 && time.Since(started) < server.SocketRevocationBound+300*time.Millisecond {
+				time.Sleep(10 * time.Millisecond)
+			}
+			if k.State().Viewers != 0 {
+				t.Fatal("revocation left a blocked desktop viewer attached")
+			}
+			t.Logf("%s viewer released in %s", mode, time.Since(started).Round(time.Millisecond))
+			if mode == "blocked-vnc-write" {
+				select {
+				case <-sent:
+				case <-ctx.Done():
+					t.Fatal("blocked client write did not exit")
+				}
+			}
+		})
 	}
 }

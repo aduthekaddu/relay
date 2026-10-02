@@ -9,6 +9,7 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 
 	"github.com/aduthekaddu/relay/internal/api"
+	"github.com/aduthekaddu/relay/internal/core"
 	"github.com/aduthekaddu/relay/internal/httpx"
 	"github.com/aduthekaddu/relay/internal/server"
 )
@@ -322,7 +323,9 @@ func (s *Service) handleTokenRevoke(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, err)
 		return
 	}
-	s.cache.dropToken(t.ID)
+	if s.d.Bus != nil {
+		s.d.Bus.Publish(core.BusSessionRevoked, core.SessionRevoked{TokenIDs: []string{t.ID}})
+	}
 	s.audit(r, "token.revoke", actorOf(p), t.Name+" ("+t.Prefix+"…)")
 	httpx.NoContent(w)
 }

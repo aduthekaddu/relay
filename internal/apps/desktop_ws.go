@@ -12,6 +12,7 @@ import (
 	"github.com/coder/websocket"
 
 	"github.com/aduthekaddu/relay/internal/httpx"
+	"github.com/aduthekaddu/relay/internal/server"
 )
 
 const (
@@ -47,7 +48,7 @@ func (k *desktop) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer k.removeViewer(vnc)
-	ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+	ws, guard, err := server.AcceptSocket(w, r, &websocket.AcceptOptions{
 		Subprotocols: []string{"binary"},
 		// Origin was enforced by Router.WS; the Host may be a proxy name.
 		InsecureSkipVerify: true,
@@ -58,14 +59,19 @@ func (k *desktop) ServeWS(w http.ResponseWriter, r *http.Request) {
 		vnc.Close()
 		return // Accept wrote the error response
 	}
+	defer guard.Stop()
 	ws.SetReadLimit(wsReadLimit)
-	bridgeRFB(r.Context(), ws, vnc)
+	bridgeRFB(r.Context(), ws, vnc, guard)
 }
 
 // bridgeRFB copies binary frames both ways until either side ends, then
 // closes both. Backpressure is natural: each direction blocks on its
 // writer, so a slow browser stops reads from the VNC socket.
-func bridgeRFB(ctx context.Context, ws *websocket.Conn, vnc net.Conn) {
+func bridgeRFB(ctx context.Context, ws *websocket.Conn, vnc net.Conn, guards ...*server.SocketGuard) {
+	var guard *server.SocketGuard
+	if len(guards) > 0 {
+		guard = guards[0]
+	}
 	// done ends the bridge; ctx is only cancelled after the close
 	// handshake, because cancelling a coder/websocket read or write
 	// context drops the connection without a close frame.
@@ -99,7 +105,7 @@ func bridgeRFB(ctx context.Context, ws *websocket.Conn, vnc net.Conn) {
 				finish(websocket.StatusUnsupportedData, "binary frames only")
 				return
 			}
-			if _, err := io.Copy(vnc, rd); err != nil {
+			if _, err := io.Copy(&guardedVNCWriter{conn: vnc, guard: guard}, rd); err != nil {
 				finish(websocket.StatusGoingAway, "desktop connection lost")
 				return
 			}
@@ -149,6 +155,9 @@ func bridgeRFB(ctx context.Context, ws *websocket.Conn, vnc net.Conn) {
 		}
 	}()
 	select {
+	case <-guard.Done():
+		finish(websocket.StatusPolicyViolation, "authentication ended")
+		guard.Wait()
 	case <-done:
 	case <-ctx.Done(): // request context: server shutting down
 		finish(websocket.StatusGoingAway, "")
@@ -156,7 +165,24 @@ func bridgeRFB(ctx context.Context, ws *websocket.Conn, vnc net.Conn) {
 	reasonMu.Lock()
 	code, why := status, reason
 	reasonMu.Unlock()
+	if guard.Revoked() {
+		guard.Wait()
+	}
 	_ = ws.Close(code, why) // handshake; unblocks the reader
 	cancel()
 	wg.Wait()
+}
+
+// Check each chunk of a streamed frame, including a frame opened before
+// revocation. The monitor closes both readers even when a peer goes idle.
+type guardedVNCWriter struct {
+	conn  net.Conn
+	guard *server.SocketGuard
+}
+
+func (w *guardedVNCWriter) Write(b []byte) (int, error) {
+	if !w.guard.Check() {
+		return 0, context.Canceled
+	}
+	return w.conn.Write(b)
 }

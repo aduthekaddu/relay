@@ -32,10 +32,8 @@ const TokenPrefix = "rly_"
 const (
 	defaultShortTTL  = 12 * time.Hour
 	defaultRemember  = 30 * 24 * time.Hour
-	touchEvery       = time.Minute     // session last_seen / expiry write throttle
-	tokenTouchEvery  = time.Minute     // token last_used write throttle
-	cacheTTL         = 5 * time.Second // principal cache (bounded staleness for CLI revocations)
-	cacheMax         = 1024
+	touchEvery       = time.Minute    // session last_seen / expiry write throttle
+	tokenTouchEvery  = time.Minute    // token last_used write throttle
 	cookieRefreshAge = 24 * time.Hour // re-issue remember-me cookies at most daily
 	maxHashers       = 2              // concurrent argon2 verifications (32 MiB each)
 )
@@ -56,7 +54,6 @@ type Service struct {
 	hashSem    chan struct{}
 	dummyHash  string
 
-	cache      *principalCache
 	ceremonies *ceremonyStore
 
 	setupMu   sync.Mutex
@@ -89,7 +86,6 @@ func New(d *core.Deps) (*Service, error) {
 		setupLim:   newLimiter(defaultLimits, now),
 		hashSem:    make(chan struct{}, maxHashers),
 		dummyHash:  dummy,
-		cache:      newPrincipalCache(),
 		ceremonies: newCeremonyStore(now),
 	}
 	s.origins = func() []string { return []string{d.Cfg.Origin()} }
@@ -269,9 +265,6 @@ func (s *Service) identifyToken(ctx context.Context, tok string) *server.Princip
 	}
 	hash := secret.HashToken(tok)
 	now := s.now()
-	if e := s.cache.get(hash, now); e != nil {
-		return s.maybeTouchToken(ctx, hash, e, now)
-	}
 	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
 	t, err := s.acc.lookupToken(ctx, hash)
@@ -286,63 +279,41 @@ func (s *Service) identifyToken(ctx context.Context, tok string) *server.Princip
 	if err != nil || user == "" {
 		return nil
 	}
-	e := &cacheEntry{p: server.Principal{User: user, Method: "token", TokenID: t.ID}, touched: t.LastUsed}
-	s.cache.put(hash, e, now)
-	return s.maybeTouchToken(ctx, hash, e, now)
-}
-
-func (s *Service) maybeTouchToken(ctx context.Context, hash string, e *cacheEntry, now time.Time) *server.Principal {
-	if now.Sub(e.lastTouched()) >= tokenTouchEvery {
-		e.setTouched(now)
-		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
-		defer cancel()
-		if err := s.acc.touchToken(ctx, e.p.TokenID, now); err != nil {
+	if now.Sub(t.LastUsed) >= tokenTouchEvery {
+		if err := s.acc.touchToken(ctx, t.ID, now); err != nil {
 			s.log.Debug("token touch failed", "err", err)
 		}
 	}
-	p := e.p
-	return &p
+	return &server.Principal{User: user, Method: "token", TokenID: t.ID}
 }
 
 func (s *Service) identifySession(ctx context.Context, value, ip string) *server.Principal {
 	hash := secret.HashToken(value)
 	now := s.now()
-	e := s.cache.get(hash, now)
-	if e == nil {
-		ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-		defer cancel()
-		row, err := s.acc.sessionByHash(ctx, hash)
-		if err != nil {
-			s.log.Warn("session lookup failed", "err", err)
-			return nil
-		}
-		if row == nil {
-			return nil
-		}
-		e = &cacheEntry{
-			p:        server.Principal{User: row.Username, SessionID: row.ID, Method: "cookie"},
-			touched:  row.LastSeenAt,
-			expires:  row.ExpiresAt,
-			remember: row.Remember,
-		}
-		s.cache.put(hash, e, now)
-	}
-	if !now.Before(e.expiresAt()) {
-		s.cache.drop(hash)
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	row, err := s.acc.sessionByHash(ctx, hash)
+	if err != nil {
+		s.log.Warn("session lookup failed", "err", err)
 		return nil
 	}
-	if now.Sub(e.lastTouched()) >= touchEvery {
-		exp := now.Add(s.ttl(e.remember))
-		e.setTouched(now)
-		e.setExpires(exp)
-		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 2*time.Second)
-		defer cancel()
-		if err := s.acc.touchSession(ctx, e.p.SessionID, now, exp, cleanIP(ip)); err != nil {
+	if row == nil {
+		return nil
+	}
+	has, err := s.acc.HasUser(ctx)
+	if err != nil || !has {
+		return nil
+	}
+	if !now.Before(row.ExpiresAt) {
+		return nil
+	}
+	if now.Sub(row.LastSeenAt) >= touchEvery {
+		exp := now.Add(s.ttl(row.Remember))
+		if err := s.acc.touchSession(ctx, row.ID, now, exp, cleanIP(ip)); err != nil {
 			s.log.Debug("session touch failed", "err", err)
 		}
 	}
-	p := e.p
-	return &p
+	return &server.Principal{User: row.Username, SessionID: row.ID, Method: "cookie"}
 }
 
 func (s *Service) ttl(remember bool) time.Duration {
@@ -358,99 +329,14 @@ func (s *Service) ttl(remember bool) time.Duration {
 	return defaultShortTTL
 }
 
-// revoked ends sessions everywhere: cache, and long-lived connections via
+// revoked notifies long-lived connections via
 // core.BusSessionRevoked.
 func (s *Service) revoked(ids ...string) {
 	if len(ids) == 0 {
 		return
 	}
-	s.cache.dropSessions(ids)
 	if s.d.Bus != nil {
 		s.d.Bus.Publish(core.BusSessionRevoked, core.SessionRevoked{SessionIDs: ids})
-	}
-}
-
-// --- principal cache -----------------------------------------------------------
-
-type cacheEntry struct {
-	p        server.Principal
-	remember bool
-	mu       sync.Mutex
-	touched  time.Time
-	expires  time.Time // zero for tokens
-	cachedAt time.Time
-}
-
-func (e *cacheEntry) lastTouched() time.Time { e.mu.Lock(); defer e.mu.Unlock(); return e.touched }
-func (e *cacheEntry) setTouched(t time.Time) { e.mu.Lock(); e.touched = t; e.mu.Unlock() }
-func (e *cacheEntry) setExpires(t time.Time) { e.mu.Lock(); e.expires = t; e.mu.Unlock() }
-func (e *cacheEntry) expiresAt() time.Time {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	if e.expires.IsZero() {
-		return time.Unix(1<<40, 0)
-	}
-	return e.expires
-}
-
-type principalCache struct {
-	mu sync.Mutex
-	m  map[string]*cacheEntry
-}
-
-func newPrincipalCache() *principalCache { return &principalCache{m: map[string]*cacheEntry{}} }
-
-func (c *principalCache) get(hash string, now time.Time) *cacheEntry {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	e := c.m[hash]
-	if e == nil {
-		return nil
-	}
-	if now.Sub(e.cachedAt) > cacheTTL {
-		delete(c.m, hash)
-		return nil
-	}
-	return e
-}
-
-func (c *principalCache) put(hash string, e *cacheEntry, now time.Time) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if len(c.m) >= cacheMax {
-		clear(c.m)
-	}
-	e.cachedAt = now
-	c.m[hash] = e
-}
-
-func (c *principalCache) drop(hash string) {
-	c.mu.Lock()
-	delete(c.m, hash)
-	c.mu.Unlock()
-}
-
-func (c *principalCache) dropSessions(ids []string) {
-	set := make(map[string]bool, len(ids))
-	for _, id := range ids {
-		set[id] = true
-	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	for h, e := range c.m {
-		if e.p.SessionID != "" && set[e.p.SessionID] {
-			delete(c.m, h)
-		}
-	}
-}
-
-func (c *principalCache) dropToken(id string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	for h, e := range c.m {
-		if e.p.TokenID == id {
-			delete(c.m, h)
-		}
 	}
 }
 

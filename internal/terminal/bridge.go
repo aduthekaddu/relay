@@ -13,6 +13,7 @@ import (
 	"github.com/aduthekaddu/relay/internal/api"
 	"github.com/aduthekaddu/relay/internal/httpx"
 	"github.com/aduthekaddu/relay/internal/ptyclient"
+	"github.com/aduthekaddu/relay/internal/server"
 )
 
 const (
@@ -52,7 +53,7 @@ func (s *Service) hAttach(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	down, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+	down, guard, err := server.AcceptSocket(w, r, &websocket.AcceptOptions{
 		// The router already enforced the Origin policy for cookie
 		// callers; token callers have no Origin to check.
 		InsecureSkipVerify: true,
@@ -62,30 +63,48 @@ func (s *Service) hAttach(w http.ResponseWriter, r *http.Request) {
 		up.CloseNow()
 		return
 	}
+	defer guard.Stop()
 	down.SetReadLimit(browserReadLimit)
-	bridge(r.Context(), down, up, opts.ReadOnly)
+	bridge(r.Context(), down, up, opts.ReadOnly, guard)
 }
 
 // bridge copies frames between the browser (down) and ptyd (up) until
 // either side closes, then closes the other with a matching status.
-func bridge(parent context.Context, down, up *websocket.Conn, readOnly bool) {
+func bridge(parent context.Context, down, up *websocket.Conn, readOnly bool, guards ...*server.SocketGuard) {
+	var guard *server.SocketGuard
+	if len(guards) > 0 {
+		guard = guards[0]
+	}
 	ctx, cancel := context.WithCancel(parent)
 	defer cancel()
 
 	upDone := make(chan error, 1)
 	downDone := make(chan error, 1)
 	go func() { upDone <- pumpUp(ctx, down, up) }()
-	go func() { downDone <- pumpDown(ctx, down, up, readOnly) }()
+	go func() { downDone <- pumpDown(ctx, down, up, readOnly, guard) }()
 	go keepAlive(ctx, down)
 
 	select {
+	case <-guard.Done():
+		up.CloseNow()
+		guard.Wait()
 	case err := <-upDone:
+		if guard.Revoked() {
+			up.CloseNow()
+			guard.Wait()
+			break
+		}
 		// ptyd ended the stream (session exited, lagging, daemon gone):
 		// tell the browser why.
 		code, reason := closeStatus(err)
 		_ = down.Close(code, reason)
 		up.CloseNow()
 	case <-downDone:
+		if guard.Revoked() {
+			up.CloseNow()
+			guard.Wait()
+			break
+		}
 		_ = up.Close(websocket.StatusNormalClosure, "")
 		down.CloseNow()
 	}
@@ -125,11 +144,14 @@ func pumpUp(ctx context.Context, down, up *websocket.Conn) error {
 // pumpDown forwards browser input to ptyd. Read-only clients never reach
 // the pty with input or size changes; control messages are re-encoded so
 // only the documented fields pass.
-func pumpDown(ctx context.Context, down, up *websocket.Conn, readOnly bool) error {
+func pumpDown(ctx context.Context, down, up *websocket.Conn, readOnly bool, guard *server.SocketGuard) error {
 	for {
 		typ, data, err := down.Read(ctx)
 		if err != nil {
 			return err
+		}
+		if !guard.Check() {
+			return context.Canceled
 		}
 		if typ == websocket.MessageBinary {
 			if readOnly || len(data) == 0 {

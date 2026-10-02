@@ -52,10 +52,28 @@ is running, and signs out every browser session unless you pass
   `auth_sessions`. Each row also has a separate public id, which the sessions
   list and `Principal.SessionID` show.
 - Expiry slides: 12 h (`auth.short_ttl`), or 30 days with *remember*
-  (`auth.session_ttl`). `last_seen`/expiry writes happen at most once a minute
-  per session. Principals are cached for 5 s, so a revocation made from the
-  CLI takes effect within 5 s. Revoking in the app takes effect at once and
-  also closes that session's live WebSocket (`core.BusSessionRevoked`).
+  (`auth.session_ttl`). Ordinary HTTP requests update `last_seen` and expiry
+  at most once a minute. Socket validation never slides expiry.
+- Every HTTP authentication reads SQLite. There is no principal cache.
+  After a revocation commits, a new request using that credential fails,
+  including changes made by `relay token revoke` or `relay passwd`.
+- The events, terminal attach, desktop RFB and log WebSockets use
+  `server.AcceptSocket` and `SocketGuard`. Each guard subscribes before its
+  first uncached credential check, then checks every second. A backend
+  `core.BusSessionRevoked` notification prompts an earlier check.
+  Notifications are hints, because the bus can drop them. Offline database
+  changes and expiry need no notification or reconnect.
+- An affected socket stops applying new input and closes within **3 s** of
+  revocation commit or session expiry: up to 1 s until the next check, 1 s
+  for validation, and 1 s to force the transport closed. Cooperative peers
+  receive WebSocket status 1008 with the fixed reason `authentication ended`.
+  Slow or unresponsive peers may see an abrupt transport close. Database
+  errors and validation deadlines fail closed.
+- Terminal frames, live client events and each streamed desktop input chunk
+  pass an uncached check before they reach the owner. Data already validated
+  before the revocation commits can be in flight. Revocation disconnects the
+  affected bridge, without killing the durable PTY or shared desktop.
+  The owner-only local control socket is exempt from browser/token revocation.
 - Cookie name: `__Host-relay_session` when the request is HTTPS (directly or
   via a trusted proxy's `X-Forwarded-Proto`) or the canonical origin is
   HTTPS. It is always `HttpOnly; SameSite=Lax; Path=/`, plus `Secure` on
@@ -68,6 +86,27 @@ is running, and signs out every browser session unless you pass
   `Sec-Fetch-Site: cross-site`) on unsafe methods and on every WebSocket
   upgrade. Bearer tokens and the control socket are not ambient credentials,
   so they are exempt.
+
+## Revocation ownership
+
+| Mutation | Owner | Socket notification | Credentials that remain valid |
+| --- | --- | --- | --- |
+| Logout, revoke one session | auth HTTP handlers | `SessionIDs` for removed rows | Other sessions and API tokens |
+| Revoke others, password change | auth HTTP handlers | `SessionIDs` for removed rows | Calling browser session and API tokens; token/local callers keep no browser session |
+| Revoke API token | auth HTTP handler | `TokenIDs` for the removed row | Other tokens and browser sessions |
+| `relay token revoke` | CLI `Accounts` writer | None; guards poll SQLite | Other tokens and browser sessions |
+| `relay passwd`, including account rename/recovery | CLI `Accounts` writer | None; guards poll SQLite | API tokens; `--keep-sessions` also preserves browser sessions |
+| Session expiry, offline row deletion or credential replacement | SQLite state | None; guards poll SQLite | Credentials whose rows remain valid |
+| Account row removed | SQLite state | None; guards poll SQLite | No browser or token principal |
+
+Passkey removal and TOTP changes do not themselves revoke existing sessions.
+Their sessions use the same cookie checks when explicitly revoked. The
+supported recovery path here is `relay passwd`; TOTP lockout recovery remains
+separately scoped. API tokens have no expiry column.
+
+This bound covers Relay's four authenticated API WebSocket endpoints. Raw
+IDE/app and preview reverse proxies use separate upgrade and delegated-cookie
+handling. They do not use `SocketGuard` and are outside this API socket bound.
 
 ## Rate limits
 

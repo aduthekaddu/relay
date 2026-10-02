@@ -13,6 +13,7 @@ import (
 	"github.com/aduthekaddu/relay/internal/api"
 	"github.com/aduthekaddu/relay/internal/files"
 	"github.com/aduthekaddu/relay/internal/httpx"
+	"github.com/aduthekaddu/relay/internal/server"
 )
 
 const (
@@ -83,10 +84,11 @@ func (s *Service) handleLogs(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, &httpx.Err{Status: 429, Code: "rate_limited", Message: "too many log streams open"})
 		return
 	}
-	conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{InsecureSkipVerify: true, CompressionMode: websocket.CompressionDisabled})
+	conn, guard, err := server.AcceptSocket(w, r, &websocket.AcceptOptions{InsecureSkipVerify: true, CompressionMode: websocket.CompressionDisabled})
 	if err != nil {
 		return // Accept wrote the error response
 	}
+	defer guard.Stop()
 	defer func() { _ = conn.CloseNow() }()
 	conn.SetReadLimit(4 << 10)
 	ctx := conn.CloseRead(r.Context()) // cancelled when the client closes

@@ -69,7 +69,7 @@ func (a *Accounts) sessionByHash(ctx context.Context, hash string) (*sessionRow,
 
 // touchSession slides the expiry and records the last request.
 func (a *Accounts) touchSession(ctx context.Context, id string, seen, expires time.Time, ip string) error {
-	_, err := a.st.DB.ExecContext(ctx, `UPDATE auth_sessions SET last_seen_at=?, expires_at=?, ip=? WHERE id=?`, ms(seen), ms(expires), ip, id)
+	_, err := a.st.DB.ExecContext(ctx, `UPDATE auth_sessions SET last_seen_at=?, expires_at=?, ip=? WHERE id=? AND expires_at>? AND last_seen_at<=?`, ms(seen), ms(expires), ip, id, ms(seen), ms(seen.Add(-touchEvery)))
 	return err
 }
 

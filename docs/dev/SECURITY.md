@@ -22,7 +22,9 @@ security-sensitive.
   runtime dir, the control socket also checks the peer uid, data files
   are 0600.
 - **Leaked browser session or token**: server-side sessions are revocable,
-  tokens hashed, audit log shows use.
+  tokens hashed, audit log shows use. The events, terminal attach, desktop
+  and log API sockets revalidate credentials and close within 3 s of
+  revocation or expiry. See [revocation ownership and limits](AUTH.md#revocation-ownership).
 
 ## Rules for code
 

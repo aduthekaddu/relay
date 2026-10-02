@@ -147,7 +147,7 @@ func TestRevokeSession(t *testing.T) {
 		t.Fatalf("device session = %+v", other)
 	}
 	a.expect(204, "DELETE", "/api/v1/auth/sessions/"+other.ID, nil)
-	b.expect(401, "GET", "/api/v1/test/whoami", nil) // immediately, despite the cache
+	b.expect(401, "GET", "/api/v1/test/whoami", nil) // immediately after the database mutation
 	a.expect(404, "DELETE", "/api/v1/auth/sessions/"+other.ID, nil)
 
 	// revoke-others

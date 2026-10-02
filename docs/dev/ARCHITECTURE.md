@@ -100,12 +100,17 @@ Rules:
 
 ## Cross-feature events
 
-Besides the `api.Ev*` events streamed to browsers, two backend-only bus
+Besides the `api.Ev*` events streamed to browsers, backend-only bus
 events connect features without imports:
 
 - `core.BusAudit` (`core.AuditEvent`) — publish after destructive or
   security-relevant actions (file delete, process kill, git discard, hook
   install). `internal/auth` records them in the audit log.
+- `core.BusSessionRevoked` (`core.SessionRevoked`) carries public `SessionIDs`
+  or `TokenIDs` after auth HTTP handlers commit revocation. `SocketGuard`
+  uses the event as a revalidation hint for API WebSockets. CLI/offline
+  writers and expiry are detected by uncached polling. No credential values
+  or hashes belong in the event. See [the socket bounds](AUTH.md#sessions-and-cookies).
 - `core.BusClipCapture` (`core.ClipCapture`) — publish when text arrives
   for the universal clipboard from a non-HTTP source (OSC 52 in a
   terminal, the desktop clipboard). `internal/clip` stores it and emits
