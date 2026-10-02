@@ -196,3 +196,47 @@ func TestAssetName(t *testing.T) {
 		t.Error(AssetName("darwin", "arm64"))
 	}
 }
+
+// Atomic serve replacement and an explicit downgrade never rewrite an inode
+// already held by the daemon. A failed replacement leaves the target intact.
+func TestReplacePreservesDaemonInodeThroughRollback(t *testing.T) {
+	dir := t.TempDir()
+	target := filepath.Join(dir, "relay")
+	if err := os.WriteFile(target, []byte("daemon-v1"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	daemon, err := os.Open(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer daemon.Close()
+	for _, tc := range []struct{ name, content string }{{"serve update", "serve-v2"}, {"explicit rollback", "daemon-v1"}} {
+		t.Run(tc.name, func(t *testing.T) {
+			replacement := filepath.Join(dir, "replacement")
+			if err := os.WriteFile(replacement, []byte(tc.content), 0700); err != nil {
+				t.Fatal(err)
+			}
+			if err := Replace(replacement, target); err != nil {
+				t.Fatal(err)
+			}
+			got := make([]byte, len("daemon-v1"))
+			if _, err := daemon.ReadAt(got, 0); err != nil {
+				t.Fatal(err)
+			}
+			if string(got) != "daemon-v1" {
+				t.Fatalf("daemon inode changed: %s", got)
+			}
+			current, err := os.ReadFile(target)
+			if err != nil || string(current) != tc.content {
+				t.Fatalf("target %q: %v", current, err)
+			}
+		})
+	}
+	if err := Replace(filepath.Join(dir, "missing"), target); err == nil {
+		t.Fatal("missing replacement accepted")
+	}
+	current, err := os.ReadFile(target)
+	if err != nil || string(current) != "daemon-v1" {
+		t.Fatalf("failed replacement changed rollback: %q %v", current, err)
+	}
+}

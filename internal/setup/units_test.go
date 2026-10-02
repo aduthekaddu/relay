@@ -3,9 +3,11 @@ package setup
 import (
 	"context"
 	"encoding/xml"
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -162,6 +164,7 @@ func TestManagerDarwin(t *testing.T) {
 	sys := newFakeSys("darwin")
 	sys.uid = 501
 	sys.bins["launchctl"] = "/bin/launchctl"
+	sys.fail["launchctl print gui/501/dev.relay.ptyd"] = true
 	if _, err := WriteUnits("darwin", dir, UnitData{Binary: "/bin/relay", LogDir: "/tmp/l"}); err != nil {
 		t.Fatal(err)
 	}
@@ -192,5 +195,98 @@ func TestLinger(t *testing.T) {
 	sys.out["loginctl show-user tester --property=Linger"] = "Linger=no"
 	if on, _ := Linger(context.Background(), sys); on {
 		t.Fatal("linger off")
+	}
+}
+
+func TestManagedServeOwnershipEnvironment(t *testing.T) {
+	for _, goos := range []string{"linux", "darwin"} {
+		for _, override := range []string{"", "0", "1"} {
+			t.Run(goos+"/override="+override, func(t *testing.T) {
+				d := UnitData{Binary: "/opt/relay", Env: []string{"PATH=/usr/bin", "RELAY_NO_PTYD=" + override}, LogDir: "/tmp/relay-logs"}
+				before := append([]string(nil), d.Env...)
+				files, _, err := UnitFiles(goos, d)
+				if err != nil {
+					t.Fatal(err)
+				}
+				serve, daemon := "relay.service", "relay-ptyd.service"
+				want := "Environment=RELAY_NO_PTYD=1"
+				if goos == "darwin" {
+					serve, daemon = "dev.relay.serve.plist", "dev.relay.ptyd.plist"
+					want = "<key>RELAY_NO_PTYD</key>\n    <string>1</string>"
+				}
+				if strings.Count(files[serve], "RELAY_NO_PTYD") != 1 || !strings.Contains(files[serve], want) {
+					t.Fatalf("serve must contain exactly one forced ownership setting: %s", files[serve])
+				}
+				if strings.Contains(files[daemon], "RELAY_NO_PTYD") {
+					t.Fatal("daemon inherited serve ownership setting")
+				}
+				if !reflect.DeepEqual(before, d.Env) {
+					t.Fatal("render mutated caller environment")
+				}
+			})
+		}
+	}
+}
+
+func TestManagerDarwinPreservesLoadedDaemon(t *testing.T) {
+	for _, failServe := range []bool{false, true} {
+		t.Run(map[bool]string{false: "reload serve", true: "failed serve reload"}[failServe], func(t *testing.T) {
+			dir := t.TempDir()
+			sys := newFakeSys("darwin")
+			sys.uid = 501
+			serveBootstrap := "launchctl bootstrap gui/501 " + filepath.Join(dir, "dev.relay.serve.plist")
+			sys.fail[serveBootstrap] = failServe
+			m := Manager{Sys: sys, UnitsDir: dir}
+			err := m.EnableNow(context.Background())
+			if (err != nil) != failServe {
+				t.Fatalf("EnableNow: %v", err)
+			}
+			want := []string{"launchctl print gui/501/dev.relay.ptyd", "launchctl kickstart gui/501/dev.relay.ptyd", "launchctl bootout gui/501/dev.relay.serve", serveBootstrap}
+			if !reflect.DeepEqual(sys.calls, want) {
+				t.Fatalf("calls %v, want %v", sys.calls, want)
+			}
+		})
+	}
+}
+
+func TestManagerDarwinMissingDaemonFailureStopsStartup(t *testing.T) {
+	dir := t.TempDir()
+	sys := newFakeSys("darwin")
+	sys.uid = 501
+	sys.fail["launchctl print gui/501/dev.relay.ptyd"] = true
+	bootstrap := "launchctl bootstrap gui/501 " + filepath.Join(dir, "dev.relay.ptyd.plist")
+	sys.fail[bootstrap] = true
+	err := (Manager{Sys: sys, UnitsDir: dir}).EnableNow(context.Background())
+	if err == nil {
+		t.Fatal("missing daemon startup accepted")
+	}
+	for _, call := range sys.calls {
+		if strings.Contains(call, "dev.relay.serve") || strings.Contains(call, "bootout") {
+			t.Fatalf("unexpected call after daemon failure: %s", call)
+		}
+	}
+}
+
+func TestOwnershipOverrideStillRejectsInvalidEnvironment(t *testing.T) {
+	for _, goos := range []string{"linux", "darwin"} {
+		_, _, err := UnitFiles(goos, UnitData{Binary: "/opt/relay", Env: []string{"RELAY_NO_PTYD=0\nExecStart=/bin/false"}})
+		if err == nil || errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("%s invalid input: %v", goos, err)
+		}
+	}
+}
+
+func TestManagerDarwinLoadedDaemonStartFailureStopsStartup(t *testing.T) {
+	sys := newFakeSys("darwin")
+	sys.uid = 501
+	sys.fail["launchctl kickstart gui/501/dev.relay.ptyd"] = true
+	err := (Manager{Sys: sys, UnitsDir: t.TempDir()}).EnableNow(context.Background())
+	if err == nil {
+		t.Fatal("loaded daemon start failure accepted")
+	}
+	for _, call := range sys.calls {
+		if strings.Contains(call, "dev.relay.serve") || strings.Contains(call, "bootout") || strings.Contains(call, "-k") {
+			t.Fatalf("unexpected stop/reload after daemon failure: %s", call)
+		}
 	}
 }

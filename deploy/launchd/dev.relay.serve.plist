@@ -12,6 +12,9 @@
   </array>
   <key>EnvironmentVariables</key>
   <dict>
+    <!-- The separate daemon agent owns PTYs; serve never starts a child. -->
+    <key>RELAY_NO_PTYD</key>
+    <string>1</string>
 {{- range .EnvPairs }}
     <key>{{ xml .Key }}</key>
     <string>{{ xml .Value }}</string>
