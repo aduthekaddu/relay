@@ -108,6 +108,8 @@ func reapplyCap(ctx context.Context, ui *setup.UI, sys setup.OSSystem, bin strin
 	ui.OK("Re-applied cap_net_bind_service")
 }
 
+// restartAfterUpdate resolves the local service manager and restarts serve after
+// an update, including the daemon only when all is true.
 func restartAfterUpdate(ctx context.Context, ui *setup.UI, sys setup.OSSystem, tag string, all bool) error {
 	paths, err := config.ResolvePaths()
 	if err != nil {

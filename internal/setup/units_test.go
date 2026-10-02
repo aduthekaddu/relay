@@ -159,6 +159,8 @@ func TestManagerLinux(t *testing.T) {
 	}
 }
 
+// TestManagerDarwin verifies bootstrap, state reporting, and removal of launchd
+// services when the daemon is not already loaded.
 func TestManagerDarwin(t *testing.T) {
 	dir := t.TempDir()
 	sys := newFakeSys("darwin")
@@ -198,6 +200,8 @@ func TestLinger(t *testing.T) {
 	}
 }
 
+// TestManagedServeOwnershipEnvironment verifies that templates enforce serve's
+// daemon ownership policy without changing the caller's environment slice.
 func TestManagedServeOwnershipEnvironment(t *testing.T) {
 	for _, goos := range []string{"linux", "darwin"} {
 		for _, override := range []string{"", "0", "1"} {
@@ -228,6 +232,8 @@ func TestManagedServeOwnershipEnvironment(t *testing.T) {
 	}
 }
 
+// TestManagerDarwinPreservesLoadedDaemon verifies that reloading serve preserves
+// a loaded daemon, including when the serve reload fails.
 func TestManagerDarwinPreservesLoadedDaemon(t *testing.T) {
 	for _, failServe := range []bool{false, true} {
 		t.Run(map[bool]string{false: "reload serve", true: "failed serve reload"}[failServe], func(t *testing.T) {
@@ -249,6 +255,8 @@ func TestManagerDarwinPreservesLoadedDaemon(t *testing.T) {
 	}
 }
 
+// TestManagerDarwinMissingDaemonFailureStopsStartup verifies that a failed daemon
+// bootstrap prevents serve startup without unloading services.
 func TestManagerDarwinMissingDaemonFailureStopsStartup(t *testing.T) {
 	dir := t.TempDir()
 	sys := newFakeSys("darwin")
@@ -267,6 +275,8 @@ func TestManagerDarwinMissingDaemonFailureStopsStartup(t *testing.T) {
 	}
 }
 
+// TestOwnershipOverrideStillRejectsInvalidEnvironment verifies that ownership
+// overrides are validated before being removed from template input.
 func TestOwnershipOverrideStillRejectsInvalidEnvironment(t *testing.T) {
 	for _, goos := range []string{"linux", "darwin"} {
 		_, _, err := UnitFiles(goos, UnitData{Binary: "/opt/relay", Env: []string{"RELAY_NO_PTYD=0\nExecStart=/bin/false"}})
@@ -276,6 +286,8 @@ func TestOwnershipOverrideStillRejectsInvalidEnvironment(t *testing.T) {
 	}
 }
 
+// TestManagerDarwinLoadedDaemonStartFailureStopsStartup verifies that a failed
+// daemon kickstart prevents serve startup without stopping or reloading jobs.
 func TestManagerDarwinLoadedDaemonStartFailureStopsStartup(t *testing.T) {
 	sys := newFakeSys("darwin")
 	sys.uid = 501

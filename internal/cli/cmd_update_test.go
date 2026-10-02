@@ -25,14 +25,22 @@ type updateSystem struct {
 	available bool
 }
 
+// GOOS returns the operating system selected by the test.
 func (s *updateSystem) GOOS() string { return s.goos }
-func (s *updateSystem) Getuid() int  { return 501 }
+
+// Getuid returns the synthetic user ID used for launchd domains.
+func (s *updateSystem) Getuid() int { return 501 }
+
+// LookPath simulates command discovery using the configured manager availability.
 func (s *updateSystem) LookPath(name string) (string, error) {
 	if !s.available {
 		return "", errors.New("manager unavailable")
 	}
 	return "/usr/bin/" + name, nil
 }
+
+// Output records a service-manager command and fails when it matches the
+// command selected by the test.
 func (s *updateSystem) Output(_ context.Context, name string, args ...string) (string, error) {
 	call := strings.Join(append([]string{name}, args...), " ")
 	s.calls = append(s.calls, call)

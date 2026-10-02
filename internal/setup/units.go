@@ -98,6 +98,8 @@ var tmplFuncs = template.FuncMap{
 	},
 }
 
+// render validates unit data and expands the named template, leaving daemon
+// ownership settings to the template without modifying the caller's environment.
 func render(fsys fs.FS, name string, d UnitData) (string, error) {
 	src, err := fs.ReadFile(fsys, name)
 	if err != nil {
