@@ -572,6 +572,28 @@ func cleanFiles(files []string) ([]string, error) {
 	return out, nil
 }
 
+// validateFileParents checks existing ancestors, including those of a missing
+// destination. Git operates on symlink leaves themselves, but a symlink parent
+// must never redirect a client path outside this repository or into .git.
+func validateFileParents(root string, files []string) error {
+	for _, file := range files {
+		for parent := filepath.Dir(filepath.Join(root, file)); ; parent = filepath.Dir(parent) {
+			real, err := filepath.EvalSymlinks(parent)
+			if errors.Is(err, os.ErrNotExist) && parent != root {
+				continue
+			}
+			if err != nil {
+				return httpx.Conflict("cannot resolve file parent")
+			}
+			if !within(real, root) || within(real, filepath.Join(root, ".git")) {
+				return httpx.Forbidden("file parent is outside the repository")
+			}
+			break
+		}
+	}
+	return nil
+}
+
 // lockRepo serialises mutations per repository.
 func (s *Service) lockRepo(root string) func() {
 	m, _ := s.opMu.LoadOrStore(root, &sync.Mutex{})

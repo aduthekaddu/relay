@@ -91,7 +91,7 @@ type gitResult struct {
 func (g gitRunner) run(ctx context.Context, timeout time.Duration, dir string, stdin io.Reader, args []string, okCodes ...int) (gitResult, error) {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	full := append([]string{"-c", "core.quotepath=off", "-c", "color.ui=false", "-c", "core.fsmonitor=false",
+	full := append([]string{"--literal-pathspecs", "-c", "core.quotepath=off", "-c", "color.ui=false", "-c", "core.fsmonitor=false",
 		"-c", "core.pager=cat", "-C", dir}, args...)
 	cmd := exec.CommandContext(ctx, g.bin, full...)
 	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0", "GIT_OPTIONAL_LOCKS=0", "LC_ALL=C",

@@ -159,9 +159,9 @@ func (s *Service) statusOf(ctx context.Context, root, path string) (*api.GitStat
 	return out, nil
 }
 
-// countLines counts lines of a small untracked text file (-1 if skipped).
+// countLines counts lines of a small regular untracked text file (0 if skipped).
 func countLines(path string) int {
-	st, err := os.Stat(path)
+	st, err := os.Lstat(path)
 	if err != nil || !st.Mode().IsRegular() || st.Size() > 1<<20 {
 		return 0
 	}
@@ -197,6 +197,9 @@ func (s *Service) diff(ctx context.Context, path, file string, staged bool) (*ap
 		}
 		file = files[0]
 		out.File = file
+		if err := validateFileParents(root, files); err != nil {
+			return nil, err
+		}
 		if !staged && s.isUntracked(ctx, root, file) {
 			return s.untrackedDiff(ctx, root, out)
 		}
@@ -331,17 +334,25 @@ func (s *Service) discard(ctx context.Context, req api.GitActionRequest) (*api.G
 		case f.Index == "?":
 			untracked = append(untracked, p)
 		case f.OrigPath != "" && head:
-			// Staged rename: drop the new path, bring back the original.
-			added = append(added, p)
-			restore = append(restore, f.OrigPath)
-		case f.Index == "A" || !head:
+			if _, err := os.Lstat(filepath.Join(root, f.OrigPath)); err == nil {
+				return nil, httpx.Conflict("rename source has new work; discard it separately first")
+			} else if !errors.Is(err, os.ErrNotExist) {
+				return nil, httpx.Conflict("cannot inspect rename source")
+			}
+			// Restore both sides in one index-locking command. Paths absent
+			// from HEAD are removed by git restore's default no-overlay mode.
+			restore = append(restore, p, f.OrigPath)
+		case !head:
 			added = append(added, p)
 		default:
 			restore = append(restore, p)
 		}
 	}
-	if len(untracked) > 0 {
-		if _, err := s.git.run(ctx, writeTimeout, root, nil, append([]string{"clean", "-f", "-q", "--"}, untracked...)); err != nil {
+	// Run index-locking operations before deleting untracked files so a busy
+	// or broken index cannot cause an error after those files are lost.
+	if len(restore) > 0 {
+		if _, err := s.git.run(ctx, writeTimeout, root, nil,
+			append([]string{"restore", "--source=HEAD", "--staged", "--worktree", "--"}, restore...)); err != nil {
 			return nil, gitErr(err)
 		}
 	}
@@ -350,9 +361,8 @@ func (s *Service) discard(ctx context.Context, req api.GitActionRequest) (*api.G
 			return nil, gitErr(err)
 		}
 	}
-	if len(restore) > 0 {
-		if _, err := s.git.run(ctx, writeTimeout, root, nil,
-			append([]string{"restore", "--source=HEAD", "--staged", "--worktree", "--"}, restore...)); err != nil {
+	if len(untracked) > 0 {
+		if _, err := s.git.run(ctx, writeTimeout, root, nil, append([]string{"clean", "-f", "-q", "--"}, untracked...)); err != nil {
 			return nil, gitErr(err)
 		}
 	}
@@ -397,6 +407,9 @@ func (s *Service) actionTarget(req api.GitActionRequest, needFiles bool) (string
 	}
 	if needFiles && len(files) == 0 {
 		return "", nil, &httpx.Err{Status: 400, Code: "bad_request", Message: "files are required", Field: "files"}
+	}
+	if err := validateFileParents(root, files); err != nil {
+		return "", nil, err
 	}
 	return root, files, nil
 }
@@ -505,8 +518,15 @@ func (s *Service) CreateWorktree(ctx context.Context, repo, branch, base string)
 		filepath.Base(common) == ".git" {
 		root = filepath.Dir(common)
 	}
+	root, err = s.resolveDir(root)
+	if err != nil {
+		return nil, err
+	}
 	defer s.lockRepo(root)()
 	dest := filepath.Join(root, ".worktrees", filepath.FromSlash(branch))
+	if err := validateFileParents(root, []string{filepath.Join(".worktrees", filepath.FromSlash(branch))}); err != nil {
+		return nil, err
+	}
 	if _, err := os.Lstat(dest); err == nil {
 		return nil, httpx.Conflict("worktree directory already exists")
 	}
@@ -575,12 +595,27 @@ func (s *Service) removeWorktree(ctx context.Context, path string) (string, erro
 	if filepath.Clean(gitDir) == filepath.Clean(common) {
 		return "", httpx.Conflict("refusing to remove the main worktree")
 	}
-	top, _ := s.git.out(ctx, dir, "rev-parse", "--show-toplevel")
-	if top == "" {
-		top = dir
+	top, err := s.git.out(ctx, dir, "rev-parse", "--show-toplevel")
+	if err != nil {
+		return "", gitErr(err)
+	}
+	if _, err := s.resolveDir(top); err != nil {
+		return "", err
 	}
 	main := filepath.Dir(common)
 	defer s.lockRepo(main)()
+	if s.pty != nil {
+		terms, err := s.pty.List(ctx)
+		if err != nil {
+			return "", httpx.Unavailable("cannot verify worktree terminal usage")
+		}
+		for _, term := range terms {
+			if term.Activity != api.ActivityExited &&
+				(within(cleanReal(term.Cwd), top) || within(cleanReal(term.CurrentCwd), top)) {
+				return "", httpx.Conflict("worktree is in use by a terminal")
+			}
+		}
+	}
 	if _, err := s.git.run(ctx, writeTimeout, main, nil, []string{"worktree", "remove", "--", top}); err != nil {
 		return "", gitErr(err)
 	}
