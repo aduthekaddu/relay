@@ -108,12 +108,19 @@ func reapplyCap(ctx context.Context, ui *setup.UI, sys setup.OSSystem, bin strin
 	ui.OK("Re-applied cap_net_bind_service")
 }
 
+// restartAfterUpdate resolves the local service manager and restarts serve after
+// an update, including the daemon only when all is true.
 func restartAfterUpdate(ctx context.Context, ui *setup.UI, sys setup.OSSystem, tag string, all bool) error {
 	paths, err := config.ResolvePaths()
 	if err != nil {
 		return err
 	}
 	m := setup.Manager{Sys: sys, UnitsDir: setup.DefaultUnitsDir(sys.GOOS(), paths.Home, os.Getenv)}
+	return restartManagedUpdate(ctx, ui, m, paths, tag, all)
+}
+
+// restartManagedUpdate uses the selected manager without changing daemon ownership.
+func restartManagedUpdate(ctx context.Context, ui *setup.UI, m setup.Manager, paths config.Paths, tag string, all bool) error {
 	if !m.Installed(setup.SvcServe) || !m.Available(ctx) {
 		ui.Dim("No Relay service installed; restart `relay serve` yourself to use %s.", tag)
 		return nil

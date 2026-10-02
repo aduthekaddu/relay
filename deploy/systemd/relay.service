@@ -15,6 +15,8 @@ ExecStart={{ exec .Binary "serve" }}
 Restart=on-failure
 RestartSec=2
 UMask=0077
+# The separate daemon unit owns PTYs, including during startup and updates.
+Environment=RELAY_NO_PTYD=1
 # Do not set NoNewPrivileges: it would drop the cap_net_bind_service file
 # capability that lets relay bind :443 without root.
 {{- range .Env }}

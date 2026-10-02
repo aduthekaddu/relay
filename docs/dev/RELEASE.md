@@ -47,6 +47,45 @@ every installed `relay update` and the one-line installer.
   `relay.service` only. `relay-ptyd` keeps running, so terminal sessions
   survive an update; `--all` restarts it too, `--no-restart` restarts nothing.
 
+## Daemon ownership during an update
+
+Rendered serve services set `RELAY_NO_PTYD=1`. A serve restart, stop or
+update does not stop or replace a running daemon. Setup starts missing
+daemon services and preserves a running Linux unit or loaded launchd
+agent. For a loaded launchd daemon, setup uses `kickstart` without `-k`
+to start an idle job without killing a running instance.
+Re-running setup reloads serve configuration. Changed daemon plist
+settings stay pending until an intentional `launchctl bootout` and
+`bootstrap`. That reload restarts ptyd and ends its sessions.
+`launchctl kickstart -k`, including update `--all`, restarts the loaded job
+without rereading its plist. Existing installations need
+regenerated serve units or plists to receive the ownership setting.
+
+Serve and ptyd can report different versions after a serve-only update.
+The daemon keeps its old executable inode and PTYs until explicitly
+restarted. Protocol and config compatibility with that daemon is required;
+a version difference alone is not a reason to restart it. `--all` opts
+into ending sessions by restarting both services. For direct runs, replace
+and restart only serve, following [the direct-run policy](PTYD.md).
+
+Update verifies the download and its `version` command before replacing
+the binary. A download, checksum or execution failure leaves the installed
+binary intact. A later serve restart or health failure returns an error;
+the updater does not automatically restore the old binary or restart ptyd.
+To recover, install a known compatible release with
+`relay update --version vX.Y.Z --no-restart`, then restart only serve:
+
+```sh
+systemctl --user restart relay.service
+# macOS:
+launchctl kickstart -k gui/$(id -u)/dev.relay.serve
+```
+
+Keep ptyd running throughout recovery. A unit missing at restart time is
+reported by the service manager; managed serve keeps auto-start disabled.
+If no serve service is installed or its manager is unavailable, update
+asks you to restart your direct serve process yourself.
+
 ## Local and test builds
 
 ```bash

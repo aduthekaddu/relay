@@ -3,9 +3,28 @@
 `relay ptyd` owns every terminal. It runs as its own systemd user unit
 (`relay-ptyd.service`, `KillMode=process` so sessions keep their own
 process groups) and listens on `$RUNTIME/ptyd.sock` (0600, dir 0700).
-`relay serve` connects as a client (`internal/ptyclient`). When ptyd is not
-running and systemd is unavailable, `relay serve` starts it detached
-(`setsid`) — so `relay serve` alone works on a laptop.
+`relay serve` connects as a client (`internal/ptyclient`). Service ownership
+is explicit. Rendered systemd serve units and launchd serve agents set
+`RELAY_NO_PTYD=1`, so only the separate daemon service starts ptyd.
+Systemd requests ptyd with `Wants` and orders serve after it with `After`.
+`Type=simple` orders process startup, not socket readiness. Launchd has no
+readiness ordering between these agents. Serve stays available while the
+daemon starts or is missing. Terminal operations return 503 and the event
+relay reconnects when the daemon becomes available.
+
+A direct `relay serve` with `RELAY_NO_PTYD` unset or different from `1`
+checks daemon health and starts ptyd detached with `setsid` when needed,
+even if systemd is available. It reuses a healthy daemon. Stopping serve
+never stops ptyd. When a service or a manually started foreground daemon
+owns ptyd, use `RELAY_NO_PTYD=1 relay serve` to retain that ownership.
+If the daemon unit is missing, repair it with `relay setup`; managed serve
+does not silently replace it with a child. For an intentional direct-run
+fallback, use `env -u RELAY_NO_PTYD relay serve`. Keep the same Relay paths
+for both processes. `relay run` also ensures a daemon independently.
+
+Do not start a daemon service over a detached fallback that already holds
+the lock. To transfer ownership, first finish its PTYs and stop that daemon
+by its known PID, then start the service. Restarting ptyd ends its sessions.
 
 ## Protocol (HTTP over the unix socket)
 

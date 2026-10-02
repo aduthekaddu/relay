@@ -98,6 +98,8 @@ var tmplFuncs = template.FuncMap{
 	},
 }
 
+// render validates unit data and expands the named template, leaving daemon
+// ownership settings to the template without modifying the caller's environment.
 func render(fsys fs.FS, name string, d UnitData) (string, error) {
 	src, err := fs.ReadFile(fsys, name)
 	if err != nil {
@@ -108,6 +110,16 @@ func render(fsys fs.FS, name string, d UnitData) (string, error) {
 			return "", fmt.Errorf("invalid environment entry %q", e)
 		}
 	}
+	// The templates own the service policy. Do not inherit a caller override
+	// or emit duplicate launchd dictionary keys. Keep the caller slice intact.
+	env := make([]string, 0, len(d.Env))
+	for _, entry := range d.Env {
+		key, _, _ := strings.Cut(entry, "=")
+		if key != "RELAY_NO_PTYD" {
+			env = append(env, entry)
+		}
+	}
+	d.Env = env
 	if strings.ContainsAny(d.Binary, "\n\r\x00") || !filepath.IsAbs(d.Binary) {
 		return "", fmt.Errorf("binary path must be absolute: %q", d.Binary)
 	}
@@ -230,7 +242,21 @@ func (m Manager) EnableNow(ctx context.Context) error {
 	if m.Sys.GOOS() == "darwin" {
 		for _, svc := range []string{SvcPtyd, SvcServe} {
 			label := m.unit(svc)
-			_, _ = m.Sys.Output(ctx, "launchctl", "bootout", m.domain()+"/"+label)
+			if svc == SvcPtyd {
+				// A loaded daemon keeps its PTYs and running binary. Updated
+				// plist settings take effect on its next explicit reload.
+				if _, err := m.Sys.Output(ctx, "launchctl", "print", m.domain()+"/"+label); err == nil {
+					// Without -k, kickstart starts an idle loaded job without
+					// killing an instance that is already running.
+					if out, err := m.Sys.Output(ctx, "launchctl", "kickstart", m.domain()+"/"+label); err != nil {
+						return fmt.Errorf("launchctl kickstart %s: %v: %s", label, err, out)
+					}
+					continue
+				}
+			} else {
+				// Reload serve's plist so regenerated ownership policy applies.
+				_, _ = m.Sys.Output(ctx, "launchctl", "bootout", m.domain()+"/"+label)
+			}
 			if out, err := m.Sys.Output(ctx, "launchctl", "bootstrap", m.domain(), filepath.Join(m.UnitsDir, label+".plist")); err != nil {
 				return fmt.Errorf("launchctl bootstrap %s: %v: %s", label, err, out)
 			}
