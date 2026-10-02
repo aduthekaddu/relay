@@ -180,3 +180,38 @@ Real PTYs with `/bin/sh -c`: spawn, echo round-trip, resize, kill codes,
 replay correctness (including a truncated buffer and alternate screen),
 OSC parsing table tests, attention transitions, recorder format, restart
 of the daemon keeping metadata.
+
+## Terminal mutation audit
+
+Terminal handlers publish `terminal.kill`, `terminal.forget`, `upload.complete`
+and `upload.cancel` after the mutation owner confirms success. Detail contains
+the affected public terminal or upload ID and, for a kill, the whitelisted
+signal name. IP contains a parsed address or `local`; arbitrary proxy-header
+text is excluded. Terminal names, commands, environment, uploaded names, paths,
+types, file bodies, prompts and credentials
+are excluded. Failures, authorization/CSRF denials, upload start/chunk/status,
+and stale staging cleanup produce no success entry.
+
+Default close is HUP. Repeated HUP, TERM, KILL or QUIT deliveries to a session
+are no-ops after the first confirmed delivery of that signal. A different
+terminating signal is still delivered, so TERM can follow HUP immediately.
+HUP/TERM share one escalation lifecycle. An exited session is a no-op.
+INT/USR1/USR2 are separate deliveries, so intentionally repeated interrupts
+remain usable.
+
+Concurrent forgets remove the record once. A live forget produces one
+`terminal.forget`, without an extra kill event. Consumed upload IDs return 404
+on complete/cancel retry, including after the upload service is reconstructed.
+Partial and resumed uploads produce `upload.complete` only when the final file
+is placed. Explicit cancellation produces `upload.cancel` once, after cleanup.
+
+The private `POST /v1/sessions/{id}/delete` endpoint accepts `{signal,forget}`
+and returns `{changed}`. Audited terminal deletion requires a daemon supporting
+this endpoint. Older daemons reject it with 404 before mutation. Compatibility
+daemon DELETE and client Kill/Remove wrappers do not publish audit themselves.
+No automatic service restart is part of this contract.
+
+The existing asynchronous audit bus and SQLite consumer remain unchanged.
+These guarantees cover acknowledged operations with a healthy audit consumer;
+they do not add durable delivery during bus overload, process crashes, or a
+lost daemon response after a signal was delivered.

@@ -276,20 +276,31 @@ func (s *Service) hDelete(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	var err error
-	if httpx.QueryBool(r, "forget") {
-		err = s.pty.Remove(r.Context(), id)
-	} else {
-		sig := strings.ToUpper(strings.TrimPrefix(strings.ToUpper(r.URL.Query().Get("signal")), "SIG"))
+	forget := httpx.QueryBool(r, "forget")
+	sig := ""
+	if !forget {
+		sig = strings.TrimPrefix(strings.ToUpper(r.URL.Query().Get("signal")), "SIG")
 		if !signals[sig] {
 			httpx.Fail(w, httpx.BadRequest("unknown signal"))
 			return
 		}
-		err = s.pty.Kill(r.Context(), id, sig)
 	}
+	result, err := s.pty.Delete(r.Context(), id, ptyclient.DeleteSpec{Signal: sig, Forget: forget})
 	if err != nil {
 		fail(w, err)
 		return
+	}
+	if result.Changed {
+		action, detail := "terminal.kill", id
+		if forget {
+			action = "terminal.forget"
+		} else {
+			if sig == "" {
+				sig = "HUP"
+			}
+			detail += " " + sig
+		}
+		s.audit(r, action, detail)
 	}
 	httpx.NoContent(w)
 }

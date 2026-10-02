@@ -54,3 +54,12 @@ security-sensitive.
 
 Security issues: email the maintainer (see `SECURITY.md` in the repo root)
 rather than opening a public issue.
+
+## Terminal mutation audit
+
+Confirmed terminal kill/forget and upload complete/cancel actions each publish
+one audit event with the affected public ID and optional whitelisted signal. Denials, failures, staging chunks
+and retries of a consumed mutation do not imply a new success. Audit detail
+excludes commands, names, file bodies, prompts and credentials. See the
+[mutation and retry contract](PTYD.md#terminal-mutation-audit), including the
+private daemon endpoint requirement and asynchronous delivery limits.

@@ -37,6 +37,7 @@ func (d *Daemon) Handler() http.Handler {
 	mux.HandleFunc("GET /v1/sessions/{id}", d.withSession(d.hGet))
 	mux.HandleFunc("PATCH /v1/sessions/{id}", d.hPatch)
 	mux.HandleFunc("DELETE /v1/sessions/{id}", d.hDelete)
+	mux.HandleFunc("POST /v1/sessions/{id}/delete", d.hDeleteResult)
 	mux.HandleFunc("POST /v1/sessions/{id}/input", d.withSession(d.hInput))
 	mux.HandleFunc("POST /v1/sessions/{id}/resize", d.withSession(d.hResize))
 	mux.HandleFunc("POST /v1/sessions/{id}/attention", d.withSession(d.hAttention))
@@ -118,7 +119,10 @@ func (d *Daemon) hDelete(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, httpx.BadRequest("unknown signal"))
 		return
 	}
-	s.Kill(sig)
+	if _, err := s.Kill(sig); err != nil {
+		httpx.Fail(w, err)
+		return
+	}
 	httpx.NoContent(w)
 }
 
@@ -310,4 +314,39 @@ func (d *Daemon) hEvents(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+}
+
+// hDeleteResult reports the mutation owner's decision. Compatibility DELETE
+// uses the same Kill/Remove methods, so wrappers cannot create extra audits.
+func (d *Daemon) hDeleteResult(w http.ResponseWriter, r *http.Request) {
+	var spec ptyclient.DeleteSpec
+	if err := httpx.Decode(r, &spec); err != nil {
+		httpx.Fail(w, err)
+		return
+	}
+	id := r.PathValue("id")
+	if spec.Forget {
+		if err := d.Remove(r.Context(), id); err != nil {
+			httpx.Fail(w, err)
+			return
+		}
+		httpx.OK(w, ptyclient.DeleteResult{Changed: true})
+		return
+	}
+	sig, ok := parseSignal(spec.Signal)
+	if !ok {
+		httpx.Fail(w, httpx.BadRequest("unknown signal"))
+		return
+	}
+	s, err := d.get(id)
+	if err != nil {
+		httpx.Fail(w, err)
+		return
+	}
+	changed, err := s.Kill(sig)
+	if err != nil {
+		httpx.Fail(w, err)
+		return
+	}
+	httpx.OK(w, ptyclient.DeleteResult{Changed: changed})
 }
