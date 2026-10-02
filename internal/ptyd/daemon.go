@@ -423,11 +423,17 @@ func (d *Daemon) Remove(ctx context.Context, id string) error {
 	if err != nil {
 		return err
 	}
-	s.Kill(0)
+	if _, err := s.Kill(0); err != nil {
+		return err
+	}
 	if !s.waitDone(ctx, killKillAfter+2*time.Second) {
 		return unavailable("session did not exit")
 	}
 	d.mu.Lock()
+	if d.sessions[id] != s {
+		d.mu.Unlock()
+		return notFound("terminal session not found")
+	}
 	delete(d.sessions, id)
 	d.mu.Unlock()
 	removeRecording(d.recordDir, id)

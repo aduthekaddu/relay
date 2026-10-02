@@ -294,3 +294,12 @@ Uploads into a folder use the generic upload API with `dir`.
 | `relay preview <port>` | prints preview URL + QR |
 | `relay ls` / `relay attach <id>` / `relay run -- cmd` | terminals API / ptyd attach |
 | `relay hook <agent> <event>` | reads hook JSON on stdin → attention/done |
+
+## Terminal mutation audit
+
+Confirmed terminal kill/forget and upload complete/cancel actions each publish
+one audit event with the affected public ID and optional whitelisted signal. Denials, failures, staging chunks
+and retries of a consumed mutation do not imply a new success. Audit detail
+excludes commands, names, file bodies, prompts and credentials. See the
+[mutation and retry contract](PTYD.md#terminal-mutation-audit), including the
+private daemon endpoint requirement and asynchronous delivery limits.

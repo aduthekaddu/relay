@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -147,7 +149,20 @@ func newEnv(t *testing.T, withDaemon bool, mutate func(*config.Config)) *env {
 	}
 	rt := server.NewRouter(tokenAuth{}, func() []string { return nil })
 	svc.Routes(rt)
-	srv := httptest.NewServer(rt)
+	var ln net.Listener
+	for port := 47700; port <= 47799; port++ {
+		ln, err = net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
+		t.Fatal("no reserved loopback test port available")
+	}
+	srv := httptest.NewUnstartedServer(rt)
+	srv.Listener.Close()
+	srv.Listener = ln
+	srv.Start()
 	t.Cleanup(srv.Close)
 	return &env{t: t, svc: svc, d: d, srv: srv, paths: paths, files: files}
 }

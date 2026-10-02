@@ -69,8 +69,10 @@ type Session struct {
 	echoPending    []byte // recent input the pty may echo back
 	dirtyPreview   bool
 
-	done     chan struct{} // closed when the process exited
-	killOnce sync.Once
+	done     chan struct{}           // closed when the process exited
+	killMu   sync.Mutex              // serialises signal delivery and close retries
+	closing  bool                    // guarded by killMu; one escalation per session
+	killSent map[syscall.Signal]bool // guarded by killMu; terminating-signal retries
 }
 
 // startSession spawns spec. The caller registers the session.
@@ -798,23 +800,37 @@ func parseSignal(name string) (syscall.Signal, bool) {
 // Kill signals the process group. sig 0 means "close the terminal":
 // SIGHUP, then SIGTERM after 2 s, then SIGKILL after 5 s. SIGHUP and
 // SIGTERM also escalate to SIGKILL at 5 s; other signals are sent once.
-func (s *Session) Kill(sig syscall.Signal) {
+func (s *Session) Kill(sig syscall.Signal) (bool, error) {
+	s.killMu.Lock()
+	defer s.killMu.Unlock()
 	select {
 	case <-s.done:
-		return
+		return false, nil
 	default:
 	}
-	switch sig {
-	case 0, syscall.SIGHUP, syscall.SIGTERM:
-		first := sig
-		if first == 0 {
-			first = syscall.SIGHUP
+	first := sig
+	if first == 0 {
+		first = syscall.SIGHUP
+	}
+	terminating := first == syscall.SIGHUP || first == syscall.SIGTERM || first == syscall.SIGKILL || first == syscall.SIGQUIT
+	if terminating && s.killSent[first] {
+		return false, nil
+	}
+	changed, err := s.signal(first)
+	if err != nil || !changed {
+		return changed, err
+	}
+	if terminating {
+		if s.killSent == nil {
+			s.killSent = make(map[syscall.Signal]bool)
 		}
-		s.signal(first)
-		s.killOnce.Do(func() { go s.escalate(sig == 0) })
-	default:
-		s.signal(sig)
+		s.killSent[first] = true
 	}
+	if (first == syscall.SIGHUP || first == syscall.SIGTERM) && !s.closing {
+		s.closing = true
+		go s.escalate(sig == 0)
+	}
+	return true, nil
 }
 
 func (s *Session) escalate(withTerm bool) {
@@ -836,19 +852,28 @@ func (s *Session) escalate(withTerm bool) {
 
 // signal delivers sig to the session's process group and to the pty's
 // foreground process group (a job the shell started).
-func (s *Session) signal(sig syscall.Signal) {
+func (s *Session) signal(sig syscall.Signal) (bool, error) {
 	s.mu.Lock()
 	pid := s.info.Pid
 	ptmx := s.ptmx
 	exited := s.info.Activity == api.ActivityExited
 	s.mu.Unlock()
 	if exited || pid <= 0 {
-		return
+		return false, nil
 	}
-	_ = syscall.Kill(-pid, sig)
+	err := syscall.Kill(-pid, sig)
+	if err != nil && !errors.Is(err, syscall.ESRCH) {
+		return false, fmt.Errorf("signal process group: %w", err)
+	}
+	changed := err == nil
 	if fg := foregroundPgrp(ptmx); fg > 0 && fg != pid {
-		_ = syscall.Kill(-fg, sig)
+		// The main process group accepted the signal even if its foreground
+		// job has already exited. Do not misreport a committed delivery.
+		if err := syscall.Kill(-fg, sig); err == nil {
+			changed = true
+		}
 	}
+	return changed, nil
 }
 
 func foregroundPgrp(f *os.File) int {

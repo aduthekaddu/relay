@@ -64,7 +64,7 @@ type uploads struct {
 	now       func() time.Time
 
 	mu    sync.Mutex
-	locks map[string]*sync.Mutex // per-upload write serialisation
+	locks map[string]*uploadLock // holders and waiters share one lock
 	// starts is a sliding one-minute window for rate limiting.
 	starts []time.Time
 }
@@ -73,7 +73,7 @@ func newUploads(root, filesRoot string, max int64) (*uploads, error) {
 	if root == "" {
 		return nil, errors.New("terminal: uploads directory not configured")
 	}
-	return &uploads{root: root, filesRoot: filesRoot, max: max, now: time.Now, locks: map[string]*sync.Mutex{}}, nil
+	return &uploads{root: root, filesRoot: filesRoot, max: max, now: time.Now, locks: map[string]*uploadLock{}}, nil
 }
 
 func (u *uploads) partial() string { return filepath.Join(u.root, partialDir) }
@@ -101,22 +101,33 @@ func validUploadID(id string) bool {
 	return true
 }
 
-// lock returns the mutex serialising writes to one upload.
-func (u *uploads) lock(id string) *sync.Mutex {
-	u.mu.Lock()
-	defer u.mu.Unlock()
-	m := u.locks[id]
-	if m == nil {
-		m = &sync.Mutex{}
-		u.locks[id] = m
-	}
-	return m
+type uploadLock struct {
+	mu   sync.Mutex
+	refs int // guarded by uploads.mu, includes waiters
 }
 
-func (u *uploads) forget(id string) {
+// lock serialises all operations for one ID until every holder and waiter
+// releases it. Deleting a lock while waiters still hold it lets a new caller
+// race the old queue. Reclaim it only when the last operation finishes.
+func (u *uploads) lock(id string) func() {
 	u.mu.Lock()
-	delete(u.locks, id)
+	l := u.locks[id]
+	if l == nil {
+		l = &uploadLock{}
+		u.locks[id] = l
+	}
+	l.refs++
 	u.mu.Unlock()
+	l.mu.Lock()
+	return func() {
+		l.mu.Unlock()
+		u.mu.Lock()
+		l.refs--
+		if l.refs == 0 {
+			delete(u.locks, id)
+		}
+		u.mu.Unlock()
+	}
 }
 
 // allowStart applies the start rate limit.
@@ -322,6 +333,8 @@ func (u *uploads) load(id string) (*uploadMeta, int64, error) {
 
 // status returns the resumable state of an upload.
 func (u *uploads) status(id string) (*api.Upload, error) {
+	unlock := u.lock(id)
+	defer unlock()
 	m, got, err := u.load(id)
 	if err != nil {
 		return nil, err
@@ -332,9 +345,8 @@ func (u *uploads) status(id string) (*api.Upload, error) {
 // put writes a chunk at offset. A chunk may restart at any offset up to
 // what was received (a retried chunk overwrites); gaps are refused.
 func (u *uploads) put(id string, offset int64, body io.Reader) (*api.Upload, error) {
-	l := u.lock(id)
-	l.Lock()
-	defer l.Unlock()
+	unlock := u.lock(id)
+	defer unlock()
 	m, got, err := u.load(id)
 	if err != nil {
 		return nil, err
@@ -379,9 +391,8 @@ func (u *uploads) put(id string, offset int64, body io.Reader) (*api.Upload, err
 // complete moves a fully received upload to its destination under a
 // collision-free name.
 func (u *uploads) complete(id, home string) (*api.UploadResult, error) {
-	l := u.lock(id)
-	l.Lock()
-	defer l.Unlock()
+	unlock := u.lock(id)
+	defer unlock()
 	m, got, err := u.load(id)
 	if err != nil {
 		return nil, err
@@ -405,7 +416,6 @@ func (u *uploads) complete(id, home string) (*api.UploadResult, error) {
 		return nil, err
 	}
 	os.Remove(u.metaPath(id))
-	u.forget(id)
 	return &api.UploadResult{Path: dest, Name: filepath.Base(dest), Size: m.Size}, nil
 }
 
@@ -425,7 +435,9 @@ func placeFile(src, dir, name string, mode os.FileMode) (string, error) {
 		dest := filepath.Join(dir, cand)
 		err := os.Link(src, dest)
 		if err == nil {
-			os.Remove(src)
+			if err := consumePartial(src, dest); err != nil {
+				return "", err
+			}
 			_ = os.Chmod(dest, mode)
 			return dest, nil
 		}
@@ -435,7 +447,9 @@ func placeFile(src, dir, name string, mode os.FileMode) (string, error) {
 		// Different filesystem or no hard links: copy exclusively.
 		err = copyExclusive(src, dest, mode)
 		if err == nil {
-			os.Remove(src)
+			if err := consumePartial(src, dest); err != nil {
+				return "", err
+			}
 			return dest, nil
 		}
 		if errors.Is(err, os.ErrExist) {
@@ -444,6 +458,18 @@ func placeFile(src, dir, name string, mode os.FileMode) (string, error) {
 		return "", fmt.Errorf("store upload: %w", err)
 	}
 	return "", httpx.Conflict("too many files with this name")
+}
+
+// consumePartial prevents a retry from publishing a second file if removing
+// the source fails. The destination was just exclusively created by this call.
+func consumePartial(src, dest string) error {
+	if err := os.Remove(src); err != nil && !errors.Is(err, os.ErrNotExist) {
+		if cleanup := os.Remove(dest); cleanup != nil {
+			return fmt.Errorf("consume partial: %w; rollback destination: %v", err, cleanup)
+		}
+		return fmt.Errorf("consume partial: %w", err)
+	}
+	return nil
 }
 
 func copyExclusive(src, dest string, mode os.FileMode) error {
@@ -473,14 +499,23 @@ func (u *uploads) abort(id string) error {
 	if !validUploadID(id) {
 		return httpx.NotFound("upload not found")
 	}
-	l := u.lock(id)
-	l.Lock()
-	defer l.Unlock()
-	errMeta := os.Remove(u.metaPath(id))
-	errData := os.Remove(u.dataPath(id))
-	u.forget(id)
-	if errors.Is(errMeta, os.ErrNotExist) && errors.Is(errData, os.ErrNotExist) {
+	unlock := u.lock(id)
+	defer unlock()
+	// A completed upload can leave metadata after a cleanup error. Without
+	// partial data there is no upload to cancel, even if metadata remains.
+	_, statErr := os.Lstat(u.dataPath(id))
+	if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
+		return fmt.Errorf("stat upload data: %w", statErr)
+	}
+	// Remove metadata first: if it fails, retain the data for a real retry.
+	if err := os.Remove(u.metaPath(id)); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("remove upload metadata: %w", err)
+	}
+	if errors.Is(statErr, os.ErrNotExist) {
 		return httpx.NotFound("upload not found")
+	}
+	if err := os.Remove(u.dataPath(id)); err != nil {
+		return fmt.Errorf("remove upload data: %w", err)
 	}
 	return nil
 }
@@ -513,13 +548,11 @@ func (u *uploads) sweep() int {
 		if now.Sub(t) < uploadStale {
 			continue
 		}
-		l := u.lock(id)
-		l.Lock()
+		unlock := u.lock(id)
 		os.Remove(u.metaPath(id))
 		os.Remove(u.metaPath(id) + ".tmp")
 		os.Remove(u.dataPath(id))
-		l.Unlock()
-		u.forget(id)
+		unlock()
 		removed++
 	}
 	return removed
@@ -589,6 +622,7 @@ func (s *Service) hUploadComplete(w http.ResponseWriter, r *http.Request) {
 		s.failUpload(w, err)
 		return
 	}
+	s.audit(r, "upload.complete", r.PathValue("id"))
 	httpx.OK(w, res)
 }
 
@@ -597,6 +631,7 @@ func (s *Service) hUploadAbort(w http.ResponseWriter, r *http.Request) {
 		s.failUpload(w, err)
 		return
 	}
+	s.audit(r, "upload.cancel", r.PathValue("id"))
 	httpx.NoContent(w)
 }
 
