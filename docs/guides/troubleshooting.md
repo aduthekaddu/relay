@@ -153,21 +153,57 @@ On the machine, over SSH, set a new one:
 relay passwd
 ```
 
-This works whether or not Relay is running, and it signs out all other
-devices.
+This works whether or not Relay is running, and it signs out every browser
+session. API tokens and passkeys remain valid. TOTP stays enabled.
 
 ### I am locked out
 
-If you lost both your authenticator app (TOTP) and your passkeys, reset from
-the machine over SSH:
+If you lost your authenticator, a registered passkey can still sign you in.
+Another signed-in device keeps its existing session, but turning off TOTP
+through the web app still requires a current code. A session alone does not
+replace a lost authenticator. Use the machine-local recovery below with or
+without another signed-in device.
 
-```bash
-relay passwd --reset-totp
-```
+1. Open a shell on the Relay machine, locally or over SSH, as the OS user
+   that owns the Relay service and database. An administrator must switch to
+   that user. A browser login or API token alone cannot invoke a recovery API.
+2. Select the same state directory as the service. If the service uses
+   `RELAY_HOME`, set that exact value in your shell. Otherwise, use its XDG
+   data directory. Do not delete the database or copy credentials into commands.
+3. Set a new password with hidden prompts:
 
-This sets a new password and turns off two-step codes, so you can sign in
-and set them up again. Only someone with a shell on the machine as your user
-can do this.
+   ```bash
+   relay passwd --reset-totp
+   ```
+
+4. Sign in with the new password. Set up TOTP with your replacement
+   authenticator. Review passkeys and API tokens and revoke any you no longer trust.
+
+The command works with the server stopped or running on the same updated
+Relay version as the CLI. If the server still runs an older binary, stop it
+with its service manager first and restart it with the updated binary after
+recovery. This prevents older sign-in code from recreating a session in flight.
+The command writes directly to
+SQLite, so an absent or stale control socket is harmless. It requires an
+existing database owned by the current OS user, a `0700` data directory and
+regular, singly linked `0600` database files. It refuses symlinks, wrong owners
+and insecure permissions without changing them. If permission checks fail,
+verify the service owner and selected directory before correcting permissions
+as that owner. Do not run against a different account or create fresh state.
+
+Successful recovery replaces the password, clears active and pending TOTP,
+and revokes every browser session, including another device you are still
+using. `--keep-sessions` is rejected with `--reset-totp`. API tokens and
+registered passkeys remain valid. Old cookies fail on the next request and
+Relay's authenticated API WebSockets close within three seconds while the
+server is running. The [socket contract](../dev/AUTH.md#sessions-and-cookies)
+states the endpoints and limits. Raw app and preview proxy connections are
+outside that bound. Recovery leaves durable terminals running.
+
+Recovery records a `totp.recover` activity entry without passwords or TOTP
+secrets. A failed recovery leaves credentials and browser sessions unchanged.
+It does not clear an existing login rate-limit wait. Wait for the countdown
+before signing in. There is no remote TOTP reset endpoint or recovery-code flow.
 
 ### "Sign in with a passkey" does nothing or finds no passkey
 

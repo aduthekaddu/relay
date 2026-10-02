@@ -79,8 +79,10 @@ it off, enter a current code in the same place.
 
 :::caution
 Store the secret key or a backup of your authenticator somewhere safe. If
-you lose both the authenticator and your passkeys, you have to reset from
-the machine itself with SSH. See
+you lose your authenticator, a passkey can still sign you in. Disabling TOTP
+still needs a current code, even on a signed-in device. Machine-local
+`relay passwd --reset-totp` recovery replaces the password and signs out all
+browsers. API tokens and passkeys stay valid. Enroll TOTP again afterward. See
 [Troubleshooting → I am locked out](troubleshooting.md#i-am-locked-out).
 :::
 

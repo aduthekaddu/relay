@@ -24,11 +24,12 @@ func init() {
 		Name:    "passwd",
 		Group:   "Account",
 		Summary: "Set or reset the sign-in password",
-		Usage:   "relay passwd [--user name] [--stdin] [--keep-sessions]",
+		Usage:   "relay passwd [--user name] [--stdin] [--keep-sessions] [--reset-totp]",
 		Flags: func(fs *flag.FlagSet) {
 			fs.String("user", "", "username (creates the account if there is none; renames it otherwise)")
 			fs.Bool("stdin", false, "read the password from standard input (one line) instead of prompting")
-			fs.Bool("keep-sessions", false, "do not sign out existing browser sessions")
+			fs.Bool("keep-sessions", false, "do not sign out existing browser sessions (incompatible with --reset-totp)")
+			fs.Bool("reset-totp", false, "owner-only recovery: replace password, clear TOTP and sign out all browsers; keep tokens and passkeys")
 		},
 		Run: runPasswd,
 	})
@@ -37,6 +38,9 @@ func init() {
 func runPasswd(ctx context.Context, fs *flag.FlagSet, args []string) error {
 	if len(args) > 0 {
 		return &ExitError{Code: 2, Msg: "passwd takes no arguments (see 'relay help passwd')"}
+	}
+	if flagBool(fs, "reset-totp") {
+		return runTOTPRecovery(ctx, fs)
 	}
 	acc, closeDB, err := openAccounts(ctx)
 	if err != nil {

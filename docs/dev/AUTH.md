@@ -41,6 +41,18 @@ principal method `token`. Only the SHA-256 is stored, and the plaintext is
 shown once. Manage tokens at `/api/v1/auth/tokens` or with `relay token
 create|list|revoke`.
 
+**TOTP recovery.** `relay passwd --reset-totp` is a machine-local, owner-only
+database operation for an existing account. It atomically replaces the password,
+clears active/pending TOTP and its replay step, increments the recovery generation,
+deletes every browser session and records `totp.recover`. There is no HTTP route.
+The CLI refuses `--keep-sessions`, foreign ownership, symlinks, hard links and
+non-private data/database modes. It uses no control socket and works stopped or
+running with the same recovery-aware binary. An older running server must be
+stopped before recovery and restarted with the updated binary. SQL failures return fixed text to avoid credential disclosure. The
+recovery generation fences stale password/TOTP writes and session creation.
+API tokens and passkeys remain valid; existing login limiters are unchanged.
+See the [owner procedure](../guides/troubleshooting.md#i-am-locked-out).
+
 **Password reset.** `relay passwd` (`--stdin` for scripts, `--user` to name or
 rename the account) writes the database directly, whether or not the server
 is running, and signs out every browser session unless you pass
@@ -95,14 +107,14 @@ is running, and signs out every browser session unless you pass
 | Revoke others, password change | auth HTTP handlers | `SessionIDs` for removed rows | Calling browser session and API tokens; token/local callers keep no browser session |
 | Revoke API token | auth HTTP handler | `TokenIDs` for the removed row | Other tokens and browser sessions |
 | `relay token revoke` | CLI `Accounts` writer | None; guards poll SQLite | Other tokens and browser sessions |
-| `relay passwd`, including account rename/recovery | CLI `Accounts` writer | None; guards poll SQLite | API tokens; `--keep-sessions` also preserves browser sessions |
+| Ordinary `relay passwd`, including account rename | CLI `Accounts` writer | None; guards poll SQLite | API tokens; `--keep-sessions` also preserves browser sessions |
+| `relay passwd --reset-totp` | CLI atomic recovery writer | None; guards poll SQLite | API tokens and passkeys; no browser sessions |
 | Session expiry, offline row deletion or credential replacement | SQLite state | None; guards poll SQLite | Credentials whose rows remain valid |
 | Account row removed | SQLite state | None; guards poll SQLite | No browser or token principal |
 
 Passkey removal and TOTP changes do not themselves revoke existing sessions.
-Their sessions use the same cookie checks when explicitly revoked. The
-supported recovery path here is `relay passwd`; TOTP lockout recovery remains
-separately scoped. API tokens have no expiry column.
+Their sessions use the same cookie checks when explicitly revoked. Machine-local TOTP recovery always revokes browser sessions, including the
+invoking device. API tokens have no expiry column.
 
 This bound covers Relay's four authenticated API WebSocket endpoints. Raw
 IDE/app and preview reverse proxies use separate upgrade and delegated-cookie
@@ -122,7 +134,7 @@ if `server.public_url` is set.
 
 | table | contents |
 | --- | --- |
-| `auth_user` | the single row: username, argon2id hash, WebAuthn user id, TOTP secret/pending/last step |
+| `auth_user` | the single row: username, argon2id hash, WebAuthn user id, TOTP secret/pending/last step, recovery generation |
 | `auth_sessions` | public id, token hash, method, remember, IP, UA, device/browser/OS, created/last seen/expires |
 | `auth_passkeys` | credential id, public key, sign count, AAGUID, transports, backup flags, name, created/last used |
 | `auth_tokens` | id, name, prefix, SHA-256, created/last used |

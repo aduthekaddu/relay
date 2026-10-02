@@ -142,12 +142,35 @@ the web server restarts.
 Sets a new password for your account. It asks twice, with hidden input, and
 the password must be at least 10 characters. The command writes to Relay's
 database directly, so it works whether or not the server is running.
-Changing the password signs out every other device.
+By default, it signs out every browser session. API tokens and passkeys stay valid.
+Ordinary password changes leave TOTP enabled.
 
 | Flag | Meaning |
 | --- | --- |
-| `--stdin` | Read the new password from standard input (for scripts) |
-| `--reset-totp` | Also turn off two-step codes, to recover after losing your authenticator |
+| `--user NAME` | Create the account with this name, or rename the existing account |
+| `--stdin` | Read the new password from standard input, one line |
+| `--keep-sessions` | Preserve browser sessions during an ordinary password change. Cannot be combined with `--reset-totp` |
+| `--reset-totp` | Recover an existing account: replace the password, clear active and pending TOTP, and sign out every browser session |
+
+Recovery requires a shell as the OS user that owns Relay's database, a private
+`0700` data directory and regular, singly linked `0600` database files owned by
+that user. Symlinks and insecure permissions are refused without repair.
+Run as the service's owner, with the same `RELAY_HOME` or XDG data directory.
+A different data directory cannot recover the installed account. Recovery
+never creates a missing account or uses `RELAY_SOCKET`.
+
+Password replacement, TOTP reset, browser session revocation and the
+`totp.recover` activity entry commit together. On failure they roll back together.
+The server can remain running when it runs the same recovery-aware Relay version
+as the CLI. If an older binary is still serving, stop that server with its
+service manager before recovery and restart it with the updated binary afterward.
+Stale control sockets do not affect recovery.
+Old cookies fail on their next request. Authenticated API WebSockets close
+within three seconds; see the [socket scope and limits](../dev/AUTH.md#sessions-and-cookies).
+API tokens and passkeys remain valid. Recovery does not kill terminals or sign
+you in. Sign in with the new password and enroll TOTP again.
+
+Follow the [lockout recovery guide](../guides/troubleshooting.md#i-am-locked-out).
 
 ### `relay token`
 

@@ -77,6 +77,7 @@ var migrations = []string{
 		first_seen_at INTEGER NOT NULL,
 		last_seen_at INTEGER NOT NULL
 	)`,
+	`ALTER TABLE auth_user ADD COLUMN recovery_generation INTEGER NOT NULL DEFAULT 0`,
 }
 
 // Migrate creates or upgrades the auth tables. Safe to call repeatedly

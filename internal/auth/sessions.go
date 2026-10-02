@@ -34,13 +34,20 @@ type sessionRow struct {
 // newSessionSecret returns a 256-bit random cookie value.
 func newSessionSecret() (string, error) { return secret.Token("", 32) }
 
-func (a *Accounts) insertSession(ctx context.Context, s *sessionRow) error {
-	_, err := a.st.DB.ExecContext(ctx, `INSERT INTO auth_sessions(id, token_hash, username, method, remember, ip, user_agent, device, browser, os, created_at, last_seen_at, expires_at)
-		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+func (a *Accounts) insertSession(ctx context.Context, s *sessionRow, generation int64) error {
+	res, err := a.st.DB.ExecContext(ctx, `INSERT INTO auth_sessions(id, token_hash, username, method, remember, ip, user_agent, device, browser, os, created_at, last_seen_at, expires_at)
+		SELECT ?,?,?,?,?,?,?,?,?,?,?,?,? FROM auth_user WHERE id=1 AND username=? AND recovery_generation=?`,
 		s.ID, s.TokenHash, s.Username, s.Method, s.Remember, s.IP, clip(s.UserAgent, 512), s.Device, s.Browser, s.OS,
-		ms(s.CreatedAt), ms(s.LastSeenAt), ms(s.ExpiresAt))
+		ms(s.CreatedAt), ms(s.LastSeenAt), ms(s.ExpiresAt), s.Username, generation)
 	if err != nil {
 		return fmt.Errorf("create session: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return errors.New("create session failed")
+	}
+	if n != 1 {
+		return httpx.Unauthorized("Sign-in settings changed. Sign in again.")
 	}
 	return nil
 }

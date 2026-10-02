@@ -73,7 +73,7 @@ func (s *Service) handlePassword(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, err)
 		return
 	}
-	if err := s.acc.setPasswordHash(ctx, hash); err != nil {
+	if err := s.acc.setPasswordHash(ctx, hash, u); err != nil {
 		httpx.Fail(w, err)
 		return
 	}
@@ -123,7 +123,7 @@ func (s *Service) handleTOTPSetup(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, err)
 		return
 	}
-	if err := s.acc.setTOTPPending(ctx, sec); err != nil {
+	if err := s.acc.setTOTPPending(ctx, sec, u); err != nil {
 		httpx.Fail(w, err)
 		return
 	}
@@ -192,7 +192,7 @@ func (s *Service) handleTOTPEnable(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, &httpx.Err{Status: http.StatusBadRequest, Code: "bad_request", Field: "code", Message: msgBadCode})
 		return
 	}
-	if err := s.acc.enableTOTP(ctx, u.TOTPPending, step); err != nil {
+	if err := s.acc.enableTOTP(ctx, u.TOTPPending, step, u); err != nil {
 		httpx.Fail(w, err)
 		return
 	}
@@ -232,7 +232,7 @@ func (s *Service) handleTOTPDisable(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, &httpx.Err{Status: http.StatusBadRequest, Code: "bad_request", Field: "code", Message: msgBadCode})
 		return
 	}
-	if err := s.acc.disableTOTP(ctx); err != nil {
+	if err := s.acc.disableTOTP(ctx, u); err != nil {
 		httpx.Fail(w, err)
 		return
 	}

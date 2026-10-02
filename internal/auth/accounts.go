@@ -46,14 +46,15 @@ func OpenAccounts(ctx context.Context, st *store.Store) (*Accounts, error) {
 }
 
 type user struct {
-	Username     string
-	PasswordHash string
-	WebAuthnID   []byte
-	TOTPSecret   string
-	TOTPPending  string
-	TOTPLastStep int64
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	Username           string
+	PasswordHash       string
+	WebAuthnID         []byte
+	TOTPSecret         string
+	TOTPPending        string
+	TOTPLastStep       int64
+	RecoveryGeneration int64
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 }
 
 func ms(t time.Time) int64 {
@@ -135,8 +136,8 @@ func CheckPassword(username, password string) error {
 func (a *Accounts) user(ctx context.Context) (*user, error) {
 	var u user
 	var created, updated int64
-	err := a.st.DB.QueryRowContext(ctx, `SELECT username, password_hash, webauthn_id, totp_secret, totp_pending, totp_last_step, created_at, updated_at FROM auth_user WHERE id=1`).
-		Scan(&u.Username, &u.PasswordHash, &u.WebAuthnID, &u.TOTPSecret, &u.TOTPPending, &u.TOTPLastStep, &created, &updated)
+	err := a.st.DB.QueryRowContext(ctx, `SELECT username, password_hash, webauthn_id, totp_secret, totp_pending, totp_last_step, created_at, updated_at, recovery_generation FROM auth_user WHERE id=1`).
+		Scan(&u.Username, &u.PasswordHash, &u.WebAuthnID, &u.TOTPSecret, &u.TOTPPending, &u.TOTPLastStep, &created, &updated, &u.RecoveryGeneration)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -216,26 +217,37 @@ func (a *Accounts) SetPassword(ctx context.Context, username, password string) (
 	return false, nil
 }
 
-func (a *Accounts) setPasswordHash(ctx context.Context, hash string) error {
-	_, err := a.st.DB.ExecContext(ctx, `UPDATE auth_user SET password_hash=?, updated_at=? WHERE id=1`, hash, ms(a.now()))
-	return err
+// Credential writes from a request that began before recovery must fail closed.
+func credentialWrite(res sql.Result, err error) error {
+	if err != nil {
+		return errors.New("credential update failed; nothing changed")
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return errors.New("credential update failed")
+	}
+	if n != 1 {
+		return httpx.Conflict("Sign-in settings changed. Sign in again and retry.")
+	}
+	return nil
+}
+
+func (a *Accounts) setPasswordHash(ctx context.Context, hash string, u *user) error {
+	return credentialWrite(a.st.DB.ExecContext(ctx, `UPDATE auth_user SET password_hash=?, updated_at=? WHERE id=1 AND recovery_generation=? AND password_hash=?`, hash, ms(a.now()), u.RecoveryGeneration, u.PasswordHash))
 }
 
 // --- TOTP state -------------------------------------------------------------
 
-func (a *Accounts) setTOTPPending(ctx context.Context, secretB32 string) error {
-	_, err := a.st.DB.ExecContext(ctx, `UPDATE auth_user SET totp_pending=?, updated_at=? WHERE id=1`, secretB32, ms(a.now()))
-	return err
+func (a *Accounts) setTOTPPending(ctx context.Context, secretB32 string, u *user) error {
+	return credentialWrite(a.st.DB.ExecContext(ctx, `UPDATE auth_user SET totp_pending=?, updated_at=? WHERE id=1 AND recovery_generation=?`, secretB32, ms(a.now()), u.RecoveryGeneration))
 }
 
-func (a *Accounts) enableTOTP(ctx context.Context, secretB32 string, step int64) error {
-	_, err := a.st.DB.ExecContext(ctx, `UPDATE auth_user SET totp_secret=?, totp_pending='', totp_last_step=?, updated_at=? WHERE id=1`, secretB32, step, ms(a.now()))
-	return err
+func (a *Accounts) enableTOTP(ctx context.Context, secretB32 string, step int64, u *user) error {
+	return credentialWrite(a.st.DB.ExecContext(ctx, `UPDATE auth_user SET totp_secret=?, totp_pending='', totp_last_step=?, updated_at=? WHERE id=1 AND recovery_generation=? AND totp_pending=?`, secretB32, step, ms(a.now()), u.RecoveryGeneration, secretB32))
 }
 
-func (a *Accounts) disableTOTP(ctx context.Context) error {
-	_, err := a.st.DB.ExecContext(ctx, `UPDATE auth_user SET totp_secret='', totp_pending='', totp_last_step=0, updated_at=? WHERE id=1`, ms(a.now()))
-	return err
+func (a *Accounts) disableTOTP(ctx context.Context, u *user) error {
+	return credentialWrite(a.st.DB.ExecContext(ctx, `UPDATE auth_user SET totp_secret='', totp_pending='', totp_last_step=0, updated_at=? WHERE id=1 AND recovery_generation=? AND totp_secret=?`, ms(a.now()), u.RecoveryGeneration, u.TOTPSecret))
 }
 
 // claimTOTPStep atomically records step as used. It returns false when the

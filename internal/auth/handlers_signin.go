@@ -159,7 +159,7 @@ func requireInteractive(p *server.Principal) error {
 
 // startSession creates a browser session for username, sets the cookie,
 // notes the device and audits the sign-in.
-func (s *Service) startSession(w http.ResponseWriter, r *http.Request, username, method string, remember bool) error {
+func (s *Service) startSession(w http.ResponseWriter, r *http.Request, username, method string, remember bool, generation int64) error {
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(r.Context()), 5*time.Second)
 	defer cancel()
 	// A fresh id on every sign-in (no fixation); end the session this
@@ -183,7 +183,7 @@ func (s *Service) startSession(w http.ResponseWriter, r *http.Request, username,
 		Device: ua.Device, Browser: ua.Browser, OS: ua.OS,
 		CreatedAt: now, LastSeenAt: now, ExpiresAt: now.Add(s.ttl(remember)),
 	}
-	if err := s.acc.insertSession(ctx, row); err != nil {
+	if err := s.acc.insertSession(ctx, row, generation); err != nil {
 		return err
 	}
 	s.setSessionCookie(w, r, value, remember)
@@ -348,7 +348,7 @@ func (s *Service) handleSetup(w http.ResponseWriter, r *http.Request) {
 	s.setupMu.Unlock()
 	s.removeSetupCodeFile()
 	s.audit(r, "account.create", name, "")
-	if err := s.startSession(w, r, name, "password", req.Remember); err != nil {
+	if err := s.startSession(w, r, name, "password", req.Remember, 0); err != nil {
 		httpx.Fail(w, err)
 		return
 	}
@@ -406,7 +406,7 @@ func (s *Service) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	if rehash {
 		if h, err := s.hashPassword(ctx, req.Password); err == nil {
-			_ = s.acc.setPasswordHash(ctx, h)
+			_ = s.acc.setPasswordHash(ctx, h, u)
 		}
 	}
 	if u.TOTPSecret != "" {
@@ -422,7 +422,7 @@ func (s *Service) handleLogin(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.loginLim.Success(ip)
-	if err := s.startSession(w, r, u.Username, "password", req.Remember); err != nil {
+	if err := s.startSession(w, r, u.Username, "password", req.Remember, u.RecoveryGeneration); err != nil {
 		httpx.Fail(w, err)
 		return
 	}
@@ -538,7 +538,7 @@ func (s *Service) handlePasskeyLoginFinish(w http.ResponseWriter, r *http.Reques
 	}
 	s.passkeyLim.Success(ip)
 	remember := r.URL.Query().Get("remember") != "0"
-	if err := s.startSession(w, r, usr.WebAuthnName(), "passkey", remember); err != nil {
+	if err := s.startSession(w, r, usr.WebAuthnName(), "passkey", remember, usr.(*waUser).u.RecoveryGeneration); err != nil {
 		httpx.Fail(w, err)
 		return
 	}

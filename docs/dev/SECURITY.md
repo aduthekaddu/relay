@@ -50,6 +50,18 @@ security-sensitive.
 10. Rate-limit expensive or abusable endpoints (login, search, ask,
     uploads start).
 
+## Machine-local TOTP recovery
+
+`relay passwd --reset-totp` requires the OS database owner and existing private
+state. It has no HTTP route. Password replacement, clearing active and pending
+TOTP, browser session revocation and a fixed-detail audit entry are atomic.
+Recovery generations reject stale sign-in and credential writes. API tokens and
+passkeys survive, so the guide requires reviewing them after recovery.
+Driver errors from recovery are replaced with fixed messages. The command
+uses no sockets and does not change service or filesystem permissions.
+See [AUTH.md](AUTH.md#flows) and the
+[recovery guide](../guides/troubleshooting.md#i-am-locked-out).
+
 ## Reporting
 
 Security issues: email the maintainer (see `SECURITY.md` in the repo root)
