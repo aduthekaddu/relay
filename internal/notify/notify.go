@@ -42,16 +42,10 @@ const (
 // Known notification kinds. Unknown kinds are stored as "custom".
 var knownKinds = []string{"attention", "done", "exited", "preview", "security", "system", "schedule", "custom"}
 
-// Presence reports whether some device is currently looking at a terminal
-// session. It is implemented by internal/live; nil means "nobody".
-type Presence interface {
-	Watching(sessionID string) bool
-}
-
 // Service is the notifier. It implements core.Notifier.
 type Service struct {
 	d        *core.Deps
-	presence func() Presence
+	presence func() core.Presence
 	now      func() time.Time
 	client   *http.Client // outbound (push, ntfy, webhook); per-request timeouts via ctx
 
@@ -82,8 +76,9 @@ type job struct {
 type Option func(*Service)
 
 // WithPresence sets the presence lookup used for smart suppression. The
-// function is called on every notification, so late-wired services work.
-func WithPresence(f func() Presence) Option { return func(s *Service) { s.presence = f } }
+// function is called on every notification. A nil function or result disables
+// presence suppression. Finalize Deps.Presence before starting concurrent work.
+func WithPresence(f func() core.Presence) Option { return func(s *Service) { s.presence = f } }
 
 // WithClock overrides the clock (tests).
 func WithClock(now func() time.Time) Option { return func(s *Service) { s.now = now } }
@@ -95,11 +90,12 @@ func WithHTTPClient(c *http.Client) Option { return func(s *Service) { s.client 
 // It starts no goroutines; call Start for delivery.
 func New(d *core.Deps, opts ...Option) (*Service, error) {
 	s := &Service{
-		d:      d,
-		now:    time.Now,
-		client: &http.Client{Timeout: 15 * time.Second},
-		queue:  make(chan job, QueueSize),
-		recent: map[string]recentEntry{},
+		d:        d,
+		presence: func() core.Presence { return d.Presence },
+		now:      time.Now,
+		client:   &http.Client{Timeout: 15 * time.Second},
+		queue:    make(chan job, QueueSize),
+		recent:   map[string]recentEntry{},
 	}
 	for _, o := range opts {
 		o(s)

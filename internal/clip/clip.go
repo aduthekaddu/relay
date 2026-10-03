@@ -20,6 +20,7 @@ import (
 
 	"github.com/aduthekaddu/relay/internal/api"
 	"github.com/aduthekaddu/relay/internal/core"
+	"github.com/aduthekaddu/relay/internal/events"
 	"github.com/aduthekaddu/relay/internal/httpx"
 	"github.com/aduthekaddu/relay/internal/secret"
 	"github.com/aduthekaddu/relay/internal/server"
@@ -30,10 +31,6 @@ const (
 	Retain = 200
 	// MaxBytes caps one clip (SECURITY.md: clipboard entries 256 KiB).
 	MaxBytes = 256 << 10
-
-	// BusCapture is the backend bus topic for text captured outside HTTP
-	// (OSC 52, desktop clipboard). It matches core.BusClipCapture.
-	BusCapture = "clip.capture"
 )
 
 // Sources a clip may come from.
@@ -43,7 +40,8 @@ var sources = map[string]bool{"terminal": true, "cli": true, "web": true, "osc52
 type Service struct {
 	d   *core.Deps
 	now func() time.Time
-	mu  sync.Mutex // serialises Add so "dedupe consecutive" is race-free
+	mu  sync.Mutex  // serialises Add so "dedupe consecutive" is race-free
+	sub *events.Sub // installed during construction, before producers start
 }
 
 // New migrates the clips table.
@@ -62,22 +60,36 @@ func New(d *core.Deps) (*Service, error) {
 	}); err != nil {
 		return nil, fmt.Errorf("clip: migrate: %w", err)
 	}
-	return &Service{d: d, now: time.Now}, nil
+	s := &Service{d: d, now: time.Now}
+	if d.Bus != nil {
+		s.sub = d.Bus.Subscribe(64, func(ev api.Event) bool { return ev.Type == core.BusClipCapture })
+	}
+	return s, nil
 }
 
-// Start stores clipboard text captured by other features until ctx is done.
+// Close releases the capture subscription, including when wiring fails before
+// Start. It is safe to call repeatedly or alongside Start.
+func (s *Service) Close() error {
+	if s.sub != nil {
+		s.sub.Close()
+	}
+	return nil
+}
+
+// Start consumes the subscription installed by New, so events can queue during
+// startup before this loop is scheduled. Start is called once per service. A nil
+// bus disables capture; HTTP Add still works. Cancellation releases the subscription.
 func (s *Service) Start(ctx context.Context) error {
-	if s.d.Bus == nil {
+	defer s.Close()
+	if s.sub == nil {
 		<-ctx.Done()
 		return nil
 	}
-	sub := s.d.Bus.Subscribe(64, func(ev api.Event) bool { return ev.Type == BusCapture })
-	defer sub.Close()
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
-		case ev, ok := <-sub.C:
+		case ev, ok := <-s.sub.C:
 			if !ok {
 				return nil
 			}
@@ -99,25 +111,37 @@ func (s *Service) warn(msg string, err error) {
 	}
 }
 
-// decodeCapture accepts the core.ClipCapture payload without importing a
-// concrete type: a string, or any struct/map with Text and Source fields.
+// decodeCapture uses the canonical payload and keeps the generic string,
+// byte slice and JSON-compatible struct/map forms used by older producers.
 func decodeCapture(data any) (text, source string, err error) {
+	var c core.ClipCapture
 	switch v := data.(type) {
+	case core.ClipCapture:
+		c = v
+	case *core.ClipCapture:
+		if v == nil {
+			return "", "", errors.New("nil clipboard capture")
+		}
+		c = *v
 	case string:
 		return v, "terminal", nil
 	case []byte:
 		return string(v), "terminal", nil
-	}
-	b, err := json.Marshal(data)
-	if err != nil {
-		return "", "", err
-	}
-	var c struct {
-		Text   string `json:"text"`
-		Source string `json:"source"`
-	}
-	if err := json.Unmarshal(b, &c); err != nil {
-		return "", "", err
+	default:
+		b, err := json.Marshal(data)
+		if err != nil {
+			return "", "", err
+		}
+		// The generic decoder historically consumed only Text and Source.
+		// Ignore SessionID even if an older generic producer uses another type.
+		var payload struct {
+			*core.ClipCapture
+			SessionID json.RawMessage
+		}
+		payload.ClipCapture = &c
+		if err := json.Unmarshal(b, &payload); err != nil {
+			return "", "", err
+		}
 	}
 	if c.Source == "" {
 		c.Source = "terminal"
@@ -136,6 +160,9 @@ func (s *Service) Add(ctx context.Context, text, source string) (*api.Clip, erro
 	}
 	if !utf8.ValidString(text) {
 		text = strings.ToValidUTF8(text, "\uFFFD")
+		if len(text) > MaxBytes {
+			return nil, &httpx.Err{Status: 413, Code: "too_large", Message: "clipboard entries are limited to 256 KiB", Field: "text"}
+		}
 	}
 	source = strings.ToLower(strings.TrimSpace(source))
 	if !sources[source] {

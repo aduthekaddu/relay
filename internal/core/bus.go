@@ -24,7 +24,10 @@ type AuditEvent struct {
 	Detail string // short human-readable detail; never secrets or file contents
 }
 
-// ClipCapture is the payload of BusClipCapture.
+// ClipCapture is the canonical payload of BusClipCapture (value or pointer).
+// Terminal OSC 52 and successful desktop clipboard reads/writes publish it;
+// internal/clip validates and stores it, then publishes api.EvClip. The raw
+// capture stays backend-only, including when invalid or too large for history.
 type ClipCapture struct {
 	Text   string
 	Source string // "terminal" | "desktop" | ...
@@ -52,6 +55,8 @@ func IsBackendTopic(t string) bool {
 
 // Presence tells features what connected browsers are looking at, so they
 // can avoid redundant work or notifications. Implemented by internal/live.
+// App wiring installs it before notify and finalizes Deps before background
+// loops start. Nil means no visible watcher and must not suppress notifications.
 type Presence interface {
 	// Watching reports whether a visible browser is showing the terminal
 	// with this id (route /terminal/<id>).

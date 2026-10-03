@@ -28,6 +28,7 @@ func newTestService(t *testing.T) (*Service, *core.Deps) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { _ = s.Close() })
 	base := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	n := 0
 	s.now = func() time.Time { n++; return base.Add(time.Duration(n) * time.Second) }
@@ -110,9 +111,9 @@ func TestBusCapture(t *testing.T) {
 		Source    string
 		SessionID string
 	}
-	d.Bus.Publish(BusCapture, capture{Text: "copied in vim", Source: "osc52", SessionID: "t_1"})
-	d.Bus.Publish(BusCapture, map[string]string{"text": "from desktop", "source": "desktop"})
-	d.Bus.Publish(BusCapture, "plain string")
+	d.Bus.Publish(core.BusClipCapture, capture{Text: "copied in vim", Source: "osc52", SessionID: "t_1"})
+	d.Bus.Publish(core.BusClipCapture, map[string]string{"text": "from desktop", "source": "desktop"})
+	d.Bus.Publish(core.BusClipCapture, "plain string")
 
 	want := []struct{ text, source string }{{"copied in vim", "osc52"}, {"from desktop", "desktop"}, {"plain string", "terminal"}}
 	for _, w := range want {

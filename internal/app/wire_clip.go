@@ -6,7 +6,8 @@ import (
 	"github.com/aduthekaddu/relay/internal/clip"
 )
 
-// wireClip is owned by the clip feature.
+// wireClip constructs the capture subscriber before App.Run starts terminal
+// and desktop producers concurrently. Close also handles a later wiring failure.
 func wireClip(ctx context.Context, a *App) error {
 	svc, err := clip.New(a.D)
 	if err != nil {
@@ -14,5 +15,6 @@ func wireClip(ctx context.Context, a *App) error {
 	}
 	svc.Routes(a.Router)
 	a.OnStart("clip", svc.Start)
+	a.OnClose(svc.Close)
 	return nil
 }

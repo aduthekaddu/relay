@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/aduthekaddu/relay/internal/core"
 	"github.com/aduthekaddu/relay/internal/httpx"
 )
 
@@ -109,6 +110,12 @@ type limitedBuffer struct {
 	over  bool
 }
 
+// ReadFrom keeps io.Copy's fast path from using the embedded Buffer.ReadFrom,
+// which would bypass Write and its size limit when draining a subprocess pipe.
+func (b *limitedBuffer) ReadFrom(r io.Reader) (int64, error) {
+	return io.Copy(struct{ io.Writer }{b}, r)
+}
+
 func (b *limitedBuffer) Write(p []byte) (int, error) {
 	room := b.limit - int64(b.Len())
 	if int64(len(p)) > room {
@@ -137,7 +144,9 @@ func (k *desktop) Clipboard(ctx context.Context) (string, error) {
 		}
 		return "", nil // empty selection or a non-text target
 	}
-	return strings.ToValidUTF8(string(out), ""), nil
+	text := strings.ToValidUTF8(string(out), "")
+	k.captureClipboard(text)
+	return text, nil
 }
 
 // SetClipboard puts text into the desktop's CLIPBOARD and PRIMARY
@@ -160,7 +169,18 @@ func (k *desktop) SetClipboard(ctx context.Context, text string) error {
 		}
 	}
 	k.touch()
+	k.captureClipboard(text)
 	return nil
+}
+
+// captureClipboard sends successful desktop reads/writes through the same
+// backend handler as OSC 52. History applies its own 256 KiB limit and consecutive
+// deduplication; the desktop API keeps its existing 1 MiB limit. A nil bus disables
+// history capture without changing the desktop operation.
+func (k *desktop) captureClipboard(text string) {
+	if strings.TrimSpace(text) != "" && k.d.Bus != nil {
+		k.d.Bus.Publish(core.BusClipCapture, core.ClipCapture{Text: text, Source: "desktop"})
+	}
 }
 
 // Resize changes the desktop resolution with RandR, creating the mode on

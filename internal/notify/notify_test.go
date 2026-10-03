@@ -25,6 +25,9 @@ func (f *fakePresence) Watching(id string) bool {
 	return f.watching[id]
 }
 
+func (f *fakePresence) Online() bool           { return false }
+func (f *fakePresence) Subscribed(string) bool { return false }
+
 type clock struct {
 	mu sync.Mutex
 	t  time.Time
@@ -142,7 +145,7 @@ func TestParseClock(t *testing.T) {
 
 func TestShouldDeliver(t *testing.T) {
 	pres := &fakePresence{watching: map[string]bool{"t_seen": true}}
-	s, _ := newTestService(t, WithPresence(func() Presence { return pres }))
+	s, _ := newTestService(t, WithPresence(func() core.Presence { return pres }))
 	s.subs.Store(1) // pretend a device is subscribed
 	quiet := func(h int) time.Time { return time.Date(2026, 1, 1, h, 0, 0, 0, time.Local) }
 	base := settings{Rules: defaultRules(), QuietStart: "22:00", QuietEnd: "07:00"}
@@ -187,7 +190,7 @@ func TestShouldDeliver(t *testing.T) {
 func TestNotifyInboxDedupeAndEvents(t *testing.T) {
 	c := &clock{t: time.Date(2026, 5, 1, 12, 0, 0, 0, time.UTC)}
 	pres := &fakePresence{watching: map[string]bool{"t_seen": true}}
-	s, d := newTestService(t, WithClock(c.now), WithPresence(func() Presence { return pres }))
+	s, d := newTestService(t, WithClock(c.now), WithPresence(func() core.Presence { return pres }))
 	s.subs.Store(1)
 	sub := d.Bus.Subscribe(16, nil)
 	defer sub.Close()

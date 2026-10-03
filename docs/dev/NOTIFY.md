@@ -30,12 +30,12 @@ network. Marking read publishes `EvNotificationRead` with
 
 ### Rules
 
-| Kind | Default | Bypasses quiet hours |
-| --- | --- | --- |
-| attention | on | yes |
-| security | on | yes |
-| done, system, schedule, custom | on | no |
-| exited, preview | off | no |
+| Kind                           | Default | Bypasses quiet hours |
+| --------------------------------| ---------| ----------------------|
+| attention                      | on      | yes                  |
+| security                       | on      | yes                  |
+| done, system, schedule, custom | on      | no                   |
+| exited, preview                | off     | no                   |
 
 A rule that is off only stops external delivery; the inbox always stores
 the notification. Quiet hours are `HH:MM` local times and may wrap midnight
@@ -43,8 +43,11 @@ the notification. Quiet hours are `HH:MM` local times and may wrap midnight
 
 Presence suppression: when the notification carries a `sessionId` and
 `Deps.Presence.Watching(sessionId)` is true (someone has that terminal open
-and visible), push, ntfy and webhook are skipped. `wire_notify.go` looks the
-field up lazily so it works whether or not the live feature is merged.
+and visible), push, ntfy and webhook are skipped. `wireLive` installs the
+canonical `core.Presence` before `wireNotify`; notify reads `Deps.Presence`
+when deciding whether to enqueue delivery. A nil presence means no watcher.
+Finalize service fields during wiring before concurrent work starts. The inbox
+and its public event are retained even when external delivery is suppressed.
 
 ### Settings
 
@@ -102,6 +105,23 @@ which enables dedupe and presence suppression.
 - Sources: `POST /api/v1/clip` (browser copy, `relay clip`), and
   `core.BusClipCapture` events (OSC 52 from terminals, desktop clipboard).
   Every stored clip publishes `EvClip`.
+- Terminal wiring publishes `core.ClipCapture`; successful desktop clipboard
+  reads and writes publish the same payload with source `desktop`. Empty or
+  failed desktop operations do not publish captures. Reading through the existing
+  desktop API captures external X clipboard text; automatic viewer synchronization
+  and real device verification remain separate work.
+- `clip.New` subscribes synchronously during wiring, before `App.Run` starts
+  producers. `Start` consumes that bounded subscription and releases it on exit;
+  app cleanup also closes it if wiring fails before startup. The bus is best
+  effort: its 64-event capture queue can drop events when full. Nil bus disables
+  capture while HTTP clipboard operations still work.
+- The handler accepts canonical values/pointers and retains legacy strings,
+  byte slices and JSON-compatible Text/Source structs/maps. Invalid and oversized
+  captures are rejected without stopping the loop. UTF-8 repair must also fit
+  within 256 KiB. The desktop API keeps its separate existing 1 MiB limit, so
+  desktop success does not guarantee history acceptance.
+- `core.BusClipCapture` is backend-only. Browser subscriptions cannot receive
+  raw captures; live emits only the validated public `EvClip` history event.
 
 ```sh
 git rev-parse HEAD | relay clip   # copy
