@@ -34,10 +34,11 @@ can install missing agents from the [Toolbox](toolbox.md).
 | Qwen Code | `qwen` | `qwen -p` | Terminal watch |
 | Crush | `crush` | `crush run` | Terminal watch |
 
-Resume and fork are offered for each agent whose CLI supports them. The
-**Agents → Installed** list shows exactly what each installed agent can do
-on your machine. Adapter details for developers are in
-[docs/dev/AGENT_ADAPTERS.md](https://github.com/aduthekaddu/relay/blob/main/docs/dev/AGENT_ADAPTERS.md).
+Resume and fork depend on Relay's adapter as well as the CLI. Capability
+flags describe Relay's implementation; they do not verify compatibility
+with the installed version or a signed-in account. Developer details,
+unsupported features and source evidence are in
+[docs/dev/AGENT_ADAPTERS.md](../dev/AGENT_ADAPTERS.md).
 
 To hide an agent you never use, add its id to
 [`agents.disabled`](../reference/configuration.md#agents).
