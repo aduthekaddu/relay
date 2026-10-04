@@ -6,7 +6,7 @@ package api
 type PreviewLink struct {
 	Port      int      `json:"port"`
 	URL       string   `json:"url"`
-	Mode      string   `json:"mode"` // "subdomain" | "path"
+	Mode      string   `json:"mode"` // subdomain | path; off if the owner changes mode after admission
 	Listening bool     `json:"listening"`
 	Preview   *Preview `json:"preview,omitempty"`
 }

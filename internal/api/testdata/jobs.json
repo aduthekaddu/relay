@@ -1,0 +1,154 @@
+[
+  {
+    "name": "toolbox-running",
+    "event": {
+      "type": "toolbox.job",
+      "at": "2026-01-02T03:04:05Z",
+      "data": {
+        "tool": "fixture-tool",
+        "terminalId": "fixture-terminal",
+        "state": "running"
+      }
+    }
+  },
+  {
+    "name": "toolbox-done",
+    "event": {
+      "type": "toolbox.job",
+      "at": "2026-01-02T03:04:05Z",
+      "data": {
+        "tool": "fixture-tool",
+        "terminalId": "fixture-terminal",
+        "state": "done",
+        "exitCode": 0
+      }
+    }
+  },
+  {
+    "name": "toolbox-failed",
+    "event": {
+      "type": "toolbox.job",
+      "at": "2026-01-02T03:04:05Z",
+      "data": {
+        "tool": "fixture-tool",
+        "terminalId": "fixture-terminal",
+        "state": "failed",
+        "exitCode": 2
+      }
+    }
+  },
+  {
+    "name": "toolbox-missing-terminal",
+    "event": {
+      "type": "toolbox.job",
+      "at": "2026-01-02T03:04:05Z",
+      "data": {
+        "tool": "fixture-tool",
+        "terminalId": "fixture-terminal",
+        "state": "failed"
+      }
+    }
+  },
+  {
+    "name": "files-running",
+    "event": {
+      "type": "files.job",
+      "at": "2026-01-02T03:04:05Z",
+      "data": {
+        "id": "fixture-copy",
+        "op": "copy",
+        "state": "running",
+        "from": [
+          "/fixture/source"
+        ],
+        "to": "/fixture/destination",
+        "files": 0,
+        "totalFiles": 0,
+        "bytes": 0,
+        "totalBytes": 0,
+        "skipped": 0,
+        "startedAt": "2026-01-02T03:04:05Z",
+        "endedAt": "0001-01-01T00:00:00Z"
+      }
+    }
+  },
+  {
+    "name": "files-done",
+    "event": {
+      "type": "files.job",
+      "at": "2026-01-02T03:04:05Z",
+      "data": {
+        "id": "fixture-copy",
+        "op": "copy",
+        "state": "done",
+        "from": [
+          "/fixture/source"
+        ],
+        "to": "/fixture/destination",
+        "files": 1,
+        "totalFiles": 2,
+        "bytes": 3,
+        "totalBytes": 6,
+        "skipped": 1,
+        "startedAt": "2026-01-02T03:04:05Z",
+        "endedAt": "2026-01-02T03:04:06Z",
+        "result": [
+          "/fixture/destination/source"
+        ]
+      }
+    }
+  },
+  {
+    "name": "files-failed",
+    "event": {
+      "type": "files.job",
+      "at": "2026-01-02T03:04:05Z",
+      "data": {
+        "id": "fixture-copy",
+        "op": "copy",
+        "state": "failed",
+        "from": [
+          "/fixture/source"
+        ],
+        "to": "/fixture/destination",
+        "files": 1,
+        "totalFiles": 2,
+        "bytes": 3,
+        "totalBytes": 6,
+        "skipped": 1,
+        "startedAt": "2026-01-02T03:04:05Z",
+        "endedAt": "2026-01-02T03:04:06Z",
+        "result": [
+          "/fixture/destination/source"
+        ],
+        "error": "synthetic copy failure"
+      }
+    }
+  },
+  {
+    "name": "files-canceled",
+    "event": {
+      "type": "files.job",
+      "at": "2026-01-02T03:04:05Z",
+      "data": {
+        "id": "fixture-copy",
+        "op": "copy",
+        "state": "canceled",
+        "from": [
+          "/fixture/source"
+        ],
+        "to": "/fixture/destination",
+        "files": 1,
+        "totalFiles": 2,
+        "bytes": 3,
+        "totalBytes": 6,
+        "skipped": 1,
+        "startedAt": "2026-01-02T03:04:05Z",
+        "endedAt": "2026-01-02T03:04:06Z",
+        "result": [
+          "/fixture/destination/source"
+        ]
+      }
+    }
+  }
+]

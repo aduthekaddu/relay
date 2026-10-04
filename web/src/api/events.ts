@@ -11,9 +11,26 @@
 // 65 s of silence as a dead connection.
 import type { CapabilityChange } from './capabilities'
 import { wsUrl } from './client'
-import type { ClientEvent, EventType, Info, Notification, RelayEvent, TerminalSession } from './types'
+import type { FileJob, OpenRequest } from './files'
+import type { NotificationsRead } from './notify'
+import type { ToolboxJob } from './toolbox'
+import type {
+  AgentSession,
+  App,
+  ClientEvent,
+  Clip,
+  DesktopState,
+  EventType,
+  Info,
+  Metrics,
+  Notification,
+  Preview,
+  RelayEvent,
+  ScheduleRun,
+  TerminalSession,
+} from './types'
 
-/** Payload type per event (unknown for events owned by later features). */
+/** Canonical public payloads. Unknown topics remain available to wildcard handlers. */
 export interface EventMap {
   hello: Info
   'capabilities.changed': CapabilityChange
@@ -22,7 +39,20 @@ export interface EventMap {
   'terminal.exited': TerminalSession
   'terminal.removed': { id: string }
   notification: Notification
-  'notification.read': { ids?: string[]; all?: boolean }
+  'notification.read': NotificationsRead
+  'agents.indexed': { agent: string; sessions: number }
+  'agents.session': AgentSession
+  metrics: Metrics
+  'previews.changed': Preview[] | null
+  clip: Clip
+  open: OpenRequest
+  'schedule.run': ScheduleRun
+  'app.state': App
+  'desktop.state': DesktopState
+  'toolbox.job': ToolboxJob
+  'files.job': FileJob
+  'workspace.changed': { path: string }
+  pong: undefined
   [k: string]: unknown
 }
 

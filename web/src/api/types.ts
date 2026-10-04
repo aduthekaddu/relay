@@ -146,7 +146,9 @@ export interface Process {
   pid: number; ppid: number; name: string; cmd: string; user: string; cpu: number; rss: number
   memPct: number; state: string; threads: number; startedAt: string; terminal?: string; protected: boolean
 }
-export interface SignalRequest { signal: 'TERM' | 'KILL' | 'INT' | 'HUP' | 'STOP' | 'CONT' }
+// The backend also accepts SIG-prefixed, case-insensitive and numeric spellings
+// of its whitelist (TERM, KILL, INT, HUP, STOP, CONT, QUIT, USR1, USR2).
+export interface SignalRequest { signal: string }
 export interface Service { name: string; description: string; active: string; sub: string; since?: string; restarts: number; user: boolean; managed: boolean }
 export interface LogLine { at: string; unit?: string; prio: number; text: string }
 
@@ -176,7 +178,9 @@ export interface Notification {
   link?: string; sessionId?: string; agent?: string; severity?: 'info' | 'success' | 'warning' | 'danger'
 }
 export interface NotifyRequest { kind?: string; title: string; body?: string; link?: string; sessionId?: string; agent?: string; severity?: string }
-export interface PushSubscriptionJSON { endpoint: string; keys: { p256dh: string; auth: string }; device?: string }
+export interface PushSubscription { endpoint: string; keys: { p256dh: string; auth: string }; device?: string }
+/** Compatibility name used by existing browser push code. */
+export type PushSubscriptionJSON = PushSubscription
 export interface NotifySettings {
   rules: Record<string, boolean>; quietStart?: string; quietEnd?: string; ntfyUrl?: string; webhookUrl?: string
   devices: number; vapidKey?: string
@@ -220,8 +224,10 @@ export type EventType =
   | 'hello' | 'terminal.created' | 'terminal.updated' | 'terminal.exited' | 'terminal.removed'
   | 'agents.indexed' | 'agents.session' | 'notification' | 'notification.read' | 'metrics'
   | 'previews.changed' | 'clip' | 'open' | 'schedule.run' | 'app.state' | 'desktop.state'
-  | 'toolbox.job' | 'workspace.changed' | 'capabilities.changed'
-export interface RelayEvent<T = unknown> { type: EventType; at: string; data?: T }
+  | 'toolbox.job' | 'files.job' | 'workspace.changed' | 'capabilities.changed' | 'pong'
+// The generic decoder accepts future string topics and optional data unchanged.
+// EventType enumerates known topics; EventMap supplies their typed handlers.
+export interface RelayEvent<T = unknown> { type: string; at: string; data?: T }
 export interface ClientEvent { type: 'subscribe' | 'unsubscribe' | 'visibility' | 'ping'; topics?: string[]; visible?: boolean; path?: string }
 
 // ---------------------------------------------------------------- settings

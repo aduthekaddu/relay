@@ -3,11 +3,13 @@
 //
 // Every type here is serialised with encoding/json and mirrored by hand in
 // web/src/api/types.ts. When you change a struct, change the TypeScript
-// twin in the same commit; `make check-types` diffs the field names.
+// twin in the same change. Feature supplements have their own Go/TS files;
+// contract inventory tests check their field names and JSON optionality.
 //
 // Conventions:
 //   - JSON field names are camelCase.
-//   - Timestamps are time.Time (RFC 3339 in JSON). Zero values are omitted.
+//   - Timestamps are time.Time (RFC 3339 in JSON). A value time.Time with
+//     omitempty still serialises its zero value; pointer timestamps may omit.
 //   - Optional fields use pointers or `omitempty`.
 //   - IDs are opaque strings. Never parse them on the client.
 package api

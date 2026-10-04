@@ -1,4 +1,10 @@
 // Route table for the mock backend: every endpoint in docs/dev/API.md.
+
+import type { AgentHookResult } from '../api/agents'
+import type { FileJob, OpenRequest } from '../api/files'
+import type { CronPreview } from '../api/notify'
+import type { PreviewLink } from '../api/previews'
+import type { ToolboxJob } from '../api/toolbox'
 import type {
   AgentSession,
   CreateTerminalRequest,
@@ -307,6 +313,23 @@ route('POST', '/terminals/{id}/attention/ack', (r) => {
   emit('terminal.updated', t)
   return noContent()
 })
+route('POST', '/terminals/{id}/restore', (r) => {
+  const old = termById(r.params.id)
+  if (!old) return notFound()
+  if (old.activity !== 'exited') return fail(409, 'conflict', 'Session is still running')
+  const t: TerminalSession = {
+    ...old,
+    id: newId('t'),
+    activity: 'idle',
+    exitCode: undefined,
+    exitedAt: undefined,
+    createdAt: now(),
+    meta: { ...old.meta, restoredFrom: old.id },
+  }
+  db.terminals.unshift(t)
+  emit('terminal.created', t)
+  return { status: 201, json: t }
+})
 route('GET', '/terminals/{id}/recording', (r) => {
   const t = termById(r.params.id)
   if (!t) return notFound()
@@ -323,6 +346,12 @@ route('GET', '/terminals/{id}/recording', (r) => {
 })
 
 const uploads = new Map<string, { size: number; received: number; name: string; dir?: string }>()
+route('GET', '/uploads/{id}', (r) => {
+  const u = uploads.get(r.params.id)
+  return u
+    ? ok({ id: r.params.id, chunkSize: 4 * 1024 * 1024, received: u.received, size: u.size })
+    : notFound('Upload not found')
+})
 route('POST', '/uploads', (r) => {
   const b = body<{ name: string; size: number; dir?: string }>(r)
   const id = newId('up')
@@ -350,6 +379,8 @@ route('DELETE', '/uploads/{id}', (r) => {
 })
 
 // ---------------------------------------------------------------- agents
+
+route('POST', '/agents/hook', () => ok({ action: 'ignored' } satisfies AgentHookResult))
 
 const sessionById = (id: string) => db.agentSessions.find((s) => s.id === id)
 
@@ -660,7 +691,54 @@ route('POST', '/files/move', (r) => {
   const b = body<{ from: string[]; to: string }>(r)
   return ok(fs.move(b.from ?? [], b.to))
 })
-route('POST', '/files/copy', () => accepted())
+// Synthetic admission/cancellation fixtures; no host filesystem copy occurs.
+const fileJobs = new Map<string, FileJob>()
+route('POST', '/files/copy', (r) => {
+  const b = body<{ from?: string[]; to?: string }>(r)
+  if (!b.from?.length || !b.to) return fail(400, 'bad_request', 'Source and destination required')
+  const job: FileJob = {
+    id: newId('copy'),
+    op: 'copy',
+    state: 'running',
+    from: b.from,
+    to: b.to,
+    files: 0,
+    totalFiles: 0,
+    bytes: 0,
+    totalBytes: 0,
+    skipped: 0,
+    startedAt: now(),
+    endedAt: '0001-01-01T00:00:00Z',
+  }
+  fileJobs.set(job.id, job)
+  emit('files.job', job)
+  return accepted({ ...job })
+})
+route('GET', '/files/jobs', () =>
+  ok([...fileJobs.values()].sort((a, b) => b.startedAt.localeCompare(a.startedAt))),
+)
+route('DELETE', '/files/jobs/{id}', (r) => {
+  const job = fileJobs.get(r.params.id)
+  if (!job) return notFound('Job not found')
+  if (job.state === 'running') {
+    job.state = 'canceled'
+    job.endedAt = now()
+    emit('files.job', { ...job })
+  }
+  return noContent()
+})
+route('POST', '/open', (r) => {
+  const b = body<OpenRequest>(r)
+  if (!b.path) return fail(400, 'bad_request', 'Path required')
+  const entry = fs.stat(b.path)
+  if (!entry) return notFound()
+  const data: OpenRequest = {
+    path: entry.path,
+    ...(entry.type !== 'dir' && (b.line ?? 0) > 0 ? { line: b.line } : {}),
+  }
+  emit('open', data)
+  return ok(data)
+})
 route('POST', '/files/delete', (r) => {
   const b = body<{ paths: string[]; trash?: boolean }>(r)
   fs.remove(b.paths ?? [], b.trash !== false)
@@ -723,6 +801,25 @@ route('POST', '/system/services/{name}/{action}', (r) => {
 // ---------------------------------------------------------------- previews / apps / desktop
 
 route('GET', '/previews', () => ok(db.previews))
+route('GET', '/previews/{port}/link', (r) => {
+  const port = Number(r.params.port)
+  if (!Number.isInteger(port) || port < 1 || port > 65535) return fail(400, 'bad_request', 'Invalid port')
+  const capability = db.info.capabilities.previews
+  if (capability.effectiveMode === 'off') return fail(503, 'unavailable', 'Previews are off')
+  const preview = db.previews.find((x) => x.port === port)
+  const link: PreviewLink = {
+    port,
+    mode: capability.effectiveMode,
+    listening: !!preview,
+    preview,
+    url:
+      preview?.url ??
+      (capability.effectiveMode === 'path'
+        ? `${location.origin}/p/${port}/`
+        : `https://${port}.${capability.host}/`),
+  }
+  return ok(link)
+})
 route('PATCH', '/previews/{port}', (r) => {
   const p = db.previews.find((x) => x.port === Number(r.params.port))
   if (!p) return notFound('No such preview')
@@ -899,6 +996,10 @@ route('DELETE', '/clip', () => {
   return noContent()
 })
 route('GET', '/snippets', () => ok(db.snippets))
+route('GET', '/snippets/{id}', (r) => {
+  const snippet = db.snippets.find((x) => x.id === r.params.id)
+  return snippet ? ok(snippet) : notFound()
+})
 route('POST', '/snippets', (r) => {
   const s = {
     id: newId('sn'),
@@ -950,6 +1051,42 @@ route('DELETE', '/notes/{id}', (r) => {
 // ---------------------------------------------------------------- schedules
 
 route('GET', '/schedules', () => ok(db.schedules))
+// Preview fixtures follow internal/schedule/describe.go and schedule_test.go.
+// Unlisted expressions/timezones and next-run calculation remain unavailable.
+const cronDescriptions = new Map([
+  ['0 2 * * 1-5', 'Every weekday at 02:00'],
+  ['30 23 * * *', 'Every day at 23:30'],
+  ['0 8 * * 1', 'Every Monday at 08:00'],
+  ['0 2 * * *', 'Every day at 02:00'],
+])
+const cronErrors = new Map([
+  ['* * *', 'invalid cron expression: expected exactly 5 fields, found 3: [* * *]'],
+  ['61 * * * *', 'invalid cron expression: end of range (61) above maximum (59): 61'],
+  ['@every 10s', '@every intervals must be at least a minute'],
+  ['@sometimes', 'invalid cron expression: unrecognized descriptor: @sometimes'],
+])
+route('GET', '/schedules/describe', (r) => {
+  const cron = (q(r, 'cron') ?? '').trim().replace(/\s+/g, ' ')
+  if (!cron) return ok({ valid: false, error: 'cron expression is required' } satisfies CronPreview)
+  if (cron.startsWith('TZ=') || cron.startsWith('CRON_TZ='))
+    return ok({ valid: false, error: 'set the timezone field instead of a TZ= prefix' } satisfies CronPreview)
+  const timezone = q(r, 'timezone') ?? ''
+  // Mars/Olympus is the backend's invalid-zone fixture; these path shapes are
+  // rejected by Go's time.LoadLocation before consulting any timezone data.
+  if (timezone === 'Mars/Olympus' || timezone.includes('..') || /^[/\\]/.test(timezone))
+    return ok({ valid: false, error: `unknown timezone ${JSON.stringify(timezone)}` } satisfies CronPreview)
+  if (!['', 'UTC', 'Europe/Berlin'].includes(timezone))
+    return fail(503, 'unavailable', 'Cron evaluation is unavailable for this mock fixture')
+  const error = cronErrors.get(cron)
+  if (error) return ok({ valid: false, error } satisfies CronPreview)
+  const description = cronDescriptions.get(cron)
+  if (!description) return fail(503, 'unavailable', 'Cron evaluation is unavailable for this mock fixture')
+  return ok({ valid: true, description } satisfies CronPreview)
+})
+route('GET', '/schedules/{id}', (r) => {
+  const schedule = db.schedules.find((x) => x.id === r.params.id)
+  return schedule ? ok(schedule) : notFound()
+})
 route('POST', '/schedules', (r) => {
   const s = {
     id: newId('sc'),
@@ -1169,13 +1306,14 @@ route('POST', '/toolbox/{id}/install', (r) => {
   }
   db.terminals.unshift(t)
   emit('terminal.created', t)
+  emit('toolbox.job', { tool: tool.id, terminalId: t.id, state: 'running' } satisfies ToolboxJob)
   setTimeout(() => {
     tool.installed = true
     Object.assign(t, { activity: 'exited', exitCode: 0, exitedAt: now() })
     emit('terminal.exited', t)
-    emit('toolbox.job', { tool: tool.id, status: 'done' })
+    emit('toolbox.job', { tool: tool.id, terminalId: t.id, state: 'done', exitCode: 0 } satisfies ToolboxJob)
   }, 4000)
-  return ok(t)
+  return accepted(t)
 })
 route('GET', '/toolbox/mcp', () => ok(db.mcpServers))
 route('POST', '/toolbox/mcp/apply', (r) => {

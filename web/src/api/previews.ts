@@ -5,7 +5,8 @@ import type { Preview } from './types'
 export interface PreviewLink {
   port: number
   url: string
-  mode: 'subdomain' | 'path'
+  // A concurrent owner mode change after admission can return off with url="".
+  mode: 'subdomain' | 'path' | 'off'
   listening: boolean
   preview?: Preview
 }

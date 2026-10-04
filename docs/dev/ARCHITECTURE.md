@@ -94,7 +94,12 @@ Rules:
   `d.Store.Migrate(ctx, "<feature>", []string{...})` (append-only).
 - Handlers use `httpx.OK / httpx.Fail / httpx.Decode`. Service errors are
   `*httpx.Err` values (`httpx.NotFound("…")`) so status codes stay correct.
-- Long work never blocks a request: return 202 + publish progress events.
+- Background copies, git push/pull, reindex and toolbox installs return 202.
+  Toolbox returns the visible TerminalSession and publishes ToolboxJob;
+  file copies return FileJob. App starts return 200 with lifecycle state;
+  schedule run-now returns 200 with a running or skipped ScheduleRun.
+  Search/ask and recording downloads stream after their initial status.
+  See [the registered route contracts](API.md) for each response and failure.
 - All filesystem paths from clients are cleaned and validated; see
   `docs/dev/SECURITY.md`.
 
@@ -115,6 +120,24 @@ events connect features without imports:
   for the universal clipboard from a non-HTTP source (OSC 52 in a
   terminal, the desktop clipboard). `internal/clip` stores it and emits
   `api.EvClip`.
+
+The topic strings are `audit`, `auth.session.revoked` and `clip.capture`.
+`core.IsBackendTopic` excludes all three from live browser forwarding,
+including the revocation hint; they do not belong in the browser event union.
+Auth publishes revocation only after persistence succeeds. A hint is not a
+durable delivery acknowledgement: SocketGuard also checks uncached state at
+most every 3 seconds, rejects input after invalidation, and closes with 1008
+and the fixed reason `authentication ended` (or abruptly for an unresponsive
+peer). Local principals are exempt. Do not put credentials or hashes in hints.
+
+`internal/api/types.go` and feature supplements define public JSON fields;
+their counterparts live in `web/src/api`. `events.ts` maps known public topics
+to those types, including FileJob and ToolboxJob. The generic Event/RelayEvent
+envelope keeps string topics and optional data: unknown future events still
+reach wildcard subscribers unchanged. Typed handlers describe canonical
+producers; the decoder does not validate arbitrary payloads. Nil Go slices
+may encode as null, and value time.Time fields with omitempty still encode a
+zero timestamp. Contract reconciliation preserves that current encoding.
 
 Services set on `core.Deps` during wiring (nil-check before use):
 `Notifier` (notify), `Workspaces` (workspaces), `Agents` (agents),
