@@ -67,8 +67,7 @@
         "bytes": 0,
         "totalBytes": 0,
         "skipped": 0,
-        "startedAt": "2026-01-02T03:04:05Z",
-        "endedAt": "0001-01-01T00:00:00Z"
+        "startedAt": "2026-01-02T03:04:05Z"
       }
     }
   },

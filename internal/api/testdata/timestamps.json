@@ -1,0 +1,330 @@
+[
+  {
+    "name": "Passkey.lastUsedAt",
+    "type": "Passkey",
+    "field": "lastUsedAt",
+    "absent": {
+      "id": "fixture-key",
+      "name": "never used",
+      "createdAt": "2026-03-12T17:25:00.123456789+05:30"
+    },
+    "defined": {
+      "id": "fixture-key",
+      "name": "never used",
+      "createdAt": "2026-03-12T17:25:00.123456789+05:30",
+      "lastUsedAt": "2026-03-12T17:25:00.123456789+05:30"
+    }
+  },
+  {
+    "name": "APIToken.lastUsedAt",
+    "type": "APIToken",
+    "field": "lastUsedAt",
+    "absent": {
+      "id": "fixture-token",
+      "name": "never used",
+      "prefix": "fixture",
+      "createdAt": "2026-03-12T17:25:00.123456789+05:30"
+    },
+    "defined": {
+      "id": "fixture-token",
+      "name": "never used",
+      "prefix": "fixture",
+      "createdAt": "2026-03-12T17:25:00.123456789+05:30",
+      "lastUsedAt": "2026-03-12T17:25:00.123456789+05:30"
+    }
+  },
+  {
+    "name": "TerminalSession.lastOutputAt",
+    "type": "TerminalSession",
+    "field": "lastOutputAt",
+    "absent": {
+      "id": "fixture-terminal",
+      "name": "partial",
+      "kind": "shell",
+      "command": null,
+      "cwd": "",
+      "cols": 0,
+      "rows": 0,
+      "clients": 0,
+      "activity": "idle",
+      "recording": false,
+      "pinned": false,
+      "createdAt": "0001-01-01T00:00:00Z"
+    },
+    "defined": {
+      "id": "fixture-terminal",
+      "name": "partial",
+      "kind": "shell",
+      "command": null,
+      "cwd": "",
+      "cols": 0,
+      "rows": 0,
+      "clients": 0,
+      "activity": "idle",
+      "recording": false,
+      "pinned": false,
+      "createdAt": "0001-01-01T00:00:00Z",
+      "lastOutputAt": "2026-03-12T17:25:00.123456789+05:30"
+    }
+  },
+  {
+    "name": "TerminalSession.lastInputAt",
+    "type": "TerminalSession",
+    "field": "lastInputAt",
+    "absent": {
+      "id": "fixture-terminal",
+      "name": "partial",
+      "kind": "shell",
+      "command": null,
+      "cwd": "",
+      "cols": 0,
+      "rows": 0,
+      "clients": 0,
+      "activity": "idle",
+      "recording": false,
+      "pinned": false,
+      "createdAt": "0001-01-01T00:00:00Z"
+    },
+    "defined": {
+      "id": "fixture-terminal",
+      "name": "partial",
+      "kind": "shell",
+      "command": null,
+      "cwd": "",
+      "cols": 0,
+      "rows": 0,
+      "clients": 0,
+      "activity": "idle",
+      "recording": false,
+      "pinned": false,
+      "createdAt": "0001-01-01T00:00:00Z",
+      "lastInputAt": "2026-03-12T17:25:00.123456789+05:30"
+    }
+  },
+  {
+    "name": "TerminalSession.exitedAt",
+    "type": "TerminalSession",
+    "field": "exitedAt",
+    "absent": {
+      "id": "fixture-terminal",
+      "name": "partial",
+      "kind": "shell",
+      "command": null,
+      "cwd": "",
+      "cols": 0,
+      "rows": 0,
+      "clients": 0,
+      "activity": "idle",
+      "recording": false,
+      "pinned": false,
+      "createdAt": "0001-01-01T00:00:00Z"
+    },
+    "defined": {
+      "id": "fixture-terminal",
+      "name": "partial",
+      "kind": "shell",
+      "command": null,
+      "cwd": "",
+      "cols": 0,
+      "rows": 0,
+      "clients": 0,
+      "activity": "idle",
+      "recording": false,
+      "pinned": false,
+      "createdAt": "0001-01-01T00:00:00Z",
+      "exitedAt": "2026-03-12T17:25:00.123456789+05:30",
+      "exitCode": 0
+    }
+  },
+  {
+    "name": "AgentMessage.at",
+    "type": "AgentMessage",
+    "field": "at",
+    "absent": {
+      "id": "fixture-message",
+      "role": "assistant",
+      "parts": null
+    },
+    "defined": {
+      "id": "fixture-message",
+      "role": "assistant",
+      "parts": null,
+      "at": "2026-03-12T17:25:00.123456789+05:30"
+    }
+  },
+  {
+    "name": "QuotaWindow.resetsAt",
+    "type": "QuotaWindow",
+    "field": "resetsAt",
+    "absent": {
+      "label": "fixture",
+      "usedPct": 0
+    },
+    "defined": {
+      "label": "fixture",
+      "usedPct": 0,
+      "resetsAt": "2026-03-12T17:25:00.123456789+05:30"
+    }
+  },
+  {
+    "name": "Workspace.lastUsedAt",
+    "type": "Workspace",
+    "field": "lastUsedAt",
+    "absent": {
+      "path": "/fixture",
+      "name": "unused",
+      "pinned": false,
+      "terminals": 0,
+      "agents": 0
+    },
+    "defined": {
+      "path": "/fixture",
+      "name": "unused",
+      "pinned": false,
+      "terminals": 0,
+      "agents": 0,
+      "lastUsedAt": "2026-03-12T17:25:00.123456789+05:30"
+    }
+  },
+  {
+    "name": "Service.since",
+    "type": "Service",
+    "field": "since",
+    "absent": {
+      "name": "fixture.service",
+      "description": "",
+      "active": "inactive",
+      "sub": "",
+      "restarts": 0,
+      "user": false,
+      "managed": false
+    },
+    "defined": {
+      "name": "fixture.service",
+      "description": "",
+      "active": "active",
+      "sub": "running",
+      "restarts": 0,
+      "user": false,
+      "managed": false,
+      "since": "2026-03-12T17:25:00.123456789+05:30"
+    }
+  },
+  {
+    "name": "App.since",
+    "type": "App",
+    "field": "since",
+    "absent": {
+      "id": "fixture-app",
+      "name": "fixture",
+      "description": "",
+      "kind": "web",
+      "state": "stopped",
+      "installed": false
+    },
+    "defined": {
+      "id": "fixture-app",
+      "name": "fixture",
+      "description": "",
+      "kind": "web",
+      "state": "running",
+      "installed": true,
+      "since": "2026-03-12T17:25:00.123456789+05:30"
+    }
+  },
+  {
+    "name": "Schedule.nextRun",
+    "type": "Schedule",
+    "field": "nextRun",
+    "absent": {
+      "id": "fixture-schedule",
+      "name": "disabled",
+      "cron": "",
+      "cwd": "",
+      "mode": "headless",
+      "enabled": false,
+      "notify": false,
+      "createdAt": "2026-03-12T17:25:00.123456789+05:30"
+    },
+    "defined": {
+      "id": "fixture-schedule",
+      "name": "disabled",
+      "cron": "",
+      "cwd": "",
+      "mode": "headless",
+      "enabled": true,
+      "notify": false,
+      "createdAt": "2026-03-12T17:25:00.123456789+05:30",
+      "nextRun": "2026-03-12T17:25:00.123456789+05:30"
+    }
+  },
+  {
+    "name": "ScheduleRun.finishedAt",
+    "type": "ScheduleRun",
+    "field": "finishedAt",
+    "absent": {
+      "id": "fixture-run",
+      "scheduleId": "fixture-schedule",
+      "startedAt": "2026-03-12T17:25:00.123456789+05:30",
+      "status": "running"
+    },
+    "defined": {
+      "id": "fixture-run",
+      "scheduleId": "fixture-schedule",
+      "startedAt": "2026-03-12T17:25:00.123456789+05:30",
+      "status": "ok",
+      "finishedAt": "2026-03-12T17:25:00.123456789+05:30",
+      "exitCode": 0
+    }
+  },
+  {
+    "name": "SearchResult.at",
+    "type": "SearchResult",
+    "field": "at",
+    "absent": {
+      "scope": "workspaces",
+      "id": "fixture-search",
+      "title": "unused",
+      "score": 1
+    },
+    "defined": {
+      "scope": "workspaces",
+      "id": "fixture-search",
+      "title": "unused",
+      "score": 1,
+      "at": "2026-03-12T17:25:00.123456789+05:30"
+    }
+  },
+  {
+    "name": "FileJob.endedAt",
+    "type": "FileJob",
+    "field": "endedAt",
+    "absent": {
+      "id": "fixture-copy",
+      "op": "copy",
+      "state": "running",
+      "from": null,
+      "to": "/fixture",
+      "files": 0,
+      "totalFiles": 0,
+      "bytes": 0,
+      "totalBytes": 0,
+      "skipped": 0,
+      "startedAt": "2026-03-12T17:25:00.123456789+05:30"
+    },
+    "defined": {
+      "id": "fixture-copy",
+      "op": "copy",
+      "state": "done",
+      "from": null,
+      "to": "/fixture",
+      "files": 0,
+      "totalFiles": 0,
+      "bytes": 0,
+      "totalBytes": 0,
+      "skipped": 0,
+      "startedAt": "2026-03-12T17:25:00.123456789+05:30",
+      "endedAt": "2026-03-12T17:25:00.123456789+05:30"
+    }
+  }
+]

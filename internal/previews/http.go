@@ -117,8 +117,13 @@ func (s *Service) handlePath(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if s.rt.Authenticate(r) == nil {
+	p := s.rt.Authenticate(r)
+	if p == nil {
 		s.unauthenticated(w, r, s.origin.String()+"/login?next="+url.QueryEscape(r.URL.RequestURI()))
+		return
+	}
+	if p.Method == "cookie" && isPathUpgrade(r) && !s.rt.OriginAllowed(r) {
+		http.Error(w, "cross-origin request refused", http.StatusForbidden)
 		return
 	}
 	if !s.listening(r.Context(), port) {
@@ -128,10 +133,26 @@ func (s *Service) handlePath(w http.ResponseWriter, r *http.Request) {
 	s.proxyFor(modePath, port).ServeHTTP(w, r)
 }
 
+// The raw proxy accepts arbitrary upgrade protocols, including protocol lists.
+// Exact "websocket" matching would let an equivalent upgrade bypass admission.
+func isPathUpgrade(r *http.Request) bool {
+	if r.Header.Get("Upgrade") == "" {
+		return false
+	}
+	for _, value := range r.Header.Values("Connection") {
+		for _, token := range strings.Split(value, ",") {
+			if strings.EqualFold(strings.TrimSpace(token), "upgrade") {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // unauthenticated redirects navigations to sign-in and refuses the rest.
 func (s *Service) unauthenticated(w http.ResponseWriter, r *http.Request, loginURL string) {
 	w.Header().Set("Cache-Control", "no-store")
-	if (r.Method == http.MethodGet || r.Method == http.MethodHead) && !revproxy.IsWebSocket(r) {
+	if (r.Method == http.MethodGet || r.Method == http.MethodHead) && !isPathUpgrade(r) {
 		http.Redirect(w, r, loginURL, http.StatusFound)
 		return
 	}

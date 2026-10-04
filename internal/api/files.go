@@ -45,7 +45,7 @@ type FileJob struct {
 	Error      string    `json:"error,omitempty"`
 	Result     []string  `json:"result,omitempty"` // top-level destination paths
 	StartedAt  time.Time `json:"startedAt"`
-	EndedAt    time.Time `json:"endedAt,omitempty"`
+	EndedAt    time.Time `json:"endedAt,omitempty,omitzero"`
 }
 
 // EvFilesJob is published while a FileJob runs (at most ~4 per second)

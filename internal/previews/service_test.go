@@ -137,8 +137,9 @@ func newHarness(t *testing.T, mode, host, originURL string) *harness {
 func upstreamServer(t *testing.T) (port int, reqs chan *http.Request) {
 	t.Helper()
 	reqs = make(chan *http.Request, 16)
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := previewTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/hmr" {
+			reqs <- r.Clone(context.Background())
 			c, err := websocket.Accept(w, r, &websocket.AcceptOptions{InsecureSkipVerify: true})
 			if err != nil {
 				return
@@ -173,7 +174,7 @@ func TestPathModeProxy(t *testing.T) {
 	port, reqs := upstreamServer(t)
 	h.src.set(socket{IP: net.IPv4(127, 0, 0, 1), Port: port, PID: 4242, Key: 1})
 	h.svc.scan(t.Context())
-	front := httptest.NewServer(h.h)
+	front := previewTestServer(t, h.h)
 	defer front.Close()
 	base := front.URL + "/p/" + strconv.Itoa(port)
 
@@ -245,10 +246,10 @@ func TestPathModeProxy(t *testing.T) {
 
 func TestPathModeWebSocket(t *testing.T) {
 	h := newHarness(t, "path", "", "http://relay.test")
-	port, _ := upstreamServer(t)
+	port, reqs := upstreamServer(t)
 	h.src.set(socket{IP: net.IPv4zero, Port: port, PID: 1, Key: 1})
 	h.svc.scan(t.Context())
-	front := httptest.NewServer(h.h)
+	front := previewTestServer(t, h.h)
 	defer front.Close()
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
@@ -256,7 +257,16 @@ func TestPathModeWebSocket(t *testing.T) {
 	if _, _, err := websocket.Dial(ctx, u, nil); err == nil {
 		t.Fatal("unauthenticated websocket accepted")
 	}
-	c, _, err := websocket.Dial(ctx, u, &websocket.DialOptions{HTTPHeader: http.Header{"Cookie": {"relay_session=good"}}})
+	for _, origin := range []string{"", "null", "http://other.test"} {
+		_, res, err := websocket.Dial(ctx, u, &websocket.DialOptions{HTTPHeader: http.Header{"Cookie": {"relay_session=good"}, "Origin": {origin}}})
+		if err == nil || res == nil || res.StatusCode != http.StatusForbidden {
+			t.Fatalf("origin %q: response = %v, err = %v", origin, res, err)
+		}
+	}
+	if len(reqs) != 0 {
+		t.Fatal("refused upgrade reached upstream")
+	}
+	c, _, err := websocket.Dial(ctx, u, &websocket.DialOptions{HTTPHeader: http.Header{"Cookie": {"relay_session=good"}, "Origin": {"http://relay.test"}}})
 	if err != nil {
 		t.Fatalf("websocket through path proxy: %v", err)
 	}
@@ -264,6 +274,9 @@ func TestPathModeWebSocket(t *testing.T) {
 	_, msg, err := c.Read(ctx)
 	if err != nil || string(msg) != `{"type":"connected"}` {
 		t.Fatalf("read = %q %v", msg, err)
+	}
+	if up := <-reqs; up.Header.Get("Cookie") != "" {
+		t.Fatal("Relay cookie reached upstream")
 	}
 }
 

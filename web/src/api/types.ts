@@ -1,5 +1,6 @@
 // Mirror of internal/api/types.go — keep in sync (same field names).
-// Timestamps are ISO-8601 strings. Optional fields may be absent.
+// Timestamps are RFC 3339 strings; optional zero values are omitted by Go.
+// Legacy null/year-one values are handled at display time (internal/api/TIMESTAMPS.md).
 
 export interface ErrorBody { error: ErrorDetail }
 export interface ErrorDetail { code: string; message: string; field?: string; retryIn?: number }

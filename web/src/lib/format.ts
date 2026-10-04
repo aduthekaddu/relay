@@ -29,12 +29,44 @@ export function duration(sec: number): string {
   return h % 24 ? `${d}d ${h % 24}h` : `${d}d`
 }
 
-/** ISO time → "now", "5m ago", "3h ago", "Yesterday", "12 Mar". */
-export function ago(iso: string | undefined, now: number = Date.now()): string {
-  if (!iso) return '—'
+const zeroTime = Date.parse('0001-01-01T00:00:00Z')
+const timestamp = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})$/
+
+/** Validate API time without rewriting its offset or fractional precision. */
+export function normalizeTimestamp(iso: string | null | undefined): string | undefined {
+  if (!iso) return undefined
+  const match = timestamp.exec(iso)
+  if (!match) return undefined
+  const [, year, month, day, hour, minute, second, fraction, zone] = match
+  const y = Number(year)
+  const m = Number(month)
+  const leap = y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0)
+  const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+  if (
+    m < 1 ||
+    m > 12 ||
+    Number(day) < 1 ||
+    Number(day) > days[m - 1] ||
+    Number(hour) > 23 ||
+    Number(minute) > 59 ||
+    Number(second) > 59 ||
+    (zone !== 'Z' && (Number(zone.slice(1, 3)) > 23 || Number(zone.slice(4)) > 59))
+  )
+    return undefined
   const t = Date.parse(iso)
-  if (Number.isNaN(t)) return '—'
-  const diff = Math.max(0, (now - t) / 1000)
+  if (!Number.isFinite(t) || (t === zeroTime && !/[1-9]/.test(fraction ?? ''))) return undefined
+  return iso
+}
+
+/** API time → "now", "5m ago", "3h ago", "Yesterday", "12 Mar"; unknown → "—". */
+export function ago(iso: string | null | undefined, now: number = Date.now()): string {
+  const valid = normalizeTimestamp(iso)
+  if (!valid || !Number.isFinite(now) || Number.isNaN(new Date(now).getTime())) return '—'
+  const t = Date.parse(valid)
+  // Date has millisecond resolution. Keep future sub-millisecond fractions unknown too.
+  const fraction = timestamp.exec(valid)?.[7] ?? ''
+  if (t > now || (t === now && /[1-9]/.test(fraction.slice(3)))) return '—'
+  const diff = (now - t) / 1000
   if (diff < 45) return 'now'
   if (diff < 3600) return `${Math.round(diff / 60)}m ago`
   if (diff < 86400) return `${Math.round(diff / 3600)}h ago`

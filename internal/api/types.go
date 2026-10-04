@@ -8,8 +8,8 @@
 //
 // Conventions:
 //   - JSON field names are camelCase.
-//   - Timestamps are time.Time (RFC 3339 in JSON). A value time.Time with
-//     omitempty still serialises its zero value; pointer timestamps may omit.
+//   - Timestamps are time.Time (RFC 3339 in JSON). Optional value timestamps
+//     use omitempty,omitzero; absent values omit. See TIMESTAMPS.md for migration.
 //   - Optional fields use pointers or `omitempty`.
 //   - IDs are opaque strings. Never parse them on the client.
 package api
@@ -108,7 +108,7 @@ type Passkey struct {
 	ID         string    `json:"id"`
 	Name       string    `json:"name"`
 	CreatedAt  time.Time `json:"createdAt"`
-	LastUsedAt time.Time `json:"lastUsedAt,omitempty"`
+	LastUsedAt time.Time `json:"lastUsedAt,omitempty,omitzero"`
 }
 
 type TOTPSetup struct {
@@ -134,7 +134,7 @@ type APIToken struct {
 	Name       string    `json:"name"`
 	Prefix     string    `json:"prefix"` // first chars, e.g. "rly_3kf9"
 	CreatedAt  time.Time `json:"createdAt"`
-	LastUsedAt time.Time `json:"lastUsedAt,omitempty"`
+	LastUsedAt time.Time `json:"lastUsedAt,omitempty,omitzero"`
 }
 
 type CreatedToken struct {
@@ -197,9 +197,9 @@ type TerminalSession struct {
 	Pinned         bool              `json:"pinned"`
 	Meta           map[string]string `json:"meta,omitempty"`
 	CreatedAt      time.Time         `json:"createdAt"`
-	LastOutputAt   time.Time         `json:"lastOutputAt,omitempty"`
-	LastInputAt    time.Time         `json:"lastInputAt,omitempty"`
-	ExitedAt       time.Time         `json:"exitedAt,omitempty"`
+	LastOutputAt   time.Time         `json:"lastOutputAt,omitempty,omitzero"`
+	LastInputAt    time.Time         `json:"lastInputAt,omitempty,omitzero"`
+	ExitedAt       time.Time         `json:"exitedAt,omitempty,omitzero"`
 	Preview        string            `json:"preview,omitempty"` // last non-empty screen lines, plain text
 }
 
@@ -364,7 +364,7 @@ type TokenUsage struct {
 type AgentMessage struct {
 	ID     string      `json:"id"`
 	Role   string      `json:"role"` // user | assistant | tool | system
-	At     time.Time   `json:"at,omitempty"`
+	At     time.Time   `json:"at,omitempty,omitzero"`
 	Model  string      `json:"model,omitempty"`
 	Parts  []Part      `json:"parts"`
 	Tokens *TokenUsage `json:"tokens,omitempty"`
@@ -471,7 +471,7 @@ type Quota struct {
 type QuotaWindow struct {
 	Label    string    `json:"label"` // "5h", "Weekly", "Opus weekly"
 	UsedPct  float64   `json:"usedPct"`
-	ResetsAt time.Time `json:"resetsAt,omitempty"`
+	ResetsAt time.Time `json:"resetsAt,omitempty,omitzero"`
 }
 
 // ---------------------------------------------------------------------------
@@ -482,7 +482,7 @@ type Workspace struct {
 	Name       string    `json:"name"`
 	Git        *GitBrief `json:"git,omitempty"`
 	Pinned     bool      `json:"pinned"`
-	LastUsedAt time.Time `json:"lastUsedAt,omitempty"`
+	LastUsedAt time.Time `json:"lastUsedAt,omitempty,omitzero"`
 	Terminals  int       `json:"terminals"` // live sessions whose cwd is inside
 	Agents     int       `json:"agents"`    // indexed agent sessions for this path
 	Languages  []string  `json:"languages,omitempty"`
@@ -700,7 +700,7 @@ type Service struct {
 	Description string    `json:"description"`
 	Active      string    `json:"active"` // active | inactive | failed | activating
 	Sub         string    `json:"sub"`
-	Since       time.Time `json:"since,omitempty"`
+	Since       time.Time `json:"since,omitempty,omitzero"`
 	Restarts    int       `json:"restarts"`
 	User        bool      `json:"user"`    // systemd --user unit
 	Managed     bool      `json:"managed"` // relay-owned unit
@@ -750,7 +750,7 @@ type App struct {
 	Installed   bool           `json:"installed"`
 	URL         string         `json:"url,omitempty"`
 	Icon        string         `json:"icon,omitempty"`
-	Since       time.Time      `json:"since,omitempty"`
+	Since       time.Time      `json:"since,omitempty,omitzero"`
 	Error       string         `json:"error,omitempty"`
 	InstallHint string         `json:"installHint,omitempty"`
 	Capability  *AppCapability `json:"capability,omitempty"`
@@ -864,7 +864,7 @@ type Schedule struct {
 	Mode      string       `json:"mode"`              // headless | interactive
 	Enabled   bool         `json:"enabled"`
 	Notify    bool         `json:"notify"`
-	NextRun   time.Time    `json:"nextRun,omitempty"`
+	NextRun   time.Time    `json:"nextRun,omitempty,omitzero"`
 	LastRun   *ScheduleRun `json:"lastRun,omitempty"`
 	CreatedAt time.Time    `json:"createdAt"`
 }
@@ -873,7 +873,7 @@ type ScheduleRun struct {
 	ID         string    `json:"id"`
 	ScheduleID string    `json:"scheduleId"`
 	StartedAt  time.Time `json:"startedAt"`
-	FinishedAt time.Time `json:"finishedAt,omitempty"`
+	FinishedAt time.Time `json:"finishedAt,omitempty,omitzero"`
 	Status     string    `json:"status"` // running | ok | failed | skipped
 	ExitCode   *int      `json:"exitCode,omitempty"`
 	TerminalID string    `json:"terminalId,omitempty"`
@@ -891,7 +891,7 @@ type SearchResult struct {
 	Icon     string            `json:"icon,omitempty"` // agent id, file type, etc.
 	Link     string            `json:"link,omitempty"` // in-app path to navigate to
 	Score    float64           `json:"score"`
-	At       time.Time         `json:"at,omitempty"`
+	At       time.Time         `json:"at,omitempty,omitzero"`
 	Meta     map[string]string `json:"meta,omitempty"`
 }
 

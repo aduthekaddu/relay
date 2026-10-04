@@ -422,14 +422,18 @@ Raw registrations and host dispatch (these do not use the standard A wrapper):
 | Surface | Method | Path | Contract |
 | --- | --- | --- | --- |
 | Raw redirect | ANY | `/p/{port}` | 308 to trailing slash, before authentication/port validation |
-| Raw path proxy | ANY | `/p/{port}/` | manual authentication; anonymous GET/HEAD → 302 login, others 401; invalid/off/not listening → 404; HTTP and WS upstream forwarding, 502 proxy failure, sandbox CSP and cookie stripping |
+| Raw path proxy | ANY | `/p/{port}/` | manual authentication; anonymous HTTP GET/HEAD → 302 login, WS/others 401; cookie WS with refused Origin → 403; invalid/off/not listening → 404; HTTP and WS upstream forwarding, 502 proxy failure, sandbox CSP and cookie stripping |
 | Raw auth helper | GET | `/_relay/preview-auth` | Relay-origin authentication; anonymous → 302 login; invalid port 400, wrong mode 404, issue failure 500; success 302 to subdomain callback |
 | Host proxy | ANY | `https://{port}.{previews.host}/…` | only effective subdomain mode; excluded port 404; host preview cookie or API token; anonymous GET/HEAD → auth handshake 302, other methods 401; upstream HTTP/WS, 502 failure |
 | Host callback | GET | `/_relay/preview-callback` | single-use expiring handshake; 403 invalid/expired/used; 500 issue failure; success 303 plus host-only HttpOnly/Secure/SameSite=Lax preview cookie; other methods 405 |
 
 Raw path/host proxy responses are not ErrorBody and can carry upstream statuses.
-The path proxy does not inherit Handle's cookie Origin check; upstream socket
-semantics belong to the target. See [PREVIEWS.md](PREVIEWS.md).
+The raw path proxy applies OriginAllowed to cookie-authenticated upgrade
+attempts, including WebSockets and protocol lists: missing/unparseable/disallowed Origin or cross-site Fetch Metadata
+returns 403 before forwarding. Other raw HTTP requests do not inherit Handle's
+cookie Origin check; upstream socket semantics belong to the target. Opaque
+`null` origins from sandboxed path previews are refused; browser HMR compatibility
+has not been verified. See [PREVIEWS.md](PREVIEWS.md).
 
 ## Apps and desktop (internal/apps)
 
