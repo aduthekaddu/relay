@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/aduthekaddu/relay/internal/api"
 	"github.com/aduthekaddu/relay/internal/httpx"
+	"github.com/aduthekaddu/relay/internal/server"
 )
 
 // passkeyRow is a stored WebAuthn credential.
@@ -199,10 +201,11 @@ func (w *waUser) WebAuthnCredentials() []webauthn.Credential { return w.creds }
 // with a host name, or http(s)://localhost (a secure context). IP
 // addresses cannot be RP ids.
 func (s *Service) rpID() (string, bool) {
-	o, err := url.Parse(s.d.Cfg.Origin())
-	if err != nil {
+	origin, ok := server.NormalizeOrigin(s.d.Cfg.Origin())
+	if !ok {
 		return "", false
 	}
+	o, _ := url.Parse(origin)
 	host := strings.ToLower(o.Hostname())
 	if host == "" || net.ParseIP(host) != nil {
 		return "", false
@@ -224,6 +227,33 @@ func (s *Service) PasskeysAvailable() bool {
 	return ok
 }
 
+// passkeysAvailableAt also checks the accessed browser origin. A loopback IP
+// alias can use password auth but cannot use the canonical hostname's RP ID.
+func (s *Service) passkeysAvailableAt(r *http.Request) bool {
+	rp, ok := s.rpID()
+	if !ok {
+		return false
+	}
+	origin, ok := server.ExternalOrigin(r)
+	return ok && server.OriginInList(origin, s.origins()) && passkeyOrigin(origin, rp)
+}
+
+func passkeyOrigin(origin, rp string) bool {
+	u, _ := url.Parse(origin) // callers supply normalized origins
+	host := u.Hostname()
+	if net.ParseIP(host) != nil || host != rp && !strings.HasSuffix(host, "."+rp) {
+		return false
+	}
+	return u.Scheme == "https" || host == "localhost" || strings.HasSuffix(host, ".localhost")
+}
+
+func (s *Service) webAuthnAt(r *http.Request) (*webauthn.WebAuthn, error) {
+	if !s.passkeysAvailableAt(r) {
+		return nil, httpx.Unavailable("Passkeys need Relay's canonical HTTPS hostname, or a canonical localhost address. IP addresses cannot use passkeys.")
+	}
+	return s.webAuthn()
+}
+
 // webAuthn builds the relying party for the current configuration. The
 // accepted origins are the allowed browser origins within the RP id.
 func (s *Service) webAuthn() (*webauthn.WebAuthn, error) {
@@ -233,13 +263,12 @@ func (s *Service) webAuthn() (*webauthn.WebAuthn, error) {
 	}
 	var origins []string
 	for _, o := range s.origins() {
-		u, err := url.Parse(o)
-		if err != nil {
+		norm, ok := server.NormalizeOrigin(strings.TrimSuffix(o, "/"))
+		if !ok {
 			continue
 		}
-		h := strings.ToLower(u.Hostname())
-		if h == rp || strings.HasSuffix(h, "."+rp) {
-			origins = append(origins, strings.TrimRight(o, "/"))
+		if passkeyOrigin(norm, rp) {
+			origins = append(origins, norm)
 		}
 	}
 	if len(origins) == 0 {

@@ -26,10 +26,13 @@ the password is right but `totp` is missing, the response is
 `navigator.credentials.get` → `passkey/finish`. To register (signed in):
 `passkeys/begin {name}` → `navigator.credentials.create` → `passkeys/finish`.
 The ceremony state is kept in memory for 5 minutes, keyed by a random id in
-the `relay_webauthn` cookie, and each ceremony can be used once. The RP ID is
-`server.domain`, or else the host of `cfg.Origin()`. Allowed origins are the
-router's allowed origins. IP-address origins can't be RP IDs, so passkeys are
-off there (`passkeysAvailable: false`).
+the `relay_webauthn` cookie, and each ceremony can be used once. The RP ID
+comes from the canonical origin: `server.domain` is used only when the
+canonical hostname equals it or is its subdomain; otherwise the canonical
+hostname is used. IP addresses cannot be RP IDs. Browser auth state and
+setup/login suggestions also check the accessed origin; passkey begin is
+unavailable on IP aliases even when the canonical RP ID is `localhost`.
+See [canonical origins and aliases](#canonical-origins-and-aliases).
 
 **TOTP.** RFC 6238 (HMAC-SHA1, 30 s, 6 digits, ±1 step) is implemented in
 `totp.go`. `totp/setup` returns a secret and an `otpauth://` URL, and
@@ -99,6 +102,93 @@ is running, and signs out every browser session unless you pass
   upgrade. Bearer tokens and the control socket are not ambient credentials,
   so they are exempt.
 
+## Canonical origins and aliases
+
+`cfg.Origin()` selects one canonical external address, in this order:
+`server.public_url` (also `RELAY_PUBLIC_URL`), an HTTPS `server.domain` when
+automatic/manual TLS is configured, or the HTTP/HTTPS listener address.
+An unspecified IPv4 listen host (`:port` or `0.0.0.0:port`) becomes
+`localhost`. Other listener addresses are not rewritten. For a wildcard
+IPv6 listener, a manual TLS listener on a nondefault external port, or a
+reverse proxy, set `server.public_url` to the address the browser uses.
+Use an HTTP(S) origin with a host and optional port; a root trailing slash
+in configuration is removed, but paths, credentials, queries, fragments,
+wildcards, IPv6 zones and ambiguous IP spellings are invalid.
+
+`App.Origins` validates the canonical origin and adds automatic aliases
+only when it is HTTP and its hostname is exactly `localhost`, `127.0.0.1`
+or `::1`. All three names are then allowed at the **same effective port**.
+This is a fixed list: it does not resolve DNS, accept arbitrary `127/8`
+addresses or `.localhost` names as aliases, or broaden an HTTPS hostname's
+certificate identity. An explicitly configured other loopback address can
+be canonical, but gains no automatic aliases. The port is part of the
+origin; omitted HTTP port equals `80`, and omitted HTTPS port equals `443`.
+Explicit default ports normalize away. Nondefault ports must match exactly.
+
+| Canonical origin | Automatically allowed browser origins | Passkeys |
+| --- | --- | --- |
+| `http://localhost:47733` | `http://localhost:47733`, `http://127.0.0.1:47733`, `http://[::1]:47733` | Only the localhost address; RP ID `localhost` |
+| `http://127.0.0.1:47733` or `http://[::1]:47733` | The same three origins at `47733` | Unavailable at every alias; canonical IP has no RP ID |
+| `http://localhost` or `http://localhost:80` | HTTP localhost, `127.0.0.1` and `[::1]` at port 80 | Only localhost |
+| `https://relay.example.test` or explicit `:443` | That normalized HTTPS origin | RP ID `relay.example.test`, or a matching configured parent domain |
+| `https://relay.example.test:47733` | That HTTPS origin at `47733` | Same RP ID; allowed origin still includes the port |
+| `https://localhost:47733` | That HTTPS localhost origin only | RP ID `localhost` |
+| `https://192.0.2.1` | That HTTPS IP origin only | Unavailable: HTTPS does not make an IP a valid RP ID |
+| `http://192.0.2.1` or `http://[2001:db8::1]` | None | Unavailable |
+
+Changing names does not transfer cookies: each hostname has its own browser
+cookie jar and needs its own sign-in. Aliases permit Origin checks; they do
+not make a listener reachable over both address families. Bind/listen or
+forward the relevant loopback address if IPv6 access is needed.
+
+Internal wiring can explicitly add a validated extra origin with
+`App.AllowOrigin`; it does not receive automatic aliases. Wildcards and
+remote HTTP IP origins are refused even as extras. The existing
+`RELAY_DEV=1` opt-in adds HTTP localhost/IPv4 Vite origins on ports
+47780–47789; this is an explicit development exception, not general
+different-port aliasing. With that flag off, a familiar hostname on another
+port, an unrelated hostname, a scheme change, `null`, an origin list,
+duplicate/empty Origin headers or a decorated URL is refused. Malformed
+Fetch Metadata and `Sec-Fetch-Site: cross-site` are also refused. Ordinary
+browser Origin headers must be serialized origins without even a root slash.
+
+Cookie unsafe requests and WebSocket upgrades require Origin and return
+403 when it is absent or invalid. Public setup/password/passkey sign-in
+POSTs allow a script that sends **neither** Origin **nor** Fetch Metadata;
+a present empty header is not absence. A request carrying either header
+must pass the browser check, so missing Origin with Fetch Metadata is 403.
+Bearer/local authenticated operations retain their Origin exemption.
+The existing `auth.insecure_cookies` switch affects plain HTTP cookie
+issuance only; it grants no browser origins and never enables passkeys.
+
+### Reverse proxies and passkey origins
+
+Forwarded headers never set the canonical origin or RP ID. Configure
+`server.public_url` explicitly, and have the proxy preserve the external
+Host or supply `X-Forwarded-Host`, plus `X-Forwarded-Proto`. The accessed
+origin uses those headers only from `server.TrustedProxies`: configured
+valid CIDRs/IPs, or loopback peers when public_url is set and no valid
+proxy networks exist. An explicit valid proxy list replaces that loopback
+default. The first comma-separated host/protocol value is client-facing;
+the trusted proxy must overwrite/sanitize client-supplied forwarding
+headers. The standard `Forwarded` header is not used. Without request-info
+middleware, only Host and direct TLS count.
+
+The resulting accessed origin must still be in the configured allowlist.
+A trusted proxy cannot add an unrelated host or unexpected port through a
+header. An untrusted peer's forwarded HTTPS/hostname cannot enable
+passkeys. If the proxy rewrites Host to a backend IP without supplying a
+trusted external host, passkey availability fails closed; fix the proxy
+headers or preserve Host. Origin checks continue to compare the browser's
+Origin to the configured list, not to forwarded headers.
+
+WebAuthn additionally accepts only allowed origins whose non-IP hostname
+equals the RP ID or is its subdomain, and which are HTTPS or HTTP
+localhost/`.localhost`. A local HTTP alias does not change RP selection:
+configure a canonical localhost origin to use local passkeys. Changing
+the canonical hostname or matching parent `server.domain` can change the
+RP ID; existing credentials do not automatically migrate to a new RP.
+
 ## Revocation ownership
 
 | Mutation | Owner | Socket notification | Credentials that remain valid |
@@ -160,13 +250,35 @@ fills up is dropped and should reconnect.
 RELAY_PUBLIC_URL=http://localhost:47701 PORT=47701 NAME=auth scripts/dev/run.sh
 ```
 
-Open `http://localhost:47701`. Don't use `127.0.0.1`: an IP origin has no RP
-ID, and the canonical origin must be `localhost` so that the browser's
-`Origin` header is allowed. Chrome DevTools → More tools → WebAuthn → *Enable virtual authenticator
+Open `http://localhost:47701` as a top-level page. The canonical origin must
+be localhost for local passkeys. The same-port `127.0.0.1` and `[::1]`
+aliases support password sign-in and unsafe requests, but report
+`passkeysAvailable: false`; changing the URL to localhost does not enable
+passkeys if the configured canonical origin is still an IP. Remote devices
+need an HTTPS hostname with trusted TLS. A browser's secure-context status
+does not waive the RP ID domain requirement; check `window.isSecureContext`
+and browser WebAuthn support. See the [Secure Contexts specification](https://www.w3.org/TR/secure-contexts/)
+and [WebAuthn RP ID definition](https://www.w3.org/TR/webauthn-3/#rp-id).
+Chrome DevTools → More tools → WebAuthn → *Enable virtual authenticator
 environment* gives a software authenticator with resident keys. Automated
 tests (`internal/auth/passkey_test.go`) run a full register → sign-in round
 trip with an in-test ES256 authenticator, plus option-shape and error-path
-checks.
+checks; `origins_test.go` covers the alias and proxy boundary. These synthetic
+authenticator tests do not prove real synced passkeys, physical devices or
+conditional autofill. A Chromium virtual authenticator can exercise browser
+secure-context/RP enforcement separately; report that environment explicitly.
+The opt-in maintained `TestLocalOriginBrowser` uses an installed Playwright
+module and Chromium without downloads or production dependencies. Set
+`RELAY_ORIGIN_BROWSER_MODULE` to its module entry point and
+`RELAY_ORIGIN_BROWSER_CHROME` to the browser executable, then run:
+
+```sh
+scripts/dev/safe go test ./internal/auth -run '^TestLocalOriginBrowser$' -count=1 -v
+```
+
+Its page/account are synthetic; it checks browser login and cookies at all
+three aliases, different-port rejection and virtual resident-key registration
+and discoverable sign-in. It does not exercise the complete Relay UI.
 
 ```sh
 scripts/dev/safe go test ./internal/auth/... ./internal/live/... ./internal/info/... ./internal/server/...

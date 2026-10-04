@@ -60,7 +60,7 @@ func (s *Service) Routes(rt *server.Router) {
 // Browsers always send Origin (and Fetch Metadata) on these POSTs; clients
 // sending neither (curl, scripts) are not a CSRF vector.
 func (s *Service) publicOriginOK(w http.ResponseWriter, r *http.Request) bool {
-	if r.Header.Get("Origin") == "" && r.Header.Get("Sec-Fetch-Site") == "" {
+	if len(r.Header.Values("Origin")) == 0 && len(r.Header.Values("Sec-Fetch-Site")) == 0 {
 		return true
 	}
 	if s.rt != nil && s.rt.OriginAllowed(r) {
@@ -241,7 +241,7 @@ func (s *Service) handleState(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, err)
 		return
 	}
-	avail := s.PasskeysAvailable()
+	avail := s.passkeysAvailableAt(r)
 	resp := api.AuthStateResponse{PasskeysAvailable: avail}
 	resp.SetupRequired = u == nil
 	if u == nil {
@@ -352,7 +352,7 @@ func (s *Service) handleSetup(w http.ResponseWriter, r *http.Request) {
 		httpx.Fail(w, err)
 		return
 	}
-	httpx.OK(w, api.LoginResponse{OK: true, SetupPasskey: s.PasskeysAvailable()})
+	httpx.OK(w, api.LoginResponse{OK: true, SetupPasskey: s.passkeysAvailableAt(r)})
 }
 
 func (s *Service) setupCodeOK(code string) bool {
@@ -427,7 +427,7 @@ func (s *Service) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	resp := api.LoginResponse{OK: true}
-	if s.PasskeysAvailable() {
+	if s.passkeysAvailableAt(r) {
 		if n, err := s.acc.passkeyCount(ctx); err == nil && n == 0 {
 			resp.SetupPasskey = true
 		}
@@ -478,7 +478,7 @@ func (s *Service) handlePasskeyLoginBegin(w http.ResponseWriter, r *http.Request
 		httpx.Fail(w, err)
 		return
 	}
-	wa, err := s.webAuthn()
+	wa, err := s.webAuthnAt(r)
 	if err != nil {
 		httpx.Fail(w, err)
 		return
@@ -512,7 +512,7 @@ func (s *Service) handlePasskeyLoginFinish(w http.ResponseWriter, r *http.Reques
 		httpx.Fail(w, httpx.BadRequest("This sign-in request expired. Try again."))
 		return
 	}
-	wa, err := s.webAuthn()
+	wa, err := s.webAuthnAt(r)
 	if err != nil {
 		httpx.Fail(w, err)
 		return

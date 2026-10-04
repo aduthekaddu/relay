@@ -24,7 +24,11 @@ const (
 // arrived over HTTPS (directly or via a trusted proxy) or the canonical
 // origin is HTTPS.
 func (s *Service) secureContext(r *http.Request) bool {
-	return server.IsSecureRequest(r) || strings.HasPrefix(s.d.Cfg.Origin(), "https://")
+	if server.IsSecureRequest(r) {
+		return true
+	}
+	origin, ok := server.NormalizeOrigin(s.d.Cfg.Origin())
+	return ok && strings.HasPrefix(origin, "https://")
 }
 
 func (s *Service) cookieName(r *http.Request, base string) string {

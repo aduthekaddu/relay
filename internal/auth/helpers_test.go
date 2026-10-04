@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -37,6 +38,8 @@ type testEnv struct {
 	origin string // allowed browser origin
 	// trusted proxies predicate used by the test server
 	trusted func(net.IP) bool
+	// Records rejected browser origins without exposing cookies or bodies.
+	rejections chan string
 }
 
 type fakeNotifier struct {
@@ -68,10 +71,28 @@ func newEnv(t *testing.T, host string, opts ...envOpt) *testEnv {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { st.Close() })
-	e := &testEnv{t: t}
-	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		server.WithRequestInfo(e.trusted, e.rt).ServeHTTP(w, r)
-	}))
+	e := &testEnv{t: t, rejections: make(chan string, 64)}
+	srv := &httptest.Server{Config: &http.Server{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		status := &authFixtureStatus{ResponseWriter: w}
+		server.WithRequestInfo(e.trusted, e.rt).ServeHTTP(status, r)
+		if status.code == http.StatusForbidden && r.URL.Path == "/api/v1/test/whoami" {
+			select {
+			case e.rejections <- r.Header.Get("Origin"):
+			default:
+			}
+		}
+	})}}
+	// Keep integration fixtures inside Relay's shared-machine test range.
+	for port := 47740; port <= 47779; port++ {
+		ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+		if err == nil {
+			srv.Listener = ln
+			break
+		}
+		if port == 47779 {
+			t.Fatalf("no free auth fixture port in 47740–47779: %v", err)
+		}
+	}
 	port := srv.Listener.Addr().String()[strings.LastIndexByte(srv.Listener.Addr().String(), ':'):]
 	cfg := config.Defaults()
 	cfg.Server.TLS = "off"
@@ -93,7 +114,13 @@ func newEnv(t *testing.T, host string, opts ...envOpt) *testEnv {
 		t.Fatal(err)
 	}
 	e.svc = svc
-	e.rt = server.NewRouter(nil, func() []string { return []string{e.origin} })
+	e.rt = server.NewRouter(nil, func() []string {
+		canonical, ok := server.NormalizeOrigin(cfg.Origin())
+		if !ok {
+			return nil
+		}
+		return append([]string{canonical}, server.LocalOriginAliases(canonical)...)
+	})
 	svc.SetOrigins(e.rt.AllowedOrigins)
 	svc.Routes(e.rt)
 	e.rt.SetAuthenticator(svc)
@@ -106,6 +133,16 @@ func newEnv(t *testing.T, host string, opts ...envOpt) *testEnv {
 	e.srv = srv
 	e.base = e.origin
 	return e
+}
+
+type authFixtureStatus struct {
+	http.ResponseWriter
+	code int
+}
+
+func (w *authFixtureStatus) WriteHeader(code int) {
+	w.code = code
+	w.ResponseWriter.WriteHeader(code)
 }
 
 // client is a browser-like client with a cookie jar that sends Origin on

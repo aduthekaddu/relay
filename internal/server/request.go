@@ -18,6 +18,8 @@ import (
 type requestInfo struct {
 	secure   bool
 	clientIP string
+	origin   string
+	originOK bool
 }
 
 const requestInfoKey ctxKey = 100
@@ -72,6 +74,13 @@ func TrustedProxies(cfg *config.Config) func(net.IP) bool {
 func WithRequestInfo(trusted func(net.IP) bool, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		info := &requestInfo{secure: secureFrom(r, trusted)}
+		host := r.Host
+		if trustedPeer(r, trusted) {
+			if forwarded := r.Header.Get("X-Forwarded-Host"); forwarded != "" {
+				host = strings.TrimSpace(strings.SplitN(forwarded, ",", 2)[0])
+			}
+		}
+		info.origin, info.originOK = requestOrigin(host, info.secure)
 		if IsLocal(r.Context()) {
 			info.clientIP = "local"
 		} else {
@@ -85,11 +94,7 @@ func secureFrom(r *http.Request, trusted func(net.IP) bool) bool {
 	if r.TLS != nil {
 		return true
 	}
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		host = r.RemoteAddr
-	}
-	if trusted == nil || !trusted(net.ParseIP(host)) {
+	if !trustedPeer(r, trusted) {
 		return false
 	}
 	proto := r.Header.Get("X-Forwarded-Proto")
@@ -97,6 +102,33 @@ func secureFrom(r *http.Request, trusted func(net.IP) bool) bool {
 		proto = proto[:i] // first hop is the client-facing one
 	}
 	return strings.EqualFold(strings.TrimSpace(proto), "https")
+}
+
+func trustedPeer(r *http.Request, trusted func(net.IP) bool) bool {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	return trusted != nil && trusted(net.ParseIP(host))
+}
+
+func requestOrigin(host string, secure bool) (string, bool) {
+	scheme := "http"
+	if secure {
+		scheme = "https"
+	}
+	return NormalizeOrigin(scheme + "://" + host)
+}
+
+// ExternalOrigin returns the accessed origin, using forwarded host/protocol
+// only within WithRequestInfo's trusted-proxy boundary. Host is still client
+// input: callers must also compare the result to configured allowed origins.
+// Without the middleware, only the request Host and direct TLS are used.
+func ExternalOrigin(r *http.Request) (string, bool) {
+	if info, ok := r.Context().Value(requestInfoKey).(*requestInfo); ok {
+		return info.origin, info.originOK
+	}
+	return requestOrigin(r.Host, r.TLS != nil)
 }
 
 // IsSecureRequest reports whether r arrived over HTTPS, either directly or

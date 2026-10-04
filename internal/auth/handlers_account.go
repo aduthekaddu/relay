@@ -376,7 +376,7 @@ func (s *Service) handlePasskeyRegisterBegin(w http.ResponseWriter, r *http.Requ
 		httpx.Fail(w, err)
 		return
 	}
-	wa, err := s.webAuthn()
+	wa, err := s.webAuthnAt(r)
 	if err != nil {
 		httpx.Fail(w, err)
 		return
@@ -430,7 +430,7 @@ func (s *Service) handlePasskeyRegisterFinish(w http.ResponseWriter, r *http.Req
 		httpx.Fail(w, httpx.BadRequest("This passkey request expired. Try again."))
 		return
 	}
-	wa, err := s.webAuthn()
+	wa, err := s.webAuthnAt(r)
 	if err != nil {
 		httpx.Fail(w, err)
 		return

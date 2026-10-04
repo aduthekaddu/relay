@@ -58,9 +58,13 @@ func (a *App) OnClose(fn func() error) {
 
 // AllowOrigin adds a browser origin accepted for unsafe requests.
 func (a *App) AllowOrigin(origin string) {
+	norm, ok := server.NormalizeOrigin(strings.TrimSuffix(origin, "/"))
+	if !ok {
+		return
+	}
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	a.extraOrigins = append(a.extraOrigins, strings.TrimRight(origin, "/"))
+	a.extraOrigins = append(a.extraOrigins, norm)
 }
 
 // AllowTLSHost extends the automatic-HTTPS host whitelist.
@@ -74,7 +78,11 @@ func (a *App) AllowTLSHost(f func(host string) bool) {
 func (a *App) Origins() []string {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	out := []string{a.D.Cfg.Origin()}
+	var out []string
+	if canonical, ok := server.NormalizeOrigin(a.D.Cfg.Origin()); ok {
+		out = append(out, canonical)
+		out = append(out, server.LocalOriginAliases(canonical)...)
+	}
 	out = append(out, a.extraOrigins...)
 	// Local development origins for the Vite dev server.
 	if os.Getenv("RELAY_DEV") == "1" {

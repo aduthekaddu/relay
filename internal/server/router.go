@@ -3,8 +3,6 @@ package server
 import (
 	"context"
 	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/aduthekaddu/relay/internal/httpx"
 )
@@ -166,25 +164,23 @@ func (rt *Router) protect(h http.HandlerFunc, ws bool) http.Handler {
 }
 
 func (rt *Router) originAllowed(r *http.Request) bool {
-	if site := r.Header.Get("Sec-Fetch-Site"); site == "cross-site" {
+	sites := r.Header.Values("Sec-Fetch-Site")
+	if len(sites) > 1 {
 		return false
 	}
-	origin := r.Header.Get("Origin")
-	if origin == "" {
+	if len(sites) == 1 {
+		switch sites[0] {
+		case "none", "same-origin", "same-site":
+		default:
+			return false
+		}
+	}
+	origin, ok := BrowserOrigin(r)
+	if !ok {
 		// Browsers always send Origin on unsafe fetches and WS upgrades.
 		// A missing Origin with a cookie means a non-browser client
 		// replaying a cookie: refuse.
 		return false
 	}
-	o, err := url.Parse(origin)
-	if err != nil {
-		return false
-	}
-	norm := strings.ToLower(o.Scheme + "://" + o.Host)
-	for _, a := range rt.AllowedOrigins() {
-		if strings.EqualFold(strings.TrimRight(a, "/"), norm) {
-			return true
-		}
-	}
-	return false
+	return OriginInList(origin, rt.AllowedOrigins())
 }
