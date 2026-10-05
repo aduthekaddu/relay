@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import doc from '../../../docs/dev/API.md?raw'
-import { handle, match } from './handlers'
+import { handle, match, registry, resetMocks } from './handlers'
 
 // Every endpoint documented in docs/dev/API.md must have a mock handler, so
 // the next wave can build any screen with `pnpm dev:mock`.
@@ -38,9 +38,35 @@ describe('mock responses', () => {
     ['GET', '/api/v1/info', 200],
     ['GET', '/api/v1/terminals', 200],
     ['GET', '/api/v1/notifications', 200],
-    ['GET', '/api/v1/no-such-endpoint', 404],
   ])('%s %s → %i', async (method, path, status) => {
     const res = await handle(method, new URL(path, 'http://mock.invalid'), undefined)
     expect(res.status).toBe(status)
   })
 })
+
+beforeEach(() => resetMocks())
+afterEach(() => {
+  resetMocks()
+  vi.restoreAllMocks()
+})
+it('fails visibly for a missing HTTP registration instead of disguising it as a server 404', async () => {
+  const diagnostic = vi.spyOn(console, 'error').mockImplementation(() => {})
+  await expect(
+    handle('GET', new URL('/api/v1/no-such-endpoint', 'http://mock.invalid'), undefined),
+  ).rejects.toThrow('Missing HTTP handler')
+  expect(diagnostic).toHaveBeenCalledWith(expect.stringContaining('Missing HTTP handler'))
+})
+it.each(rows.filter((r) => r.ws))(
+  '$method $path has an explicit synthetic socket registration',
+  ({ path }) => {
+    expect(
+      registry
+        .inventory()
+        .filter((r) => r.transport === 'socket')
+        .some((r) => {
+          const expression = r.path.replace(/\{\w+\}/g, '[^/]+')
+          return new RegExp(`^${expression}$`).test(path)
+        }),
+    ).toBe(true)
+  },
+)

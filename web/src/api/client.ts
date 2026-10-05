@@ -26,6 +26,11 @@ export function onUnauthorized(fn: Listener): () => void {
   return () => unauthorizedListeners.delete(fn)
 }
 
+/** Mock/test teardown; a devtools fixture reset reloads the app afterwards. */
+export function resetUnauthorizedListeners(): void {
+  unauthorizedListeners.clear()
+}
+
 async function request<T>(method: string, path: string, body?: unknown, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = { Accept: 'application/json' }
   let payload: BodyInit | undefined

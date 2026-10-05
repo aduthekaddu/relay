@@ -5,7 +5,7 @@ import { before, DAY, HOUR, MIN, rng } from './util'
 
 const CORES = 8
 const GiB = 1024 ** 3
-const r = rng(42)
+let r = rng(42)
 
 /** Metrics at time `t` (ms): smooth waves + noise, so charts look alive. */
 export function metricsAt(t: number): Metrics {
@@ -125,3 +125,9 @@ export const processes: Process[] = NAMES.map(([name, cmd, prot], i) => ({
   terminal: ['claude', 'codex', 'gemini', 'zsh'].includes(name) ? `t_${name}` : undefined,
   protected: !!prot,
 }))
+
+const baselineProcesses = structuredClone(processes)
+export function resetSystem(): void {
+  r = rng(42)
+  processes.splice(0, processes.length, ...structuredClone(baselineProcesses))
+}

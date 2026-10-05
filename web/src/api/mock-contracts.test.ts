@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import * as db from '../mocks/data'
-import { handle } from '../mocks/handlers'
+import { handle, resetMocks } from '../mocks/handlers'
 import * as sockets from '../mocks/sockets'
 import type { FileJob } from './files'
 import type { CronPreview } from './notify'
@@ -10,7 +10,9 @@ import type { TerminalSession } from './types'
 const call = (method: string, path: string, body?: unknown) =>
   handle(method, new URL(`/api/v1/${path}`, 'http://mock.invalid'), body)
 
+beforeEach(() => resetMocks())
 afterEach(() => {
+  resetMocks()
   vi.useRealTimers()
   vi.restoreAllMocks()
 })
@@ -108,6 +110,7 @@ describe('authorized mock contract repair', () => {
     const job = response.json as FileJob
     expect(response.status).toBe(202)
     expect(job).toMatchObject({ op: 'copy', state: 'running', files: 0, totalFiles: 0 })
+    expect(job).not.toHaveProperty('endedAt')
     expect(emit).toHaveBeenCalledWith('files.job', job)
     const list = await call('GET', 'files/jobs')
     expect(list.json).toContainEqual(job)
@@ -116,6 +119,9 @@ describe('authorized mock contract repair', () => {
       'files.job',
       expect.objectContaining({ id: job.id, state: 'canceled' }),
     )
+    const canceled = (await call('GET', 'files/jobs')).json as FileJob[]
+    expect(canceled.find((item) => item.id === job.id)?.endedAt).toEqual(expect.any(String))
+    expect(job).not.toHaveProperty('endedAt')
     expect((await call('DELETE', `files/jobs/${job.id}`)).status).toBe(204)
     expect((await call('DELETE', 'files/jobs/fixture-unknown')).status).toBe(404)
   })
