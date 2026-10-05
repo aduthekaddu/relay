@@ -9,8 +9,11 @@ import { accepted, fail, newId, noContent, notFound, ok } from '../util'
 
 export default defineMockModule('files', (owner) => {
   const route = owner.http
-  const notInRoot = () => fail(403, 'outside_root', 'That path is outside the files root.')
-  const inRoot = (p: string | null) => fs.normalize(p).startsWith(db.HOME)
+  const notInRoot = () => fail(403, 'forbidden', 'That path is outside the files root.', { field: 'path' })
+  const inRoot = (p: string | null) => {
+    const path = fs.normalize(p)
+    return path === db.HOME || path.startsWith(`${db.HOME}/`)
+  }
 
   route('GET', '/files/list', (r) => {
     if (!inRoot(q(r, 'path'))) return notInRoot()

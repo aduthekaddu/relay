@@ -114,8 +114,7 @@ export default defineMockModule('auth', (owner) => {
       return fail(400, 'weak_password', 'Use at least 10 characters.', { field: 'next' })
     return noContent()
   })
-  let totpEnabled = db.auth.state.methods.totp
-  route('GET', '/auth/totp', () => ok({ enabled: totpEnabled }))
+  route('GET', '/auth/totp', () => ok({ enabled: db.auth.state.methods.totp }))
   route('POST', '/auth/totp/setup', () =>
     ok({
       secret: 'JBSWY3DPEHPK3PXP',
@@ -125,11 +124,11 @@ export default defineMockModule('auth', (owner) => {
   route('POST', '/auth/totp/enable', (r) => {
     if (body<{ code?: string }>(r).code !== '123456')
       return fail(400, 'bad_totp', 'That code didn’t work.', { field: 'code' })
-    totpEnabled = true
+    db.auth.state.methods.totp = true
     return noContent()
   })
   route('POST', '/auth/totp/disable', () => {
-    totpEnabled = false
+    db.auth.state.methods.totp = false
     return noContent()
   })
   route('GET', '/auth/sessions', () => ok(db.deviceSessions))
@@ -160,7 +159,4 @@ export default defineMockModule('auth', (owner) => {
     return noContent()
   })
   route('GET', '/auth/activity', (r) => ok(db.audit.slice(0, qn(r, 'limit', 50))))
-  owner.onReset(() => {
-    totpEnabled = db.auth.state.methods.totp
-  })
 })

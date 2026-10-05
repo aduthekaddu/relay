@@ -13,6 +13,16 @@ opening or producing desktop frames. A successful desktop-state HTTP fixture
 is not a successful desktop connection. Existing simplified credential, service,
 filesystem and provider fixtures remain synthetic approximations.
 
+Agent pages use numeric offsets as synthetic cursors; malformed offsets return
+the documented 400 error. Files listing checks the exact home path or a descendant
+boundary. Other fixture-tree operations remain simplified, without the server's
+realpath/symlink resolver. TOTP status and login use the same mutable auth setting.
+Upload starts sanitize basenames and return 201; completion checks received size,
+rechecks the destination, chooses a free filename and consumes the ID only after
+creation succeeds. The synthetic default directory remains `~/Downloads`, and
+no uploaded bytes are persisted to a host filesystem. Missing worktree branches
+return a 400 field error; successful worktrees are still synthetic descriptions.
+
 ## Inventory and ownership
 
 Before REL-034, `handlers.ts` contained the HTTP pattern table, first-match
@@ -171,4 +181,6 @@ independent registries, abort/loading/out-of-order responses and resets.
 state, streams/listeners/timers and event-client disconnect/reconnect. Existing
 route, event, timestamp and mock-contract suites retain REL-031 corrections and
 REL-032 absent timestamps, including omitted running `FileJob.endedAt`.
+`features.test.ts` covers the evaluated PR review regressions for path boundaries,
+pagination, TOTP/login consistency, upload failure/retry and missing branch input.
 All these checks are synthetic, including the event-client integration tests.

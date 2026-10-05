@@ -4,7 +4,7 @@ import * as fs from '../fs'
 import { body, q, qn } from '../helpers'
 import { defineMockModule } from '../registry'
 import { emit } from '../sockets'
-import { accepted, before, HOUR, noContent, notFound, ok } from '../util'
+import { accepted, before, fail, HOUR, noContent, notFound, ok } from '../util'
 
 export default defineMockModule('workspaces', (owner) => {
   const route = owner.http
@@ -112,10 +112,13 @@ export default defineMockModule('workspaces', (owner) => {
   route('POST', '/workspaces/git/push', () => accepted())
   route('POST', '/workspaces/git/pull', () => accepted())
   route('POST', '/workspaces/git/worktrees', (r) => {
-    const b = body<{ path: string; branch: string }>(r)
+    const b = body<{ path?: string; branch?: string }>(r)
+    if (typeof b.branch !== 'string' || !b.branch.trim())
+      return fail(400, 'bad_request', 'Invalid branch name', { field: 'branch' })
+    const branch = b.branch.trim()
     return ok({
-      path: `${fs.normalize(b.path)}-${b.branch.replace(/\W+/g, '-')}`,
-      branch: b.branch,
+      path: `${fs.normalize(b.path)}-${branch.replace(/\W+/g, '-')}`,
+      branch,
       head: 'e4f1a9c2b7',
       main: false,
     })

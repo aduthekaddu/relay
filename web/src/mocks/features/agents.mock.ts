@@ -19,7 +19,7 @@ export default defineMockModule('agents', (owner) => {
   route('GET', '/agents/sessions', (r) => {
     const agent = q(r, 'agent')
     const text = (q(r, 'q') ?? '').toLowerCase()
-    const cwd = q(r, 'cwd')
+    const cwd = q(r, 'cwd') ? fs.normalize(q(r, 'cwd')) : undefined
     const status = q(r, 'status') ?? 'all'
     const archived = q(r, 'archived') === '1'
     const pinned = q(r, 'pinned') === '1'
@@ -28,7 +28,7 @@ export default defineMockModule('agents', (owner) => {
       : db.agentSessions.filter(
           (s) =>
             (!agent || s.agent === agent) &&
-            (!cwd || s.cwd.startsWith(fs.normalize(cwd))) &&
+            (!cwd || s.cwd === cwd || s.cwd.startsWith(cwd === '/' ? '/' : `${cwd}/`)) &&
             (status === 'all' || s.status === status) &&
             s.archived === archived &&
             (!pinned || s.pinned) &&
@@ -39,7 +39,11 @@ export default defineMockModule('agents', (owner) => {
         Number(b.status === 'live') - Number(a.status === 'live') || b.updatedAt.localeCompare(a.updatedAt),
     )
     const limit = qn(r, 'limit', 30)
-    const start = Number(q(r, 'cursor') ?? 0)
+    const cursor = q(r, 'cursor') ?? ''
+    const start = Number(cursor)
+    // Numeric offsets are synthetic cursors; invalid input still follows the API's 400 contract.
+    if ((cursor !== '' && !/^\d+$/.test(cursor)) || !Number.isSafeInteger(start))
+      return fail(400, 'bad_request', 'Invalid cursor')
     const items = list.slice(start, start + limit)
     return ok({
       items,
