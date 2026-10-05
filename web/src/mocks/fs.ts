@@ -354,3 +354,10 @@ export function placeholderImage(path: string, size = 256): string {
     }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 256 256"><rect width="256" height="256" fill="hsl(${hue} 30% 12%)"/><g fill="hsl(${(hue + 30) % 360} 80% 70%)">${dots.join('')}</g></svg>`
 }
+
+const baselineTree = structuredClone(tree)
+export function resetFS(): void {
+  tree.clear()
+  for (const [path, node] of structuredClone(baselineTree)) tree.set(path, node)
+  trash.length = 0
+}

@@ -1,19 +1,10 @@
-// In-browser mock backend for UI work without a server (pnpm dev:mock).
-//
-//   VITE_MOCK=1 pnpm dev            → every /api/v1 call and socket is faked
-//   ?mock=signed-out | setup | totp  → auth scenarios (login screen)
-//   ?mock=empty                      → no terminals, sessions, notifications
-//   ?mock=offline                    → the events socket never connects
-//   ?mock=slow                       → 0.6–1.2 s latency (loading states)
-//   ?mock=live                       → a notification every 20 s
-//   ?mock=down                       → every API call fails (unreachable)
-// Modes combine with commas and stick for the tab (sessionStorage);
-// ?mock= (empty) resets. window.__relayMock exposes helpers in devtools.
-import { handle } from './handlers'
-import { DeadSocket, emit, FakeEvents, FakeLogs, FakeTerminal, liveNotification } from './sockets'
-import { has, latency, type MockMode, modes, setModes, sleep, toResponse } from './util'
+// Synthetic in-browser backend (VITE_MOCK=1). No server/provider/device proof.
+import { handle, registry, resetMocks } from './handlers'
+import { abortable, abortError, linkSignals } from './lifecycle'
+import { emit, liveNotification } from './sockets'
+import { has, latency, type MockMode, modes, setModes, toResponse } from './util'
 
-let installed = false
+let uninstall: (() => void) | undefined
 
 async function readBody(init: RequestInit | undefined, req: Request | null): Promise<unknown> {
   const b =
@@ -34,52 +25,80 @@ async function readBody(init: RequestInit | undefined, req: Request | null): Pro
   return b
 }
 
-/** Patch fetch and WebSocket (idempotent). */
-export function installMocks(): void {
-  if (installed) return
-  installed = true
-  const realFetch = window.fetch.bind(window)
+/** Idempotent installation; returned cleanup restores the exact original globals. */
+export function installMocks(): () => void {
+  if (uninstall) return uninstall
+  const realFetch = window.fetch
   const RealWS = window.WebSocket
+  const previousHelpers = Object.getOwnPropertyDescriptor(window, '__relayMock')
 
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const req = input instanceof Request ? input : null
     const url = new URL(req ? req.url : String(input), location.href)
-    if (url.origin !== location.origin || !url.pathname.startsWith('/api/v1/')) return realFetch(input, init)
+    if (url.origin !== location.origin || !url.pathname.startsWith('/api/v1/'))
+      return realFetch.call(window, input, init)
     const method = (init?.method ?? req?.method ?? 'GET').toUpperCase()
-    const signal = init?.signal ?? req?.signal
-    await sleep(latency())
-    if (signal?.aborted) throw new DOMException('The operation was aborted.', 'AbortError')
-    if (has('down')) throw new TypeError('Failed to fetch')
-    const res = await handle(method, url, await readBody(init, req))
-    if (signal?.aborted) throw new DOMException('The operation was aborted.', 'AbortError')
-    return toResponse(res)
+    const linked = linkSignals(registry.signal, init?.signal ?? req?.signal)
+    try {
+      if (linked.signal.aborted) throw abortError()
+      const body = await abortable(readBody(init, req), linked.signal)
+      if (linked.signal.aborted) throw abortError()
+      if (has('down')) throw new TypeError('Failed to fetch')
+      const result = await handle(method, url, body, linked.signal, latency())
+      // HEAD has GET admission and headers, with no response body or stream timer.
+      if (method === 'HEAD') {
+        const response = toResponse({ ...result, stream: undefined })
+        linked.dispose()
+        return new Response(null, { status: response.status, headers: response.headers })
+      }
+      if (result.stream) return toResponse(result, linked.signal, linked.dispose)
+      linked.dispose()
+      return toResponse(result)
+    } catch (error) {
+      linked.dispose()
+      throw error
+    }
   }
 
   const Patched = function (this: unknown, url: string | URL, protocols?: string | string[]) {
     const u = new URL(String(url), location.href)
-    const p = u.pathname
-    if (p === '/api/v1/events') return new FakeEvents(u.href)
-    if (/^\/api\/v1\/terminals\/[^/]+\/attach$/.test(p)) return new FakeTerminal(u.href)
-    if (p === '/api/v1/system/logs') return new FakeLogs(u.href)
-    if (p.startsWith('/api/v1/')) return new DeadSocket(u.href)
+    if (u.protocol === 'http:') u.protocol = 'ws:'
+    if (u.protocol === 'https:') u.protocol = 'wss:'
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
+    if (u.protocol === protocol && u.host === location.host && u.pathname.startsWith('/api/v1/'))
+      return registry.socket(u, protocols)
     return new RealWS(url, protocols)
   } as unknown as typeof WebSocket
   Object.assign(Patched, { CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 })
   Patched.prototype = RealWS.prototype
   window.WebSocket = Patched
 
-  const api = {
+  const helpers = {
+    synthetic: true,
     modes: () => [...modes],
-    /** e.g. __relayMock.mode('signed-out'); reloads the page. */
     mode: (...m: MockMode[]) => {
       setModes(m)
       location.reload()
     },
+    feature: (owner: string) => registry.feature(owner),
+    disconnect: (owner?: string) => registry.disconnect(owner),
+    reset: (...m: MockMode[]) => {
+      resetMocks(m)
+      location.reload()
+    },
+    inventory: () => registry.inventory(),
     notify: liveNotification,
     emit,
   }
-  ;(window as unknown as { __relayMock: typeof api }).__relayMock = api
-  console.info(
-    `[relay] mock backend on${modes.size ? ` (${[...modes].join(', ')})` : ''} — window.__relayMock for helpers`,
-  )
+  Object.defineProperty(window, '__relayMock', { configurable: true, value: helpers })
+  uninstall = () => {
+    resetMocks()
+    window.fetch = realFetch
+    window.WebSocket = RealWS
+    if (previousHelpers) Object.defineProperty(window, '__relayMock', previousHelpers)
+    else Reflect.deleteProperty(window, '__relayMock')
+    uninstall = undefined
+  }
+  console.info('[relay] synthetic mock backend on — window.__relayMock for owner controls; no live evidence')
+  return uninstall
 }

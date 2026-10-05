@@ -123,6 +123,16 @@ class LiveEvents {
     this.setStatus({ state: 'idle', failures: 0 })
   }
 
+  /** Test isolation: dispose the transport and all app-owned subscriptions/listeners. */
+  reset(): void {
+    this.disconnect()
+    this.handlers.clear()
+    this.statusFns.clear()
+    this.topics.clear()
+    this.factory = (url) => new WebSocket(url)
+    this.path = typeof location !== 'undefined' ? location.pathname : '/'
+  }
+
   /** Force an immediate reconnect attempt (e.g. "Retry now"). */
   reconnect(): void {
     if (!this.started) return
