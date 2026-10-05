@@ -52,7 +52,9 @@ func TestPathWebSocketOriginGuard(t *testing.T) {
 					r = r.WithContext(server.MarkLocal(r.Context()))
 				}
 				r.Header.Set("Origin", tt.origin)
-				r.Header.Set("Sec-Fetch-Site", tt.fetchSite)
+				if tt.fetchSite != "" {
+					r.Header.Set("Sec-Fetch-Site", tt.fetchSite)
+				}
 				w := httptest.NewRecorder()
 				h.h.ServeHTTP(w, r)
 				if w.Code != tt.want {
