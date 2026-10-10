@@ -24,6 +24,7 @@ relay.toml
 coverage.out
 # Verification evidence stays local.
 .proof/
+.pnpm-store/
 # Tool folders: share only project skills.
 .claude/*
 !.claude/skills/

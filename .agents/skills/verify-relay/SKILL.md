@@ -15,7 +15,7 @@ Read `references/features/README.md` first, then the feature file for the change
 
 ## Launch
 
-- `ctl up` builds the web UI and `bin/relay-verify`, writes an isolated `relay.toml`, and starts `relay serve`. It picks a free port in 47700-47799, puts all state under an isolated `RELAY_HOME` in `/tmp/rv<8 hex>`, and waits until GET /api/v1/health answers by polling. Running it twice reuses the live run.
+- `ctl up` builds the web UI and `bin/relay-verify`, writes an isolated `relay.toml`, and starts `relay serve`. It picks a free port in 47700-47799, puts all state under an isolated `RELAY_HOME` in `/tmp/rv<8 hex>`, and waits until GET /api/v1/health answers by polling. Running it twice reuses the live run. After the binary is linked, the build restores the tracked placeholder `internal/web/dist/index.html` so the worktree stays clean.
 - `ctl up --dry-run` prints what it would build and start.
 - Never start relay by hand for a proof run. The tool records the processes it owns, and only those get stopped.
 

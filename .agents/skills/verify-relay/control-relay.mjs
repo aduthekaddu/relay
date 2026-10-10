@@ -19,7 +19,10 @@ const CONFIG = {
   // Inclusive loopback port range reserved for verification, e.g. "47700-47799".
   portRange: '47700-47799',
   // Optional build run once by `up` in the repo root (sh -c). Empty skips it.
-  buildCmd: 'make web && go build -trimpath -o bin/relay-verify ./cmd/relay',
+  // make web rewrites the tracked placeholder index.html. The binary embeds
+  // the built file, then checkout puts the tree back so a proof stays clean.
+  // The store dir stays outside the repo when the default store is not writable.
+  buildCmd: 'NPM_CONFIG_STORE_DIR=/tmp/rv-pnpm-store make web && go build -trimpath -o bin/relay-verify ./cmd/relay && git checkout -- internal/web/dist/index.html',
   // Long-running processes `up` starts, in order. In cmd and buildCmd, {port} {home} {run}
   // {repo} become quoted references to CONTROL_PORT, CONTROL_HOME, CONTROL_RUN and
   // CONTROL_REPO, so paths with spaces or shell characters stay one argument; write them
