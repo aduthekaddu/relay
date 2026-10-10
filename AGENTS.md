@@ -44,3 +44,14 @@ contract; `web/src/api/types.ts` mirrors it field for field.
 `make check` (gofmt, vet, tsc, biome, tests) passes. Commits use
 conventional prefixes (`feat(terminal): …`, `fix(auth): …`, `docs: …`),
 small and focused. Describe user-visible changes in the body.
+
+<!-- verify-relay:begin -->
+## Proving changes
+
+- Prove behaviour on the running app with the `verify-relay` skill (`.agents/skills/verify-relay/SKILL.md`; `/verify-relay` in Claude Code and Grok, `$verify-relay` in Codex).
+- Read `.agents/skills/verify-relay/references/features/README.md` before driving. Update the feature file in the same PR when a user-visible path changes.
+- `make check` is necessary, not sufficient: a change is done when its recipe closes VERIFIED.
+- Evidence goes to `.proof/<UTC>-<slug>/` (gitignored) and must survive cleanup.
+- Never drive the user's real instance. Unset `RELAY_SOCKET`, `RELAY_SESSION` and `RELAY_CONFIG` first.
+- Stop only processes the control tool started (`node .agents/skills/verify-relay/control-relay.mjs down`), never by name.
+<!-- verify-relay:end -->

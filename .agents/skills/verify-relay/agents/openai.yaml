@@ -1,0 +1,3 @@
+interface:
+  display_name: "verify relay"
+  short_description: "Drive relay for real and record proof"

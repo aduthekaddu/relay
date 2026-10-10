@@ -22,3 +22,8 @@ relay.toml
 # tool artefacts
 .playwright-mcp/
 coverage.out
+# Verification evidence stays local.
+.proof/
+# Tool folders: share only project skills.
+.claude/*
+!.claude/skills/
